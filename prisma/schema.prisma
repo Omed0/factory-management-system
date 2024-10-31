@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id         Int      @id @default(autoincrement())
+  name       String
+  email      String   @unique
+  phone      String?
+  password   String
+  image      String?
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+model PurchasesInfo {
+  id                BigInt          @id @default(autoincrement())
+  companyPurchaseId BigInt
+  amount            Float
+  date              DateTime
+  note              String
+  companyPurchase   CompanyPurchase @relation(fields: [companyPurchaseId], references: [id], onDelete: Cascade)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([companyPurchaseId], name: "purchases_info_company_purchase_id_index")
+}
+
+model PaidLoans {
+  id       BigInt   @id @default(autoincrement())
+  saleId   BigInt
+  amount   Float
+  paidDate DateTime
+  note     String?
+  sale     Sales    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([saleId], name: "paid_loans_sale_id_index")
+}
+
+model Expenses {
+  id         BigInt   @id @default(autoincrement())
+  title      String
+  note       String?
+  amount     Float
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+model Employee {
+  id          Int               @id @default(autoincrement())
+  name        String
+  phone       String?
+  address     String?
+  image       String?
+  monthSalary Float
+  actions     EmployeeActions[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+model EmployeeActions {
+  id         BigInt             @id @default(autoincrement())
+  type       EmployeeActionType @default(ABSENT)
+  amount     Float?
+  note       String?
+  dateAction DateTime
+  employeeId Int
+  employee   Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([employeeId], name: "employee_actions_employee_id_index")
+}
+
+model CompanyPurchase {
+  id             BigInt              @id @default(autoincrement())
+  companyId      Int
+  totalAmount    Float
+  totalRemaining Float               @default(0)
+  type           CompanyPurchaseType @default(CASH)
+  note           String?
+  purchaseDate   DateTime
+  company        Companies           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchasesInfo  PurchasesInfo[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+
+  @@index([companyId], name: "company_purchase_company_id_index")
+}
+
+model Boxes {
+  id     BigInt @id @default(autoincrement())
+  amount Float  @default(0)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+}
+
+model Sales {
+  id             BigInt     @id @default(autoincrement())
+  customerId     Int?
+  saleNumber     String
+  totalAmount    Float
+  totalRemaining Float      @default(0)
+  saleType       SaleType   @default(CASH)
+  discount       Float      @default(0)
+  prepayment     Float      @default(0)
+  monthlyPaid    Float      @default(0)
+  isFinished     Boolean    @default(false)
+  deleted_at     DateTime?
+  customer       Customers? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  paidLoans PaidLoans[]
+  saleItems SaleItems[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([customerId], name: "sales_customer_id_index")
+}
+
+model Customers {
+  id      Int     @id @default(autoincrement())
+  name    String
+  phone   String
+  address String
+  sales   Sales[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+model Products {
+  id        BigInt      @id @default(autoincrement())
+  name      String
+  price     Float
+  image     String?
+  unitType  UnitType    @default(PIECE)
+  saleItems SaleItems[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+model SaleItems {
+  id        BigInt    @id @default(autoincrement())
+  saleId    BigInt
+  productId BigInt?
+  price     Float
+  quantity  Int
+  sale      Sales     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Products? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([saleId], name: "sale_items_sale_id_index")
+  @@index([productId], name: "sale_items_product_id_index")
+}
+
+model Companies {
+  id        Int               @id @default(autoincrement())
+  name      String
+  phone     String
+  address   String
+  purchases CompanyPurchase[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+enum CompanyPurchaseType {
+  LOAN
+  CASH
+}
+
+enum SaleType {
+  CASH
+  LOAN
+}
+
+enum EmployeeActionType {
+  PUNISHMENT
+  BONUS
+  ABSENT
+  OVERTIME
+}
+
+enum UnitType {
+  METER
+  PIECE
+}
