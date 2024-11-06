@@ -1,8 +1,15 @@
 "use client"
 
-import { Edit, History, Info, MoreHorizontalIcon } from "lucide-react"
+import { Edit, MoreHorizontalIcon } from "lucide-react"
 import { Row } from "@tanstack/react-table"
 
+import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
+import { useState } from "react"
+import DeleteModal from "@/components/delete-modal"
+import useSetQuery from "@/hooks/useSetQuery"
+import RestorModal from "@/components/restore-modal"
+import { OneExpense } from "@/server/schema/expense"
+import AddExpense from "./add-expense"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -10,20 +17,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
-import AddEmployee from "./add-employee"
-import { OneEmployee } from "@/server/schema/employee"
-import { useState } from "react"
-import DeleteModal from "@/components/delete-modal"
-import useSetQuery from "@/hooks/useSetQuery"
-import EmployeeInfoActions from "./employee-info-actions"
-import RestorModal from "@/components/restore-modal"
-import { deleteEmployeeActions, forceDeleteEmployeeActions, restoreEmployeeActions } from "@/actions/employee"
+import { deleteCompanyActions, forceDeleteCompanyActions, restoreCompanyActions } from "@/actions/company"
 
 
 export function DataTableRowActions({
   row
-}: { row: Row<OneEmployee> }) {
+}: { row: Row<OneExpense> }) {
   const { searchParams } = useSetQuery()
   const isTrash = searchParams.get("status") === "trash"
 
@@ -45,11 +44,11 @@ export function DataTableRowActions({
       <DropdownMenuContent align="end" className="w-[160px] m-2">
         {isTrash ? (
           <RestorModal
-            description="دڵنیای لە هێنانەوەی ئەم کارمەندە"
-            restorKey={rowData.id}
+            description="دڵنیای لە هێنانەوەی ئەم خەرجیە"
+            restorKey={Number(rowData.id)}
             classNameButton="w-full h-9"
-            action={restoreEmployeeActions}
-            title={`${rowData.name}`}
+            action={restoreCompanyActions}
+            title={`${rowData.title}`}
           />
         ) : (
           <CustomDialogWithTrigger
@@ -64,29 +63,21 @@ export function DataTableRowActions({
             </Button>}
           >
             <section className="w-full p-4">
-              <AddEmployee title="زیادکردن کارمەند" employee={{ ...rowData } as OneEmployee} />
+              <AddExpense
+                title="زیادکردن خەرجی"
+                expense={{ ...rowData } as OneExpense}
+                handleClose={() => setDropdownOpen(false)}
+              />
             </section>
           </CustomDialogWithTrigger>
         )}
-        <CustomDialogWithTrigger
-          button={
-            <Button className="w-full h-9" variant="ghost">
-              <Info className="size-5 me-2" />
-              زانیاری مووچە
-            </Button>
-          }
-        >
-          <section className="w-full p-4">
-            <EmployeeInfoActions empId={rowData.id} name={rowData.name} />
-          </section>
-        </CustomDialogWithTrigger>
         <DropdownMenuSeparator />
         <DeleteModal
-          description={`${isTrash ? "ئەم کارمەندە بە تەواوی دەسڕێتەوە" : 'دڵنیایی لە ئەرشیفکردنی ئەم کارمەندە'}`}
-          submit={isTrash ? forceDeleteEmployeeActions : deleteEmployeeActions}
+          description={`${isTrash ? "ئەم خەرجییە بە تەواوی دەسڕێتەوە" : 'دڵنیایی لە ئەرشیفکردنی ئەم خەرجییە'}`}
+          submit={isTrash ? forceDeleteCompanyActions : deleteCompanyActions}
           classNameButton="bg-red-500 text-white w-full h-9"
-          title={`${rowData.name}`}
-          deleteKey={rowData.id}
+          title={`${rowData.title}`}
+          deleteKey={Number(rowData.id)}
           isTrash={isTrash}
         />
       </DropdownMenuContent>

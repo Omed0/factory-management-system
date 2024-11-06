@@ -11,9 +11,9 @@ export const tryCatch = async <T>(fn: () => Promise<T>): Promise<T | { error: st
     try {
         return await fn();
     } catch (error) {
-        if (error instanceof ZodError) return { error: error.message };
+        if (error instanceof ZodError) return { error: "تکایە داتای هەڵەداخلی سیستەمەکە مەکە" };
         if (error instanceof PrismaClientKnownRequestError)
-            return { error: error.message };
+            return { error: "هەڵەیەک لە داتابەیس هەیە" };
         if (error instanceof Error) return { error: error.message };
         return { error: 'هەڵەیەک هەیە' };
     }

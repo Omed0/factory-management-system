@@ -5,6 +5,7 @@ export type CreateEmployee = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployee = z.infer<typeof updateEmployeeSchema>;
 export type GetOneEmployee = z.infer<typeof getOneEmployeeSchema>;
 export type DeleteEmployee = z.infer<typeof deleteEmployeeSchema>;
+export type UpdateEmployeeAction = z.infer<typeof updateEmployeeActionSchema>;
 export type OneEmployee = Employee;
 export type ListEmployee = Employee[];
 
@@ -15,6 +16,14 @@ export const createEmployeeSchema = z.object({
     monthSalary: z.number().min(1, 'بڕی پارەکەت با لە یەک کەمترنەبێ').positive(),
     phone: z.string().min(6).max(16),
     image: z.any().optional(),
+});
+
+export const updateEmployeeActionSchema = z.object({
+    employeeId: z.coerce.number(),
+    type: z.nativeEnum(EmployeeActionType),
+    amount: z.coerce.number().nonnegative(),
+    note: z.string().optional(),
+    dateAction: z.date(),
 });
 
 export const updateEmployeeSchema = createEmployeeSchema.partial();
@@ -36,13 +45,17 @@ export const createEmployeeActionSchema = z.object({
     amount: z.coerce.number().nonnegative(),
     note: z.string().optional(),
     dateAction: z.date(),
-    employee_id: z.coerce.number(),
+    employeeId: z.coerce.number(),
 });
 
 export const getEmployeeActionsSpecificTimeSchema = z.object({
     id: z.coerce.number(),
     startOfMonth: z.date(),
     endOfMonth: z.date(),
+});
+
+export const deleteEmployeeActionSchema = z.object({
+    id: z.coerce.number(),
 });
 
 export type CreateEmployeeAction = z.infer<typeof createEmployeeActionSchema>

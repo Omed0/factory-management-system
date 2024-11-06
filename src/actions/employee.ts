@@ -4,33 +4,38 @@ import {
     getEmployeeActionsSpecificTime, createEmployee,
     updateEmployee, deleteManyEmployees, restoreManyEmployees,
     forceDeleteManyEmployees, getEmployeesList, getOneEmployee,
-    createEmployeeAction
+    createEmployeeAction,
+    updateEmployeeAction,
+    deleteEmployeeAction
 } from "@/server/access-layer/employee"
-import { CreateEmployee, CreateEmployeeAction, UpdateEmployee } from "@/server/schema/employee"
-import { EmployeeActionType } from "@prisma/client"
+import { CreateEmployee, CreateEmployeeAction, UpdateEmployee, UpdateEmployeeAction } from "@/server/schema/employee"
 import { revalidatePath } from "next/cache"
 
 
 export async function getOneEmployeeActions(id: number) {
     const employee = await getOneEmployee(id)
 
-    if (employee === null) {
-        return { error: "Employee not found" }
+    if (employee === null || "error" in employee) {
+        return { success: false, message: employee?.error }
     }
 
-    return employee
+    return { success: true, data: employee }
 }
 
 export async function getEmployeesListActions() {
     const employees = await getEmployeesList()
-
-    return employees
+    if ("error" in employees) {
+        return { success: false, message: employees.error }
+    }
+    return { success: true, data: employees }
 }
 
 export async function getEmployeesListTrashedActions() {
     const employees = await getEmployeesList(true)
-
-    return employees
+    if ("error" in employees) {
+        return { success: false, message: employees.error }
+    }
+    return { success: true, data: employees }
 }
 
 export async function createEmployeeActions(dataEmployee: CreateEmployee) {
@@ -113,22 +118,39 @@ export async function forceDeleteManyEmployeeActions(ids: number[]) {
     }
 }
 
-export async function createEmployeeActionActions(id: number, dataEmployeeAction: CreateEmployeeAction) {
-    const employee = await createEmployeeAction(id, dataEmployeeAction)
+export async function createEmployeeActionActions(dataEmployeeAction: CreateEmployeeAction) {
+    const employee = await createEmployeeAction(dataEmployeeAction)
     if ("error" in employee) return { success: false, message: employee.error }
-    revalidatePath("/employee")
     return {
         success: true,
         message: "سەرکەوتوبوو",
     }
 }
 
+export async function updateEmployeeActionActions(id: number, dataEmployeeAction: UpdateEmployeeAction) {
+    const employee = await updateEmployeeAction(id, dataEmployeeAction)
+    if ("error" in employee) return { success: false, message: employee.error }
+    revalidatePath("/employee")
+    return {
+        success: true,
+        message: "نوێکرایەوە",
+    }
+}
 
 export async function getEmployeeActionActions(empId: number, { startOfMonth, endOfMonth }:
     { startOfMonth: Date, endOfMonth: Date }) {
     const employeeActions = await getEmployeeActionsSpecificTime(empId, { startOfMonth, endOfMonth })
 
     if ("error" in employeeActions) throw new Error(employeeActions.error)
-
     return employeeActions
+}
+
+export async function deleteEmployeeActionActions(id: number) {
+    const employee = await deleteEmployeeAction(id)
+    if ("error" in employee) return { success: false, message: employee.error }
+    revalidatePath("/employee")
+    return {
+        success: true,
+        message: "سڕایەوە بە تەواوی",
+    }
 }

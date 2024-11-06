@@ -55,11 +55,11 @@ export default function RestorModal({ restorKey, onClose, action,
                             toast.info(message)
                             handleChange()
                             return
-                        } else {
-                            return toast.error(message)
                         }
+                        toast.error(message)
+                        return
                     }
-                    return toast.error("ئەم داتایە نەدۆزرایەوە");
+                    toast.error("ئەم داتایە نەدۆزرایەوە")
                 }}
                 className="w-full flex flex-col gap-4"
             >

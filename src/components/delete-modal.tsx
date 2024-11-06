@@ -10,14 +10,14 @@ import CustomDialogWithTrigger from "./layout/custom-dialog-trigger";
 type DialogModalProps = {
     deleteKey: number
     onClose?: () => void
-    action: (id: number) => Promise<{ message: string, success: boolean }>
+    submit: (id: number) => Promise<{ message: string, success: boolean }>
     classNameButton?: string
     title?: string
     description?: string,
     isTrash?: boolean
 };
 
-export default function DeleteModal({ deleteKey, onClose, action, classNameButton, title, description, isTrash }: DialogModalProps) {
+export default function DeleteModal({ deleteKey, onClose, submit, classNameButton, title, description, isTrash }: DialogModalProps) {
     const [open, setOpen] = useState(false);
 
     const handleChange = () => {
@@ -39,7 +39,6 @@ export default function DeleteModal({ deleteKey, onClose, action, classNameButto
             </Button>}
             className="flex flex-col py-10 px-12 md:max-w-xl overflow-hidden"
         >
-
             <DialogHeader>
                 <DialogTitle>
                     <span className="w-fit block mx-auto p-2 bg-red-200/80 rounded-full">
@@ -50,22 +49,22 @@ export default function DeleteModal({ deleteKey, onClose, action, classNameButto
             <form
                 action={async () => {
                     if (deleteKey) {
-                        const { message, success } = await action(deleteKey)
+                        const { message, success } = await submit(deleteKey)
                         if (success) {
                             toast.info(message)
                             handleChange()
                             return
-                        } else {
-                            return toast.error(message)
                         }
+                        toast.error(message)
+                        return
                     }
-                    return toast.error("ئەم داتایە نەدۆزرایەوە");
+                    toast.error("ئەم داتایە نەدۆزرایەوە")
                 }}
                 className="w-full flex flex-col gap-4"
             >
                 <div className="text-center space-y-2">
                     <h2 className="text-xl text-foreground">
-                        {isTrash ? "ئەرشیڤکردنی" : "سڕینەوەی"} {title ?? "ئەم داتایە"}
+                        {isTrash ? "سڕینەوەی" : "ئەرشیڤکردنی"} {title ?? "ئەم داتایە"}
                     </h2>
                     <p className="text-base text-foreground/60">
                         {description ?? "دڵنیای لە سڕینەوە ئەم داتایە..؟"}

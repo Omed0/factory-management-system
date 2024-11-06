@@ -21,8 +21,8 @@ export default async function Employee({ searchParams }: Props) {
         employees = await getEmployeesListActions()
     }
 
-    if ("error" in employees) {
-        return <div>{employees.error as string}</div>
+    if (!employees.success) {
+        return <div>{employees.message}</div>
     }
 
     return (
@@ -48,7 +48,7 @@ export default async function Employee({ searchParams }: Props) {
             </div>
             <DataTable
                 columns={columns}
-                data={employees}
+                data={employees.data!}
             />
         </section>
     )

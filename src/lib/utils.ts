@@ -20,8 +20,12 @@ export function removeEmpty(obj: any) {
 
 
 export function getMonthStartAndEndOfMonth(date: Date) {
-    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 2);
+    startOfMonth.setUTCHours(0, 0, 0, 0);
+
+    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    endOfMonth.setUTCHours(23, 59, 59, 999);
+
     return { startOfMonth, endOfMonth }
 }
 

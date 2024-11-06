@@ -1,6 +1,7 @@
 "use client"
 
-import { getEmployeeActionActions } from "@/actions/employee"
+import { deleteEmployeeActionActions, getEmployeeActionActions } from "@/actions/employee"
+import { Badge } from "@/components/ui/badge"
 import {
     Table,
     TableBody,
@@ -13,20 +14,28 @@ import {
 import useSetQuery from "@/hooks/useSetQuery"
 import { getMonthStartAndEndOfMonth } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
+import EditTableAction from "./edit-table-action"
+import { UpdateEmployeeAction } from "@/server/schema/employee"
+import { Trash } from "lucide-react"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
 
 type Props = {
     empId: number
+    name: string
 }
 
 
-export default function EmployeeInfoActions({ empId }: Props) {
+export default function EmployeeInfoActions({ empId, name }: Props) {
     const { searchParams } = useSetQuery()
     const date = searchParams.get("date")?.split("&")
     const isIQD = searchParams.get("currency") === "IQD"
 
-    const dateQuery = date ? getMonthStartAndEndOfMonth(new Date(date?.[0])) : getMonthStartAndEndOfMonth(new Date())
-    const { data: employeeActions, isLoading, error, isError } = useQuery({
-        queryKey: ["employeeActions", empId],
+    const dateQuery = date && date?.length > 0 ?
+        getMonthStartAndEndOfMonth(new Date(date?.[0])) : getMonthStartAndEndOfMonth(new Date())
+
+    const { data: employeeActions, isLoading, error, isError, refetch } = useQuery({
+        queryKey: ["employeeActions", String(empId)],
         queryFn: async () => await getEmployeeActionActions(empId, dateQuery),
         enabled: !!empId
     })
@@ -36,8 +45,13 @@ export default function EmployeeInfoActions({ empId }: Props) {
     return (
         <Table>
             <TableCaption>
-                {employeeActions?.length === 0 && "هیچ داتایەکی نییە"}
-                {isLoading && "چاوەڕوانبە..."}
+                {employeeActions?.length === 0 && name ? (
+                    <p className="text-inherit">{name} هیچ داتایەکی نییە</p>
+                ) : (
+                    <Badge variant="outline" className="text-md font-semibold">
+                        {name}
+                    </Badge>
+                )}
             </TableCaption>
             <TableHeader>
                 <TableRow>
@@ -53,7 +67,29 @@ export default function EmployeeInfoActions({ empId }: Props) {
                         <TableCell>{action.type}</TableCell>
                         <TableCell>{action.amount}</TableCell>
                         <TableCell>{new Date(action.dateAction).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">{action.note}</TableCell>
+                        <TableCell className="max-w-96 text-wrap">
+                            {action.note}
+                        </TableCell>
+                        <TableCell className="text-end flex items-center justify-end gap-10">
+                            <EditTableAction
+                                id={action.id}
+                                key={action.id}
+                                infoAction={{ ...action } as UpdateEmployeeAction}
+                            />
+                            <form action={async () => {
+                                const { success, message } = await deleteEmployeeActionActions(action.id)
+                                if (!success) {
+                                    toast.error(message)
+                                    return
+                                }
+                                toast.success(message)
+                                refetch()
+                            }}>
+                                <Button variant="destructive" size="icon" className="border">
+                                    <Trash className="size-5" />
+                                </Button>
+                            </form>
+                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>

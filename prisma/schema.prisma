@@ -25,7 +25,7 @@ model PurchasesInfo {
   companyPurchaseId BigInt
   amount            Float
   date              DateTime
-  note              String
+  note              String?
   companyPurchase   CompanyPurchase @relation(fields: [companyPurchaseId], references: [id], onDelete: Cascade)
 
   updated_at DateTime @updatedAt
@@ -75,9 +75,9 @@ model Employee {
 }
 
 model EmployeeActions {
-  id         BigInt             @id @default(autoincrement())
+  id         Int                @id @default(autoincrement())
   type       EmployeeActionType @default(ABSENT)
-  amount     Float?
+  amount     Float
   note       String?
   dateAction DateTime
   employeeId Int
@@ -91,6 +91,7 @@ model EmployeeActions {
 
 model CompanyPurchase {
   id             BigInt              @id @default(autoincrement())
+  name           String
   companyId      Int
   totalAmount    Float
   totalRemaining Float               @default(0)

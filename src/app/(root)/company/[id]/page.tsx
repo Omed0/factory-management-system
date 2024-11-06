@@ -1,30 +1,32 @@
 import { PlusCircleIcon } from "lucide-react"
 
-import { getCompanyListActions } from "@/actions/company"
+import { getCompanyListPurchaseActions } from "@/actions/company"
 import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
 import { Button } from "@/components/ui/button"
 import { Users } from "lucide-react"
-import { columns } from "./_component/columns"
-import AddCompany from "./_component/add-company"
-import { DataTable } from "./_component/data-table"
+import AddPurchase from "../_component/add-purchase"
+import { DataTable } from "../_component/data-table"
+import { column_purchase } from "../_component/column-purchase"
 
 type Props = {
     searchParams: {
         status: "trash" | "active"
     }
+    params: {
+        id: string
+    }
 }
 
-export default async function Company({ searchParams }: Props) {
+export default async function SpecificCompany({ searchParams, params }: Props) {
     const isTrash = searchParams.status === "trash"
-    let companies
-    if (isTrash) {
-        companies = await getCompanyListActions(true)
-    } else {
-        companies = await getCompanyListActions()
-    }
+    const companyPurchase = await getCompanyListPurchaseActions(Number(params.id), isTrash)
 
-    if (!companies.success) {
-        return <div>{companies.message}</div>
+    if (!companyPurchase.success) {
+        return <div className="w-full h-full flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-2">
+                <h1 className="text-lg font-medium">{companyPurchase.message}</h1>
+            </div>
+        </div>
     }
 
     return (
@@ -33,24 +35,24 @@ export default async function Company({ searchParams }: Props) {
                 <div className="flex items-center gap-2">
                     <Users className="size-5" />
                     <h1 className="text-lg font-medium">
-                        {isTrash ? "کۆمپانیا ئەرشیفکراوەکان" : "کۆمپانیا بەردەستەکان"}
+                        {isTrash ? "کڕدراوە ئەرشیفکراوەکان" : "کڕدراوە بەردەستەکان"}
                     </h1>
                 </div>
                 <CustomDialogWithTrigger
                     button={
                         <Button>
                             <PlusCircleIcon className="me-2 h-4 w-4" />
-                            کۆمپانیا
+                            کڕین
                         </Button>}
                 >
                     <section className="w-full p-4">
-                        <AddCompany title="زیادکردنی کۆمپانیا" />
+                        <AddPurchase title="زیادکردنی کڕین" />
                     </section>
                 </CustomDialogWithTrigger>
             </div>
             <DataTable
-                columns={columns}
-                data={companies.data ?? []}
+                columns={column_purchase as any[]}
+                data={companyPurchase.data ?? []}
             />
         </section>
     )

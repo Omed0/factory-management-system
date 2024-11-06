@@ -1,8 +1,9 @@
 "use client"
 
 import {
-  Archive, ArchiveIcon, CalendarClock, CircleX, HandCoins, History,
-  ShieldCheck, SlidersHorizontal, Trash, ClockArrowUp
+  Archive, ArchiveIcon, CircleX, History,
+  PlusCircleIcon,
+  ShieldCheck, SlidersHorizontal, Trash
 } from "lucide-react"
 import { Table } from "@tanstack/react-table"
 
@@ -13,7 +14,6 @@ import {
   DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem
 } from "@/components/ui/dropdown-menu"
 import useSetQuery from "@/hooks/useSetQuery"
-import RowButtonAction from "./row-button-action"
 import Link from "next/link"
 import {
   deleteManyEmployeeActions, forceDeleteManyEmployeeActions,
@@ -21,7 +21,10 @@ import {
 } from "@/actions/employee"
 import { toast } from "sonner"
 import { OneEmployee } from "@/server/schema/employee"
-import React from "react"
+import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
+import AddExpense from "./add-expense"
+import { OneExpense } from "@/server/schema/expense"
+import { deleteManyExpensesActions, forceDeleteManyExpensesActions, restoreManyExpensesActions } from "@/actions/expense"
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -38,30 +41,36 @@ export function DataTableToolbar<TData>({
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center gap-4">
         <Input
-          placeholder="بگەڕێ بۆ كارمەندەکان..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+          placeholder="بگەڕێ بۆ خەرجیەکان..."
+          value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
-            table.getColumn("name")?.setFilterValue(event.target.value)
+            table.getColumn("title")?.setFilterValue(event.target.value)
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
         <DropdownMenuMoreAction isSelected={isSelected} isTrash={isTrash} table={table} />
         <Button variant={isTrash ? "default" : "outline"} size="sm" className="h-8 lg:flex" asChild>
-          <Link href="/employee?status=trash" replace>
+          <Link href="/expense?status=trash" replace>
             <Archive className="size-4" />
           </Link>
         </Button>
         <Button variant={isTrash ? "outline" : "default"} size="sm" className="h-8 lg:flex" asChild>
-          <Link href="/employee" replace>
+          <Link href="/expense" replace>
             <ShieldCheck className="size-4" />
           </Link>
         </Button>
       </div>
-      <div className="flex items-center gap-4">
-        {buttonAction.map((item) => (
-          <RowButtonAction table={table} item={item} key={item.type} />
-        ))}
-      </div>
+      <CustomDialogWithTrigger
+        button={
+          <Button>
+            <PlusCircleIcon className="me-2 h-4 w-4" />
+            زیادکردن
+          </Button>}
+      >
+        <section className="w-full p-4">
+          <AddExpense title="زیادکردن خەرجی" />
+        </section>
+      </CustomDialogWithTrigger>
     </div>
   )
 }
@@ -69,7 +78,7 @@ export function DataTableToolbar<TData>({
 
 function DropdownMenuMoreAction<TData>({ isSelected, isTrash, table }:
   { isSelected: boolean, isTrash: boolean, table: Table<TData> }) {
-  const ids = table.getSelectedRowModel().rows.map(row => row.original as OneEmployee).map(employee => employee.id)
+  const ids = table.getSelectedRowModel().rows.map(row => row.original as OneExpense).map(expense => Number(expense.id))
 
   return (
     <DropdownMenu>
@@ -84,7 +93,7 @@ function DropdownMenuMoreAction<TData>({ isSelected, isTrash, table }:
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[150px] m-2">
         <DropdownMenuLabel className="text-sm font-medium">
-          {!isSelected ? "کارمەند دیاریبکە" : "کرادارەکان"}
+          {!isSelected ? "خەرجی دیاریبکە" : "خەرجییەکان"}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!isSelected} onClick={() => table.resetRowSelection(true)}>
@@ -93,7 +102,7 @@ function DropdownMenuMoreAction<TData>({ isSelected, isTrash, table }:
         </DropdownMenuItem>
         {isTrash && (
           <DropdownMenuItem className="text-muted-foreground" disabled={!isSelected}>
-            <DynamicForm id_form="archive-all" ids={ids} action={restoreManyEmployeeActions}>
+            <DynamicForm id_form="archive-all" ids={ids} action={restoreManyExpensesActions}>
               <History className="h-4 w-4" />
               گەڕاندنەوەی هەمووی
             </DynamicForm>
@@ -102,12 +111,12 @@ function DropdownMenuMoreAction<TData>({ isSelected, isTrash, table }:
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!isSelected} className="text-red-500">
           {isTrash ? (
-            <DynamicForm id_form="archive-all" ids={ids} action={forceDeleteManyEmployeeActions}>
+            <DynamicForm id_form="archive-all" ids={ids} action={forceDeleteManyExpensesActions}>
               <Trash className="h-4 w-4" />
               سڕینەوەی هەمووی
             </DynamicForm>
           ) : (
-            <DynamicForm id_form="archive-all" ids={ids} action={deleteManyEmployeeActions}>
+            <DynamicForm id_form="archive-all" ids={ids} action={deleteManyExpensesActions}>
               <ArchiveIcon className="h-4 w-4" />
               ئەرشیفکردن
             </DynamicForm>
@@ -144,30 +153,3 @@ function DynamicForm({
     </form>
   )
 }
-
-const buttonAction = [
-  {
-    name: "سزادان",
-    icon: History,
-    title: "سزادانی کارمەند",
-    type: "PUNISHMENT" as const,
-  },
-  {
-    name: "پاداشت",
-    icon: HandCoins,
-    title: "پاداشتی کارمەند",
-    type: "BONUS" as const,
-  },
-  {
-    name: "مۆڵەت",
-    icon: CalendarClock,
-    title: "مۆڵەتی کارمەند",
-    type: "ABSENT" as const,
-  },
-  {
-    name: "کارکردنی زیادە",
-    icon: ClockArrowUp,
-    title: "کارکردنی زیادەی کارمەند",
-    type: "OVERTIME" as const,
-  }
-]

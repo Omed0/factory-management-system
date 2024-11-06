@@ -7,7 +7,10 @@ import {
     CreateEmployeeAction, createEmployeeSchema,
     deleteManyEmployeesSchema,
     getEmployeeActionsSpecificTimeSchema,
-    UpdateEmployee, updateEmployeeSchema
+    UpdateEmployee, updateEmployeeSchema,
+    updateEmployeeActionSchema,
+    UpdateEmployeeAction,
+    deleteEmployeeActionSchema
 } from '../schema/employee';
 
 
@@ -89,39 +92,77 @@ export async function getEmployeeCount() {
     })
 }
 
-export async function createEmployeeAction(id: number, dataEmployeeAction: CreateEmployeeAction) {
-    const isIncrease = ["BONUS", "OVERTIME"].includes(dataEmployeeAction.type)
-
+export async function createEmployeeAction(dataEmployeeAction: CreateEmployeeAction) {
     return tryCatch(async () => {
         const data = createEmployeeActionSchema.parse(dataEmployeeAction)
-        const { employee, box } = await prisma.$transaction(async (tx) => {
-            const employee = await tx.employeeActions.create({
+        const isIncrease = ["BONUS", "OVERTIME"].includes(data.type)
+        const amount = isIncrease ? { increment: data.amount } : { decrement: data.amount }
+
+        const { employeeAction, box } = await prisma.$transaction(async (tx) => {
+            const employeeAction = await tx.employeeActions.create({
                 data: {
                     ...data,
-                    employeeId: id,
                     dateAction: new Date()
                 }
             })
             const box = await tx.boxes.update({
                 where: { id: 1 },
-                data: { amount: { increment: isIncrease ? data.amount : -data.amount } },
+                data: { amount },
                 select: { amount: true }
             })
-            return { employee, box }
+            return { employeeAction, box }
         })
-        return { employee, box }
+        return { employeeAction, box }
     })
 }
 
+export async function updateEmployeeAction(id: number, dataEmployeeAction: UpdateEmployeeAction) {
+    return tryCatch(async () => {
+        const data = updateEmployeeActionSchema.parse(dataEmployeeAction)
+        const employeeAction = await prisma.$transaction(async (tx) => {
+            const oldEmployeeAction = await tx.employeeActions.findUnique({ where: { id } })
+            if (!oldEmployeeAction) throw new Error("ئەم ئەرکە نەدۆزرایەوە")
+            await tx.boxes.update({
+                where: { id: 1 },
+                data: { amount: { increment: data.amount } }
+            })
+            const { employeeId, ...rest } = data
+            const updatedAction = await tx.employeeActions.update({
+                where: { id },
+                data: { ...rest, dateAction: new Date() },
+            })
+            await tx.boxes.update({
+                where: { id: 1 },
+                data: { amount: { decrement: data.amount } }
+            })
+            return updatedAction
+        })
+        return employeeAction
+    })
+}
+
+export async function deleteEmployeeAction(id: number) {
+    return tryCatch(async () => {
+        const data = deleteEmployeeActionSchema.parse({ id })
+        const deletedAction = await prisma.$transaction(async (tx) => {
+            const employeeAction = await tx.employeeActions.findUnique({ where: { id: data.id } })
+            if (!employeeAction) throw new Error("ئەم ئەرکە نەدۆزرایەوە")
+            await tx.boxes.update({
+                where: { id: 1 },
+                data: { amount: { increment: employeeAction.amount! } }
+            })
+            return await tx.employeeActions.delete({ where: { id: data.id } })
+        })
+        return deletedAction
+    })
+}
 
 export async function getEmployeeActionsSpecificTime(empId: number, { startOfMonth, endOfMonth }:
     { startOfMonth: Date, endOfMonth: Date }) {
     return tryCatch(async () => {
-
         const data = getEmployeeActionsSpecificTimeSchema.parse({ startOfMonth, endOfMonth, id: empId })
-
-        const startOfThisMonth = new Date(data.startOfMonth).toISOString();
-        const endOfThisMonth = new Date(data.endOfMonth).toISOString();
+        const startOfThisMonth = new Date(data.startOfMonth).toISOString()
+        const endOfThisMonth = new Date(data.endOfMonth).toISOString()
 
         const actions = await prisma.employeeActions.findMany({
             where: {
@@ -133,7 +174,7 @@ export async function getEmployeeActionsSpecificTime(empId: number, { startOfMon
                 employee: { deleted_at: null }
             },
         })
+
         return actions
     })
 }
-
