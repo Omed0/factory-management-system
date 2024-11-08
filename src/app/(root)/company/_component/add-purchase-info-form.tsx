@@ -16,21 +16,21 @@ type Props = {
     title: string;
     handleClose?: () => void;
     amountPeriod: number;
+    companyPurchaseId: number;
 }
 
-export default function AddCompanyPurchaseInfo({ title, handleClose, amountPeriod }: Props) {
+export default function AddCompanyPurchaseInfo({ title, handleClose, amountPeriod, companyPurchaseId }: Props) {
 
     const form = useForm<CreateCompanyPurchaseInfo>({
         mode: "onSubmit",
         resolver: zodResolver(createCompanyPurchaseInfoSchema),
         defaultValues: {
-            companyPurchaseId: 0,
+            companyPurchaseId,
             amount: 0,
             date: new Date(),
             note: "",
         },
     });
-
 
     async function onSubmit(values: CreateCompanyPurchaseInfo) {
         const purchaseInfoValues = await createCompanyPurchaseInfoActions(values)

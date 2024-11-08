@@ -17,11 +17,15 @@ import useSetQuery from "@/hooks/useSetQuery"
 import RestorModal from "@/components/restore-modal"
 import { OneCompanyPurchase } from "@/server/schema/company"
 import {
-    deleteCompanyPurchaseActions, deleteCompanyPurchaseInfoActions, forceDeleteCompanyPurchaseActions,
+    deleteCompanyPurchaseActions, deleteCompanyPurchaseInfoActions,
+    forceDeleteCompanyPurchaseActions,
     getListCompanyPurchaseInfoActions, restoreCompanyPurchaseActions
 } from "@/actions/company"
 import AddPurchase from "./add-purchase-form"
-import { Table, TableCaption, TableHead, TableRow, TableHeader, TableCell, TableBody } from "@/components/ui/table"
+import {
+    Table, TableCaption, TableHead, TableRow,
+    TableHeader, TableCell, TableBody
+} from "@/components/ui/table"
 import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@/components/ui/badge"
 import AddCompanyPurchaseInfo from "./add-purchase-info-form"
@@ -143,6 +147,7 @@ export function ModalTablePurchaseInfo(
 
     const { purchaseInfo, purchase } = data?.data!
     const totalPeriod = purchase?.totalAmount - purchase?.totalRemaining
+    const isFinish = purchase?.totalAmount === purchase?.totalRemaining
     const totalInfo = [
         { title: "کۆی قەرز", value: purchase?.totalAmount ?? 0 },
         { title: "کۆی دراوە", value: purchase?.totalRemaining ?? 0 },
@@ -151,24 +156,27 @@ export function ModalTablePurchaseInfo(
 
     return (
         <section className="flex-1">
-            <CustomDialogWithTrigger
-                className="p-4"
-                button={<Button>
-                    <Plus className="size-5 me-2" />
-                    زیادکردن
-                </Button>}
-                open={open}
-                onOpenChange={setOpen}
-            >
-                <AddCompanyPurchaseInfo
-                    amountPeriod={totalPeriod}
-                    title="زیادکردنی قیست"
-                    handleClose={() => {
-                        refetch()
-                        setOpen(false)
-                    }}
-                />
-            </CustomDialogWithTrigger>
+            {!isFinish && (
+                <CustomDialogWithTrigger
+                    className="p-4"
+                    button={<Button disabled={isFinish}>
+                        <Plus className="size-5 me-2" />
+                        زیادکردن
+                    </Button>}
+                    open={open}
+                    onOpenChange={setOpen}
+                >
+                    <AddCompanyPurchaseInfo
+                        companyPurchaseId={companyPurchaseId}
+                        amountPeriod={totalPeriod}
+                        title="زیادکردنی قیست"
+                        handleClose={() => {
+                            refetch()
+                            setOpen(false)
+                        }}
+                    />
+                </CustomDialogWithTrigger>
+            )}
             <Table className="w-full flex-1 mt-4">
                 <TableCaption className="my-6">
                     <div className="w-full flex flex-wrap justify-center items-center gap-4">
@@ -185,11 +193,11 @@ export function ModalTablePurchaseInfo(
                 <TableCaption>
                     {purchaseInfo.length === 0 ? "هیچ قیستێک نەدراوەتەوە"
                         : `${purchaseInfo.length === 1 ? "تەنها پێشەکی دراوە" :
-                            `جاری تر پارە دراوە${Number(purchaseInfo.length) - 1} پێشەکی لەگەڵ`}`}
+                            `${purchaseInfo.length} جار پارە دراوە`}`}
                 </TableCaption>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[100px]">ژمارە</TableHead>
+                        <TableHead className="w-[80px]">ژمارە</TableHead>
                         <TableHead>بڕ</TableHead>
                         <TableHead>بەروار</TableHead>
                         <TableHead className="text-center">تێبینی</TableHead>
@@ -199,7 +207,9 @@ export function ModalTablePurchaseInfo(
                 <TableBody>
                     {purchaseInfo.map((item) => (
                         <TableRow key={item.id}>
-                            <TableCell>{Number(item.id) === 1 ? "پێشەکی" : `${Number(item.id)}`}</TableCell>
+                            <TableCell className="w-[80px]">
+                                {Number(item.id) === 1 ? "پێشەکی" : `${Number(item.id)}`}
+                            </TableCell>
                             <TableCell>{item.amount}</TableCell>
                             <TableCell>{new Date(item.date).toLocaleDateString('en-US')}</TableCell>
                             <TableCell className="text-center text-wrap max-w-96">{item.note}</TableCell>

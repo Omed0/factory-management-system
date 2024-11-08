@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
-import { OneCompanyPurchase } from "@/server/schema/company";
+import { OneCompanyPurchase, UpdateCompanyPurchase } from "@/server/schema/company";
 import { toast } from "sonner";
 import {
     CreateCompanyPurchase, createCompanyPurchaseSchema,
@@ -25,23 +25,25 @@ type Props = {
     handleClose?: () => void;
 }
 
+type FormType<T extends boolean> = T extends true ? UpdateCompanyPurchase : CreateCompanyPurchase;
+
 export default function AddPurchase({ purchase, title, handleClose }: Props) {
     const isEdit = !!purchase;
     const params = useParams()
     const companyId = Number(params.id)
 
-    const form = useForm<CreateCompanyPurchase>({
+    const form = useForm<FormType<typeof isEdit>>({
         mode: "onSubmit",
         resolver: zodResolver(isEdit ? updateCompanyPurchaseSchema : createCompanyPurchaseSchema),
-        defaultValues: defaultValues(purchase, companyId),
+        defaultValues: defaultValues(purchase, companyId) as FormType<typeof isEdit>,
     });
 
     const type = form.watch("type");
 
-    async function onSubmit(values: CreateCompanyPurchase) {
+    async function onSubmit(values: FormType<typeof isEdit>) {
         let companyValues
         if (isEdit && purchase?.id) {
-            companyValues = await updateCompanyPurchaseActions({ ...values, id: Number(purchase.id) })
+            companyValues = await updateCompanyPurchaseActions(values as UpdateCompanyPurchase)
         } else {
             companyValues = await createCompanyPurchaseActions(values)
         }
@@ -59,6 +61,19 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
         <Form {...form}>
             <h2 className="text-lg font-medium text-center pt-1">{title}</h2>
             <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 flex flex-wrap gap-5 items-center">
+                {isEdit && (
+                    <FormField
+                        control={form.control}
+                        name="id"
+                        render={({ field }) => (
+                            <FormItem className="flex-1 basis-56 hidden" hidden>
+                                <FormControl>
+                                    <Input {...field} hidden />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                )}
                 <FormField
                     control={form.control}
                     name="name"
@@ -167,9 +182,8 @@ function defaultValues(values: Partial<OneCompanyPurchase>, companyId: number) {
         } else {
             values.purchaseDate = new Date()
         }
-        const { deleted_at, updated_at, company, created_at, id, ...rest } = values
-
-        return rest as CreateCompanyPurchase
+        values.id = (Number(values.id) ?? 0) as any
+        return values
     }
-    return { companyId, purchaseDate: new Date(), type: "CASH" } as CreateCompanyPurchase
+    return { companyId, purchaseDate: new Date(), type: "CASH" }
 }
