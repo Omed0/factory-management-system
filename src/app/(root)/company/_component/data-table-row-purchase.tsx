@@ -1,13 +1,12 @@
 "use client"
 
-import { Edit, Info, MoreHorizontalIcon, Table } from "lucide-react"
+import { Edit, Info, MoreHorizontalIcon, Plus, Trash } from "lucide-react"
 import { type Row } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -18,12 +17,15 @@ import useSetQuery from "@/hooks/useSetQuery"
 import RestorModal from "@/components/restore-modal"
 import { OneCompanyPurchase } from "@/server/schema/company"
 import {
-    deleteCompanyPurchaseActions, forceDeleteCompanyPurchaseActions,
+    deleteCompanyPurchaseActions, deleteCompanyPurchaseInfoActions, forceDeleteCompanyPurchaseActions,
     getListCompanyPurchaseInfoActions, restoreCompanyPurchaseActions
 } from "@/actions/company"
-import AddPurchase from "./add-purchase"
-import { TableCaption, TableHead, TableRow, TableHeader, TableCell, TableBody } from "@/components/ui/table"
+import AddPurchase from "./add-purchase-form"
+import { Table, TableCaption, TableHead, TableRow, TableHeader, TableCell, TableBody } from "@/components/ui/table"
 import { useQuery } from "@tanstack/react-query"
+import { Badge } from "@/components/ui/badge"
+import AddCompanyPurchaseInfo from "./add-purchase-info-form"
+import { toast } from "sonner"
 
 
 export function DataTableRowPurchaseActions({
@@ -38,6 +40,7 @@ export function DataTableRowPurchaseActions({
 
     const isLoan = rowData.type === "LOAN";
     const isFinish = rowData.totalAmount === rowData.totalRemaining;
+    const isShowInvoiceInfo = isLoan && !isTrash
 
     return (
         <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -51,12 +54,11 @@ export function DataTableRowPurchaseActions({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[160px] m-2">
-                {isLoan && (
+                {isShowInvoiceInfo && (
                     <>
                         <CustomDialogWithTrigger
-                            className="w-full p-6"
+                            className="w-full p-6 pt-4"
                             button={<Button
-                                disabled={!isLoan || isFinish || isTrash}
                                 className="w-full h-9 hover:bg-accent"
                                 variant="link"
                             >
@@ -98,7 +100,10 @@ export function DataTableRowPurchaseActions({
                         </Button>}
                     >
                         <section className="w-full p-4">
-                            <AddPurchase title="زیادکردنی کڕین" purchase={{ ...rowData } as OneCompanyPurchase} />
+                            <AddPurchase
+                                title="زیادکردنی کڕین"
+                                purchase={{ ...rowData } as OneCompanyPurchase}
+                            />
                         </section>
                     </CustomDialogWithTrigger>
                 )}
@@ -121,7 +126,9 @@ export function ModalTablePurchaseInfo(
     { companyPurchaseId, isTrash }:
         { companyPurchaseId: number, isTrash: boolean }
 ) {
-    const { data, isLoading, isError, error } = useQuery({
+    const [open, setOpen] = useState(false)
+
+    const { data, isLoading, isError, error, refetch } = useQuery({
         queryKey: ["company-purchase-info", companyPurchaseId],
         queryFn: async () => await getListCompanyPurchaseInfoActions(companyPurchaseId),
         enabled: !isTrash && companyPurchaseId !== 0
@@ -134,27 +141,93 @@ export function ModalTablePurchaseInfo(
         </div>
     }
 
+    const { purchaseInfo, purchase } = data?.data!
+    const totalPeriod = purchase?.totalAmount - purchase?.totalRemaining
+    const totalInfo = [
+        { title: "کۆی قەرز", value: purchase?.totalAmount ?? 0 },
+        { title: "کۆی دراوە", value: purchase?.totalRemaining ?? 0 },
+        { title: "قەرزی ماوە", value: isNaN(totalPeriod) ? 0 : totalPeriod }
+    ]
+
     return (
-        <Table className="w-full flex-1">
-            <TableCaption>{data?.data?.length} جار پارەدراوە</TableCaption>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[100px]">ژمارە</TableHead>
-                    <TableHead>بڕ</TableHead>
-                    <TableHead>بەروار</TableHead>
-                    <TableHead className="text-right">تێبینی</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {data?.data?.map((item) => (
-                    <TableRow key={item.id}>
-                        <TableCell>{item.id}</TableCell>
-                        <TableCell>{item.amount}</TableCell>
-                        <TableCell>{new Date(item.date).toLocaleDateString('en-US')}</TableCell>
-                        <TableCell className="text-right text-wrap max-w-96">{item.note}</TableCell>
+        <section className="flex-1">
+            <CustomDialogWithTrigger
+                className="p-4"
+                button={<Button>
+                    <Plus className="size-5 me-2" />
+                    زیادکردن
+                </Button>}
+                open={open}
+                onOpenChange={setOpen}
+            >
+                <AddCompanyPurchaseInfo
+                    amountPeriod={totalPeriod}
+                    title="زیادکردنی قیست"
+                    handleClose={() => {
+                        refetch()
+                        setOpen(false)
+                    }}
+                />
+            </CustomDialogWithTrigger>
+            <Table className="w-full flex-1 mt-4">
+                <TableCaption className="my-6">
+                    <div className="w-full flex flex-wrap justify-center items-center gap-4">
+                        {totalInfo.map((item) => (
+                            <div key={item.title}>
+                                <span className="text-sm">{item.title}:</span>
+                                <Badge variant="secondary">
+                                    {item.value}
+                                </Badge>
+                            </div>
+                        ))}
+                    </div>
+                </TableCaption>
+                <TableCaption>
+                    {purchaseInfo.length === 0 ? "هیچ قیستێک نەدراوەتەوە"
+                        : `${purchaseInfo.length === 1 ? "تەنها پێشەکی دراوە" :
+                            `جاری تر پارە دراوە${Number(purchaseInfo.length) - 1} پێشەکی لەگەڵ`}`}
+                </TableCaption>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[100px]">ژمارە</TableHead>
+                        <TableHead>بڕ</TableHead>
+                        <TableHead>بەروار</TableHead>
+                        <TableHead className="text-center">تێبینی</TableHead>
+                        <TableHead className="text-center">سڕینەوە</TableHead>
                     </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+                </TableHeader>
+                <TableBody>
+                    {purchaseInfo.map((item) => (
+                        <TableRow key={item.id}>
+                            <TableCell>{Number(item.id) === 1 ? "پێشەکی" : `${Number(item.id)}`}</TableCell>
+                            <TableCell>{item.amount}</TableCell>
+                            <TableCell>{new Date(item.date).toLocaleDateString('en-US')}</TableCell>
+                            <TableCell className="text-center text-wrap max-w-96">{item.note}</TableCell>
+                            <TableCell className="text-center">
+                                <form id="deletePurchaseInfo" action={async () => {
+                                    const { success, message } = await
+                                        deleteCompanyPurchaseInfoActions(Number(item.id), companyPurchaseId)
+                                    if (success) {
+                                        toast.success(message)
+                                        refetch()
+                                        setOpen(false)
+                                    } else toast.error(message)
+                                }}>
+                                    <Button
+                                        form="deletePurchaseInfo"
+                                        variant="destructive"
+                                        className="size-7"
+                                        size="icon"
+                                    >
+                                        <Trash />
+                                    </Button>
+                                </form>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </section>
     )
 }
+

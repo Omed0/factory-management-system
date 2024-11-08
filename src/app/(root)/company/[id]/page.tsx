@@ -4,7 +4,7 @@ import { getCompanyListPurchaseActions } from "@/actions/company"
 import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
 import { Button } from "@/components/ui/button"
 import { Users } from "lucide-react"
-import AddPurchase from "../_component/add-purchase"
+import AddPurchase from "../_component/add-purchase-form"
 import { DataTable } from "../_component/data-table"
 import { column_purchase } from "../_component/column-purchase"
 

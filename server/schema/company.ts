@@ -88,7 +88,7 @@ export type ListCompanyPurchaseInfo = PurchasesInfo[];
 
 export const createCompanyPurchaseInfoSchema = z.object({
     companyPurchaseId: z.number().int().positive(),
-    amount: z.number().min(1, 'بڕی پارەکەت با لە یەک کەمترنەبێ').positive(),
+    amount: z.number().min(0, 'بڕی پارەکەت با لە سفر کەمتر نەبێت').positive(),
     date: z.date(),
     note: z.string().optional(),
 });

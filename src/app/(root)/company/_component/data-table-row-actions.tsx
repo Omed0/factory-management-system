@@ -16,7 +16,7 @@ import DeleteModal from "@/components/delete-modal"
 import useSetQuery from "@/hooks/useSetQuery"
 import RestorModal from "@/components/restore-modal"
 import { OneCompany } from "@/server/schema/company"
-import AddCompany from "./add-company"
+import AddCompany from "./add-company-form"
 import { deleteCompanyActions, forceDeleteCompanyActions, restoreCompanyActions } from "@/actions/company"
 
 
@@ -63,7 +63,14 @@ export function DataTableRowActions({
             </Button>}
           >
             <section className="w-full p-4">
-              <AddCompany title="زیادکردنی کۆمپانیا" company={{ ...rowData } as OneCompany} />
+              <AddCompany
+                title="زیادکردنی کۆمپانیا"
+                company={{ ...rowData } as OneCompany}
+                handleClose={() => {
+                  setOpen(false)
+                  setDropdownOpen(false)
+                }}
+              />
             </section>
           </CustomDialogWithTrigger>
         )}
@@ -73,6 +80,9 @@ export function DataTableRowActions({
           submit={isTrash ? forceDeleteCompanyActions : deleteCompanyActions}
           classNameButton="bg-red-500 text-white w-full h-9"
           title={`${rowData.name}`}
+          onClose={() => {
+            setDropdownOpen(false)
+          }}
           deleteKey={rowData.id}
           isTrash={isTrash}
         />

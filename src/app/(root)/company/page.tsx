@@ -5,7 +5,7 @@ import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
 import { Button } from "@/components/ui/button"
 import { Users } from "lucide-react"
 import { columns } from "./_component/columns"
-import AddCompany from "./_component/add-company"
+import AddCompany from "./_component/add-company-form"
 import { DataTable } from "./_component/data-table"
 
 type Props = {

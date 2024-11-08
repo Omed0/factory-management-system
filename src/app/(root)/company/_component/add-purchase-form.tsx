@@ -2,7 +2,7 @@
 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, UseFormReturn } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogClose } from "@/components/ui/dialog";
@@ -14,13 +14,9 @@ import {
 } from "@/server/schema/company";
 import { createCompanyPurchaseActions, updateCompanyPurchaseActions } from "@/actions/company";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
 import { useParams } from "next/navigation";
+import CalendarFormItem from "@/components/calender-form-item";
 
 
 type Props = {
@@ -32,12 +28,12 @@ type Props = {
 export default function AddPurchase({ purchase, title, handleClose }: Props) {
     const isEdit = !!purchase;
     const params = useParams()
-    const companyId = purchase?.companyId ?? Number(params.id)
+    const companyId = Number(params.id)
 
     const form = useForm<CreateCompanyPurchase>({
         mode: "onSubmit",
         resolver: zodResolver(isEdit ? updateCompanyPurchaseSchema : createCompanyPurchaseSchema),
-        defaultValues: defaultValues({ ...purchase as CreateCompanyPurchase, companyId }),
+        defaultValues: defaultValues(purchase, companyId),
     });
 
     const type = form.watch("type");
@@ -129,7 +125,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
                         )}
                     />
                 )}
-                <CalendarFormItem form={form} isEdit={isEdit} />
+                <CalendarFormItem form={form} name="purchaseDate" />
                 <FormField
                     control={form.control}
                     name="note"
@@ -163,59 +159,17 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
 }
 
 
-function defaultValues(values: CreateCompanyPurchase) {
-    values.type = values.type ?? "CASH"
-    if (values.purchaseDate) {
-        values.purchaseDate = new Date(values.purchaseDate)
-    } else {
-        values.purchaseDate = new Date()
-    }
-    return values
-}
+function defaultValues(values: Partial<OneCompanyPurchase>, companyId: number) {
+    if (values) {
+        values.type = values.type ?? "CASH"
+        if (values.purchaseDate) {
+            values.purchaseDate = new Date(values.purchaseDate)
+        } else {
+            values.purchaseDate = new Date()
+        }
+        const { deleted_at, updated_at, company, created_at, id, ...rest } = values
 
-function CalendarFormItem({ form, isEdit }: {
-    form: UseFormReturn<CreateCompanyPurchase>,
-    isEdit: boolean
-}) {
-    return (
-        <FormField
-            control={form.control}
-            name="purchaseDate"
-            render={({ field }) => (
-                <FormItem className="flex-1 basis-56">
-                    <FormLabel>بەروار</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-full text-start font-normal",
-                                        !field.value && "text-muted-foreground"
-                                    )}
-                                >
-                                    {field.value ? (
-                                        format(field.value, "yyyy-MM-dd")
-                                    ) : (
-                                        <span>بەرواری پارەدان</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={isEdit}
-                            />
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                </FormItem>
-            )}
-        />
-    )
+        return rest as CreateCompanyPurchase
+    }
+    return { companyId, purchaseDate: new Date(), type: "CASH" } as CreateCompanyPurchase
 }

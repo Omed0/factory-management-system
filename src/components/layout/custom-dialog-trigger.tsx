@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { DialogProps } from "@radix-ui/react-dialog";
 
 type Props = {
@@ -26,6 +26,7 @@ export default function CustomDialogWithTrigger({
                     className
                 )}
             >
+                <DialogTitle hidden></DialogTitle>
                 {children}
             </DialogContent>
         </Dialog>

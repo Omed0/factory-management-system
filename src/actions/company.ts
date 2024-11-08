@@ -1,6 +1,6 @@
 "use server"
 
-import { createCompany, createCompanyPurchase, createCompanyPurchaseInfo, deleteCompany, deleteCompanyPurchase, deleteCompanyPurchaseInfo, forceDeleteCompany, forceDeleteCompanyPurchase, getCompaniesList, getCompanyBySlug, getCompanyListPurchase, getCompanyOnePurchase, getListCompanyPurchaseInfo, getOneCompany, getOneCompanyPurchaseInfo, restoreCompany, restoreCompanyPurchase, updateCompany, updateCompanyPurchase, updateCompanyPurchaseInfo } from "@/server/access-layer/company"
+import { createCompany, createCompanyPurchase, createCompanyPurchaseInfo, deleteCompany, deleteCompanyPurchase, deleteCompanyPurchaseInfo, forceDeleteCompany, forceDeleteCompanyPurchase, getCompaniesList, getCompanyBySlug, getCompanyListPurchase, getCompanyOnePurchase, getListCompanyPurchaseInfo, getOneCompany, getOneCompanyPurchaseInfo, restoreCompany, restoreCompanyPurchase, updateCompany, updateCompanyPurchase } from "@/server/access-layer/company"
 import { CreateCompanyPurchase, CreateCompanyPurchaseInfo, UpdateCompany, UpdateCompanyPurchase, UpdateCompanyPurchaseInfo } from "@/server/schema/company"
 import { CreateCompany } from "@/server/schema/company"
 import { revalidatePath } from "next/cache"
@@ -222,19 +222,20 @@ export async function createCompanyPurchaseInfoActions(data: CreateCompanyPurcha
             message: companyPurchaseInfo?.error
         }
     }
+    revalidatePath(`/company/${data.companyPurchaseId}`)
     return { success: true, message: "دروستکراو" }
 }
 
-export async function updateCompanyPurchaseInfoActions(data: UpdateCompanyPurchaseInfo) {
-    const companyPurchaseInfo = await updateCompanyPurchaseInfo(data)
-    if (companyPurchaseInfo === null || "error" in companyPurchaseInfo) {
-        return {
-            success: false,
-            message: companyPurchaseInfo?.error
-        }
-    }
-    return { success: true, message: "گۆڕانکاری سەرکەوتبوو" }
-}
+//export async function updateCompanyPurchaseInfoActions(data: UpdateCompanyPurchaseInfo) {
+//    const companyPurchaseInfo = await updateCompanyPurchaseInfo(data)
+//    if (companyPurchaseInfo === null || "error" in companyPurchaseInfo) {
+//        return {
+//            success: false,
+//            message: companyPurchaseInfo?.error
+//        }
+//    }
+//    return { success: true, message: "گۆڕانکاری سەرکەوتبوو" }
+//}
 
 export async function deleteCompanyPurchaseInfoActions(id: number, companyPurchaseId: number) {
     const companyPurchaseInfo = await deleteCompanyPurchaseInfo(id, companyPurchaseId)
@@ -244,6 +245,7 @@ export async function deleteCompanyPurchaseInfoActions(id: number, companyPurcha
             message: companyPurchaseInfo?.error
         }
     }
+    revalidatePath(`/company/${companyPurchaseId}`)
     return { success: true, message: "بەتەواوی سڕایەوە" }
 }
 
