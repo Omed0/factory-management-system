@@ -1,5 +1,6 @@
 import { EmployeeActionType } from "@prisma/client";
 import { prisma } from "../src/lib/client"
+import { createUser } from '../server/access-layer/user'
 
 const constants = {
     user: {
@@ -27,10 +28,8 @@ async function main() {
     try {
         console.log('Seeding database...');
 
-        const createdUser = await prisma.users.create({
-            data: constants.user
-        });
-        console.log('Created user:', createdUser);
+        const user = await createUser(constants.user)
+        console.log('Created user:', user);
 
         const box = await prisma.boxes.create({
             data: { amount: 0 }

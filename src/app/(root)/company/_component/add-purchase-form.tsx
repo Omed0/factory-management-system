@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useParams } from "next/navigation";
 import CalendarFormItem from "@/components/calender-form-item";
+import { usePurchaseInfo } from "../purchase-info-state";
 
 
 type Props = {
@@ -39,7 +40,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
     });
 
     const type = form.watch("type");
-
+    const { refetch } = usePurchaseInfo(purchase?.id ?? 0)
     async function onSubmit(values: FormType<typeof isEdit>) {
         let companyValues
         if (isEdit && purchase?.id) {
@@ -53,6 +54,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
         } else {
             toast.success(companyValues.message)
             form.reset()
+            refetch()
             handleClose?.()
         }
     }
@@ -61,7 +63,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
         <Form {...form}>
             <h2 className="text-lg font-medium text-center pt-1">{title}</h2>
             <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 flex flex-wrap gap-5 items-center">
-                {isEdit && (
+                {/*{isEdit && (
                     <FormField
                         control={form.control}
                         name="id"
@@ -73,13 +75,13 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
                             </FormItem>
                         )}
                     />
-                )}
+                )}*/}
                 <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                         <FormItem className="flex-1 basis-56">
-                            <FormLabel>ناوی مەواد</FormLabel>
+                            <FormLabel>ناو</FormLabel>
                             <FormControl>
                                 <Input {...field} />
                             </FormControl>
@@ -119,7 +121,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
                         <FormItem className="flex-1 basis-56">
                             <FormLabel>کۆی پارەکە</FormLabel>
                             <FormControl>
-                                <Input {...field} type="number" onChange={(e) => field.onChange(Number(e.target.value))} />
+                                <Input {...field} type="number" onChange={(e) => field.onChange(e.target.valueAsNumber)} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -133,7 +135,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
                             <FormItem className="flex-1 basis-56">
                                 <FormLabel>بڕی پێشەکی</FormLabel>
                                 <FormControl>
-                                    <Input {...field} type="number" onChange={(e) => field.onChange(Number(e.target.value))} />
+                                    <Input {...field} type="number" onChange={(e) => field.onChange(e.target.valueAsNumber)} />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -155,6 +157,9 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
                     )}
                 />
                 <div className="w-full flex flex-wrap gap-5 mt-5">
+                    <Button type="submit" className="flex-1 basis-60">
+                        {isEdit ? "نوێکردنەوە" : "زیادکردن"}
+                    </Button>
                     <DialogClose className="flex-1 basis-60" onClick={handleClose}>
                         <Button
                             type="reset"
@@ -164,9 +169,6 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
                             داخستن
                         </Button>
                     </DialogClose>
-                    <Button type="submit" className="flex-1 basis-60">
-                        {isEdit ? "نوێکردنەوە" : "زیادکردن"}
-                    </Button>
                 </div>
             </form>
         </Form>
@@ -182,7 +184,6 @@ function defaultValues(values: Partial<OneCompanyPurchase>, companyId: number) {
         } else {
             values.purchaseDate = new Date()
         }
-        values.id = (Number(values.id) ?? 0) as any
         return values
     }
     return { companyId, purchaseDate: new Date(), type: "CASH" }

@@ -1,13 +1,18 @@
-import 'server-only';
+"use server"
+//import 'server-only';
 
-import { createUserSchema, getOneUserSchema, updateUserSchema, loginSchema, CreateUser, deleteManyUsersSchema } from '@/server/schema/user';
+import {
+  createUserSchema, getOneUserSchema,
+  updateUserSchema, loginSchema,
+  CreateUser, deleteManyUsersSchema,
+  OneUser
+} from '@/server/schema/user';
 import { tryCatch } from '@/lib/helper';
 import bcrypt from 'bcrypt';
-import { OneEmployee } from '../schema/employee';
 import { prisma } from '@/lib/client';
 
 
-export async function getOneUser(id: OneEmployee['id']) {
+export async function getOneUser(id: OneUser['id']) {
   return tryCatch(async () => {
     const data = getOneUserSchema.parse({ id });
     const user = await prisma.users.findUnique({
@@ -20,7 +25,10 @@ export async function getOneUser(id: OneEmployee['id']) {
 export async function getUsersList(trashed: boolean = false) {
   return tryCatch(async () => {
     const users = await prisma.users.findMany({
-      where: { deleted_at: trashed ? { not: null } : null }
+      where: { deleted_at: trashed ? { not: null } : null },
+      orderBy: {
+        created_at: 'desc'
+      }
     });
     return users;
   });
@@ -39,13 +47,12 @@ export async function createUser(user: CreateUser) {
 }
 
 export async function updateUser(
-  id: number,
   user: CreateUser
 ) {
   return tryCatch(async () => {
     const data = updateUserSchema.parse(user);
     const updatedUser = await prisma.users.update({
-      where: { id, deleted_at: null },
+      where: { id: data.id, deleted_at: null },
       data
     });
     return updatedUser;
@@ -84,7 +91,8 @@ export async function restoreManyUsers(ids: number[]) {
 
 export async function forceDeleteAllTrashedUsers() {
   return tryCatch(async () => {
-    const deletedUsers = await prisma.users.deleteMany({ where: { deleted_at: { not: null } } });
+    const deletedUsers = await prisma.users.deleteMany(
+      { where: { deleted_at: { not: null } } });
     return deletedUsers;
   });
 }
@@ -99,18 +107,30 @@ export async function restoreAllTrashedUsers() {
   });
 }
 
+export type LoginUserType = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  image: string | null;
+}
+
 export async function loginUser(email: string, password: string) {
-  return tryCatch(async () => {
+  try {
     const data = loginSchema.parse({ email, password });
     const user = await prisma.users.findUnique({
       where: { email: data.email, deleted_at: null },
     });
 
-    if (!user) throw new Error('User not found');
+    if (!user) return { error: "User not found" }
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
-    if (!isPasswordValid) throw new Error('Invalid password');
+    if (!isPasswordValid) return { error: "Invalid password" }
 
-    const { password: pass, deleted_at, ...userWithoutPassword } = user;
+    const { password: pass, deleted_at, created_at, updated_at, ...userWithoutPassword } = user;
     return userWithoutPassword;
-  });
+  } catch (error: unknown) {
+    return {
+      error: "هەڵەیەک هەیە"
+    }
+  }
 }

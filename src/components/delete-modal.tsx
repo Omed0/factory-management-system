@@ -7,17 +7,17 @@ import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button";
 import CustomDialogWithTrigger from "./layout/custom-dialog-trigger";
 
-type DialogModalProps = {
-    deleteKey: number
+type DialogModalProps<T> = {
+    deleteKey: T;
     onClose?: () => void
-    submit: (id: number) => Promise<{ message: string, success: boolean }>
+    submit: (id: T) => Promise<{ message: string, success: boolean }>
     classNameButton?: string
     title?: string
     description?: string,
     isTrash?: boolean
 };
 
-export default function DeleteModal({ deleteKey, onClose, submit, classNameButton, title, description, isTrash }: DialogModalProps) {
+export default function DeleteModal<T>({ deleteKey, onClose, submit, classNameButton, title, description, isTrash }: DialogModalProps<T>) {
     const [open, setOpen] = useState(false);
 
     const handleChange = () => {
@@ -32,7 +32,12 @@ export default function DeleteModal({ deleteKey, onClose, submit, classNameButto
     return (
         <CustomDialogWithTrigger
             open={open}
-            onOpenChange={handleChange}
+            onOpenChange={(e) => {
+                if (!e) {
+                    onClose && onClose()
+                }
+                setOpen(e)
+            }}
             button={<Button variant="destructive" className={classNameButton}>
                 <Trash className="size-5 me-1" />
                 {isTrash ? "سڕینەوە" : "ئەرشیفکردن"}
@@ -71,11 +76,11 @@ export default function DeleteModal({ deleteKey, onClose, submit, classNameButto
                     </p>
                 </div>
                 <DialogFooter className="w-full gap-3 sm:justify-center mt-3">
-                    <Button onClick={handleChange} variant="outline" type="reset" className="w-full">
-                        داخستن
-                    </Button>
                     <Button variant="destructive" className="w-full" type="submit">
                         {isTrash ? "سڕینەوە" : "ئەرشیفکردن"}
+                    </Button>
+                    <Button onClick={handleChange} variant="outline" type="reset" className="w-full">
+                        داخستن
                     </Button>
                 </DialogFooter>
             </form>

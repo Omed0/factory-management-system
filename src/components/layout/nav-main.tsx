@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 
 import {
@@ -18,6 +17,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import Link from "next/link"
 
 export function NavMain({
   items,
@@ -30,10 +30,11 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      icon?: LucideIcon
     }[]
   }[]
 }) {
-  const router = useRouter()
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>پەیجەکان</SidebarGroupLabel>
@@ -49,16 +50,13 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton
-                    onClick={() => {
-                      router.push(item.url)
-                    }}
-                    tooltip={item.title}
-                  >
-                    {item.icon && <item.icon />}
-                    <span>{item.title}</span>
+                  <SidebarMenuButton tooltip={item.title} className="h-9">
+                    <Link className="flex items-center gap-2" href={item.url}>
+                      {item.icon && <item.icon className="size-4" />}
+                      <span>{item.title}</span>
+                    </Link>
                     {hasSubItems && (
-                      <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 hover:bg-background rounded-full" />
                     )}
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
@@ -66,11 +64,12 @@ export function NavMain({
                   <CollapsibleContent>
                     <SidebarMenuSub>
                       {item.items?.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.title}>
+                        <SidebarMenuSubItem key={subItem.title} className="flex items-center">
+                          {subItem.icon && <subItem.icon className="size-4" />}
                           <SidebarMenuSubButton asChild>
-                            <a href={subItem.url}>
+                            <Link href={subItem.url}>
                               <span>{subItem.title}</span>
-                            </a>
+                            </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

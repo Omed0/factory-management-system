@@ -21,7 +21,10 @@ export async function getExpensesList(trashed: boolean = false) {
     return tryCatch(async () => {
         const data = getExpensesListSchema.parse({ trashed })
         const expenses = await prisma.expenses.findMany({
-            where: { deleted_at: data.trashed ? { not: null } : null }
+            where: { deleted_at: data.trashed ? { not: null } : null },
+            orderBy: {
+                created_at: 'desc'
+            }
         })
         return expenses
     })

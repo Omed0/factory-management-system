@@ -90,6 +90,9 @@ export default function AddCompany({ company, title, handleClose }: Props) {
                     )}
                 />
                 <div className="w-full flex flex-wrap gap-5 mt-5">
+                    <Button type="submit" className="flex-1 basis-60">
+                        {isEdit ? "نوێکردنەوە" : "زیادکردن"}
+                    </Button>
                     <DialogClose className="flex-1 basis-60" onClick={handleClose}>
                         <Button
                             type="reset"
@@ -99,9 +102,6 @@ export default function AddCompany({ company, title, handleClose }: Props) {
                             داخستن
                         </Button>
                     </DialogClose>
-                    <Button type="submit" className="flex-1 basis-60">
-                        {isEdit ? "نوێکردنەوە" : "زیادکردن"}
-                    </Button>
                 </div>
             </form>
         </Form>

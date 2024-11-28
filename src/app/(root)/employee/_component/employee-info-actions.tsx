@@ -1,7 +1,6 @@
 "use client"
 
-import { deleteEmployeeActionActions, getEmployeeActionActions } from "@/actions/employee"
-import { Badge } from "@/components/ui/badge"
+import { deleteEmployeeActionActions } from "@/actions/employee"
 import {
     Table,
     TableBody,
@@ -12,13 +11,15 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import useSetQuery from "@/hooks/useSetQuery"
-import { getMonthStartAndEndOfMonth } from "@/lib/utils"
-import { useQuery } from "@tanstack/react-query"
+import { formatCurrency, getMonthStartAndEndOfMonth } from "@/lib/utils"
 import EditTableAction from "./edit-table-action"
 import { UpdateEmployeeAction } from "@/server/schema/employee"
 import { Trash } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { useEffect } from "react"
+import useActionEmployee from "../useActionEmployee"
+import { useDollar } from "@/hooks/useDollar"
 
 type Props = {
     empId: number
@@ -28,29 +29,28 @@ type Props = {
 
 export default function EmployeeInfoActions({ empId, name }: Props) {
     const { searchParams } = useSetQuery()
-    const date = searchParams.get("date")?.split("&")
-    const isIQD = searchParams.get("currency") === "IQD"
+    const { data: { dollar } } = useDollar()
 
-    const dateQuery = date && date?.length > 0 ?
-        getMonthStartAndEndOfMonth(new Date(date?.[0])) : getMonthStartAndEndOfMonth(new Date())
+    const month = searchParams.get("month")
+    const currency = searchParams.get("currency") || "USD"
+    const now = new Date()
 
-    const { data: employeeActions, isLoading, error, isError, refetch } = useQuery({
-        queryKey: ["employeeActions", String(empId)],
-        queryFn: async () => await getEmployeeActionActions(empId, dateQuery),
-        enabled: !!empId
-    })
+    const dateQuery = month ? getMonthStartAndEndOfMonth(new Date(now.setMonth(+month - 1))) :
+        getMonthStartAndEndOfMonth(now)
+
+    const { data: employeeActions, isLoading, error, isError, refetch } = useActionEmployee(empId, dateQuery)
+
+    useEffect(() => {
+        if (month) refetch()
+    }, [month])
 
     if (isError) return <div>{error.message}</div>
 
     return (
         <Table>
             <TableCaption>
-                {employeeActions?.length === 0 && name ? (
+                {employeeActions?.length === 0 && name && (
                     <p className="text-inherit">{name} هیچ داتایەکی نییە</p>
-                ) : (
-                    <Badge variant="outline" className="text-md font-semibold">
-                        {name}
-                    </Badge>
                 )}
             </TableCaption>
             <TableHeader>
@@ -62,10 +62,10 @@ export default function EmployeeInfoActions({ empId, name }: Props) {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {!isLoading && employeeActions?.map((action) => (
+                {!isLoading && employeeActions?.map((action, index) => (
                     <TableRow key={action.id}>
                         <TableCell>{action.type}</TableCell>
-                        <TableCell>{action.amount}</TableCell>
+                        <TableCell>{formatCurrency(action.amount, dollar, currency)}</TableCell>
                         <TableCell>{new Date(action.dateAction).toLocaleDateString()}</TableCell>
                         <TableCell className="max-w-96 text-wrap">
                             {action.note}

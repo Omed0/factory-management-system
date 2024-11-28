@@ -47,7 +47,7 @@ const UploadFile = forwardRef<FilePond, UploadFileProps>(({
     return (
         <div className={cn('w-full', className)}>
             <FilePond
-                ref={ref}
+                {...field}
                 acceptedFileTypes={accept}
                 files={files as unknown as FilePondFile['file'][]}
                 onupdatefiles={handleUpdateFiles}
@@ -62,7 +62,7 @@ const UploadFile = forwardRef<FilePond, UploadFileProps>(({
                 allowRemove
                 chunkSize={maxFileSize}
                 dropValidation
-                {...field}
+                ref={ref}
             />
         </div>
     )

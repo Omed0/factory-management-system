@@ -68,12 +68,12 @@ export default function ConfirmationDeleteModal({
                         <p className="text-base text-foreground/60">{description}</p>
                     </div>
                     <DialogFooter className="w-full gap-3 sm:justify-center mt-3">
-                        <Button onClick={handleChange} variant="destructive" type="reset" className="w-full">
-                            گەڕانەوە
-                        </Button>
                         <Button variant={"outline"} className="w-full" type="submit">
                             <Trash className="size-5" />
                             دڵنیام
+                        </Button>
+                        <Button onClick={handleChange} variant="destructive" type="reset" className="w-full">
+                            گەڕانەوە
                         </Button>
                     </DialogFooter>
                 </form>

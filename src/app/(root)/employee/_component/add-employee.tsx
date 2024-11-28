@@ -14,6 +14,10 @@ import UploadFile from "@/components/upload-file";
 import { createEmployeeActions, updateEmployeeActions } from "@/actions/employee";
 import { toast } from "sonner";
 import { unlinkImage, uploadImage } from "@/lib/helper";
+import { CurrencyInput } from "@/components/custom-currency-input";
+import useSetQuery from "@/hooks/useSetQuery";
+import { IQDtoUSD } from "@/lib/utils";
+import { useDollar } from "@/hooks/useDollar";
 
 type Props = {
     employee?: Partial<OneEmployee>;
@@ -22,6 +26,9 @@ type Props = {
 }
 
 export default function AddEmployee({ employee, title, handleClose }: Props) {
+    const { searchParams } = useSetQuery(100)
+    const currency = searchParams.get("currency") || "USD"
+    const { data } = useDollar()
     const isEdit = !!employee;
 
     const form = useForm<CreateEmployee>({
@@ -32,6 +39,10 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
 
 
     async function onSubmit(values: CreateEmployee) {
+        if (currency === "IQD") {
+            values.monthSalary = IQDtoUSD(values.monthSalary, data.dollar)
+        }
+
         let serializedValues = JSON.parse(JSON.stringify(values))
         let employeeValues
         let image
@@ -45,7 +56,7 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
             if (!image.success) return toast.error(image.error)
             serializedValues.image = image.filePath
         }
-
+        console.log(serializedValues)
         if (isEdit && employee?.id) {
             employeeValues = await updateEmployeeActions(employee.id, serializedValues)
         } else {
@@ -104,22 +115,11 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
                         </FormItem>
                     )}
                 />
-                <FormField
+                <CurrencyInput
+                    className="flex-1 basis-56"
                     control={form.control}
                     name="monthSalary"
-                    render={({ field }) => (
-                        <FormItem className="flex-1 basis-56">
-                            <FormLabel>مووچەی مانگانە</FormLabel>
-                            <FormControl>
-                                <Input
-                                    {...field}
-                                    type="number"
-                                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
+                    label="مووچەی مانگانە"
                 />
                 <FormField
                     control={form.control}
@@ -130,7 +130,6 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
                             <FormControl>
                                 <UploadFile
                                     name={field.name}
-                                    allowMultiple={true}
                                     accept={['image/jpeg', 'image/png', 'image/jpg']}
                                     field={field}
                                 />
@@ -140,6 +139,9 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
                     )}
                 />
                 <div className="w-full flex flex-wrap gap-5 mt-5">
+                    <Button type="submit" className="flex-1 basis-60">
+                        {isEdit ? "نوێکردنەوە" : "زیادکردن"}
+                    </Button>
                     <DialogClose className="flex-1 basis-60" onClick={handleClose}>
                         <Button
                             type="reset"
@@ -149,9 +151,6 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
                             داخستن
                         </Button>
                     </DialogClose>
-                    <Button type="submit" className="flex-1 basis-60">
-                        {isEdit ? "نوێکردنەوە" : "زیادکردن"}
-                    </Button>
                 </div>
             </form>
         </Form>

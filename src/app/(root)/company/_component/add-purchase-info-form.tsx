@@ -12,20 +12,20 @@ import { createCompanyPurchaseInfoActions } from "@/actions/company";
 import CalendarFormItem from "@/components/calender-form-item";
 import { Textarea } from "@/components/ui/textarea";
 
-type Props = {
+type Props<T extends number | undefined> = {
     title: string;
     handleClose?: () => void;
     amountPeriod: number;
-    companyPurchaseId: number;
+    companyPurchaseId: T;
 }
 
-export default function AddCompanyPurchaseInfo({ title, handleClose, amountPeriod, companyPurchaseId }: Props) {
+export default function AddCompanyPurchaseInfo<T extends number | undefined>({ title, handleClose, amountPeriod, companyPurchaseId }: Props<T>) {
 
     const form = useForm<CreateCompanyPurchaseInfo>({
         mode: "onSubmit",
         resolver: zodResolver(createCompanyPurchaseInfoSchema),
         defaultValues: {
-            companyPurchaseId,
+            companyPurchaseId: companyPurchaseId as number | undefined,
             amount: 0,
             date: new Date(),
             note: "",

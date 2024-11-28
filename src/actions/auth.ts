@@ -1,7 +1,8 @@
 'use server';
 
-import { login } from "@/lib/cookies";
+import { login, logout } from "@/lib/cookies";
 import { loginUser } from "@/server/access-layer/user";
+import { redirect } from "next/navigation";
 
 export async function LoginAction(email: string, password: string) {
     const user = await loginUser(email, password)
@@ -10,7 +11,13 @@ export async function LoginAction(email: string, password: string) {
         return { error: user.error }
     }
 
-    const token = await login(user.id)
+    const token = await login(user)
 
     return { user, token }
+}
+
+
+export async function LogoutAction() {
+    await logout()
+    redirect('/login')
 }

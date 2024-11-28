@@ -3,18 +3,20 @@ import { getSession, updateSession } from './lib/cookies';
 
 
 export async function middleware(request: NextRequest) {
-  const token = await getSession()
+  const user = await getSession()
   const pathname = request.nextUrl.pathname
 
-  //if (pathname !== "/login" && !token) {
-  //  return NextResponse.redirect(new URL("/login", request.url));
-  //}
+  if (pathname !== "/login" && !user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 
-  //if (pathname === "/login" && token?.token) {
-  //  return NextResponse.redirect(new URL("/dashboard", request.url));
-  //}
+  if (pathname === "/login" && user?.data) {
+    return NextResponse.redirect(new URL("/customer", request.url));
+  }
+
+  await updateSession(request);
+
   return NextResponse.next();
-  //return await updateSession(request);
 }
 
 export const config = {

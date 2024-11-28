@@ -12,26 +12,12 @@ import {
 import { CreateExpense, UpdateExpense } from "@/server/schema/expense"
 import { revalidatePath } from "next/cache"
 
-function serializeBigInt(data: any) {
-    return JSON.parse(JSON.stringify(data, (_, value) =>
-        typeof value === 'bigint' ? value.toString() : value
-    ))
-}
-
-export async function getExpensesListActions() {
-    const expenses = await getExpensesList()
+export async function getExpensesListActions({ isTrash = false }: { isTrash?: boolean }) {
+    const expenses = await getExpensesList(isTrash)
     if ("error" in expenses) {
         return { success: false, message: expenses.error }
     }
-    return { success: true, data: serializeBigInt(expenses) }
-}
-
-export async function getExpensesListTrashedActions() {
-    const expenses = await getExpensesList(true)
-    if ("error" in expenses) {
-        return { success: false, message: expenses.error }
-    }
-    return { success: true, data: serializeBigInt(expenses) }
+    return { success: true, data: expenses }
 }
 
 export async function getExpensesListSpecificTimeActions(startOfMonth: Date, endOfMonth: Date) {
@@ -39,7 +25,7 @@ export async function getExpensesListSpecificTimeActions(startOfMonth: Date, end
     if ("error" in expenses) {
         return { success: false, message: expenses.error }
     }
-    return { success: true, data: serializeBigInt(expenses) }
+    return { success: true, data: expenses }
 }
 
 export async function createExpenseActions(dataExpense: CreateExpense) {
@@ -65,7 +51,7 @@ export async function getOneExpenseActions(id: number) {
     if (expense === null || "error" in expense) {
         return { success: false, message: expense?.error }
     }
-    return { success: true, data: serializeBigInt(expense) }
+    return { success: true, data: expense }
 }
 
 export async function deleteExpenseActions(id: number) {

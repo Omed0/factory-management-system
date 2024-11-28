@@ -10,7 +10,8 @@ import {
     UpdateEmployee, updateEmployeeSchema,
     updateEmployeeActionSchema,
     UpdateEmployeeAction,
-    deleteEmployeeActionSchema
+    deleteEmployeeActionSchema,
+    MonthParams
 } from '../schema/employee';
 
 
@@ -26,7 +27,10 @@ export async function getOneEmployee(id: number) {
 export async function getEmployeesList(trashed: boolean = false) {
     return tryCatch(async () => {
         const employees = await prisma.employee.findMany({
-            where: { deleted_at: trashed ? { not: null } : null }
+            where: { deleted_at: trashed ? { not: null } : null },
+            orderBy: {
+                created_at: 'desc'
+            }
         })
         return employees
     })
@@ -36,9 +40,7 @@ export async function createEmployee(dataEmployee: CreateEmployee) {
     return tryCatch(async () => {
         const data = createEmployeeSchema.parse(dataEmployee)
 
-        const employee = await prisma.employee.create({
-            data
-        })
+        const employee = await prisma.employee.create({ data })
         return employee
     })
 }
@@ -122,18 +124,19 @@ export async function updateEmployeeAction(id: number, dataEmployeeAction: Updat
         const employeeAction = await prisma.$transaction(async (tx) => {
             const oldEmployeeAction = await tx.employeeActions.findUnique({ where: { id } })
             if (!oldEmployeeAction) throw new Error("ئەم ئەرکە نەدۆزرایەوە")
-            await tx.boxes.update({
-                where: { id: 1 },
-                data: { amount: { increment: data.amount } }
-            })
-            const { employeeId, ...rest } = data
+            if (oldEmployeeAction.amount !== data.amount) {
+                await tx.boxes.update({
+                    where: { id: 1 },
+                    data: { amount: { decrement: oldEmployeeAction.amount } }
+                })
+                await tx.boxes.update({
+                    where: { id: 1 },
+                    data: { amount: { increment: data.amount } }
+                })
+            }
             const updatedAction = await tx.employeeActions.update({
                 where: { id },
-                data: { ...rest, dateAction: new Date() },
-            })
-            await tx.boxes.update({
-                where: { id: 1 },
-                data: { amount: { decrement: data.amount } }
+                data: { ...data, dateAction: new Date() },
             })
             return updatedAction
         })
@@ -157,10 +160,10 @@ export async function deleteEmployeeAction(id: number) {
     })
 }
 
-export async function getEmployeeActionsSpecificTime(empId: number, { startOfMonth, endOfMonth }:
-    { startOfMonth: Date, endOfMonth: Date }) {
+export async function getEmployeeActionsSpecificTime(empId: number, dateQuery: MonthParams) {
     return tryCatch(async () => {
-        const data = getEmployeeActionsSpecificTimeSchema.parse({ startOfMonth, endOfMonth, id: empId })
+        const data = getEmployeeActionsSpecificTimeSchema.parse({ ...dateQuery, id: empId })
+
         const startOfThisMonth = new Date(data.startOfMonth).toISOString()
         const endOfThisMonth = new Date(data.endOfMonth).toISOString()
 

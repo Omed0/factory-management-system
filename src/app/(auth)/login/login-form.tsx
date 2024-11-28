@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -15,13 +14,15 @@ import {
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { loginSchema, LoginUser } from '@/server/schema/user'
-import { redirect } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { LoginAction } from '@/actions/auth'
 import Image from 'next/image'
+import { sleep } from '@/lib/utils'
 
 
 export default function LoginForm() {
+  const router = useRouter()
   const form = useForm<LoginUser>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -33,18 +34,15 @@ export default function LoginForm() {
   async function onSubmit(values: LoginUser) {
     const { error } = await LoginAction(values.email, values.password)
     if (error) {
-      toast.error(error)
+      toast.error(error as string)
       return
     }
     toast.success(
       "You have successfully logged in!",
-      { description: "Redirecting to dashboard..." }
+      { description: "Redirecting to customer..." }
     )
-    const timer = setTimeout(() => {
-      redirect('/dashboard')
-    }, 2000)
-
-    clearTimeout(timer)
+    await sleep(1000)
+    router.replace("/customer")
   }
 
 

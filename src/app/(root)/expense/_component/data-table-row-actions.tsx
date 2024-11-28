@@ -45,7 +45,7 @@ export function DataTableRowActions({
         {isTrash ? (
           <RestorModal
             description="دڵنیای لە هێنانەوەی ئەم خەرجیە"
-            restorKey={Number(rowData.id)}
+            restorKey={rowData.id}
             classNameButton="w-full h-9"
             action={restoreCompanyActions}
             title={`${rowData.title}`}
@@ -77,7 +77,7 @@ export function DataTableRowActions({
           submit={isTrash ? forceDeleteCompanyActions : deleteCompanyActions}
           classNameButton="bg-red-500 text-white w-full h-9"
           title={`${rowData.title}`}
-          deleteKey={Number(rowData.id)}
+          deleteKey={rowData.id}
           isTrash={isTrash}
         />
       </DropdownMenuContent>

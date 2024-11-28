@@ -7,17 +7,17 @@ import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button";
 import CustomDialogWithTrigger from "./layout/custom-dialog-trigger";
 
-type DialogModalProps = {
-    restorKey: number
-    onClose?: () => void
-    action: (key: number) => Promise<{ message: string, success: boolean }>
-    classNameButton?: string
-    title?: string
-    description?: string
+type DialogModalProps<T> = {
+    restorKey: T;
+    onClose?: () => void;
+    action: (key: T) => Promise<{ message: string, success: boolean }>;
+    classNameButton?: string;
+    title?: string;
+    description?: string;
 };
 
-export default function RestorModal({ restorKey, onClose, action,
-    classNameButton, title, description }: DialogModalProps) {
+export default function RestorModal<T>({ restorKey, onClose, action,
+    classNameButton, title, description }: DialogModalProps<T>) {
     const [open, setOpen] = useState(false);
 
     const handleChange = () => {
@@ -72,11 +72,11 @@ export default function RestorModal({ restorKey, onClose, action,
                     </p>
                 </div>
                 <DialogFooter className="w-full gap-3 sm:justify-center mt-3">
-                    <Button onClick={handleChange} variant="outline" type="reset" className="w-full">
-                        داخستن
-                    </Button>
                     <Button className="w-full" type="submit">
                         هێنانەوە
+                    </Button>
+                    <Button onClick={handleChange} variant="outline" type="reset" className="w-full">
+                        داخستن
                     </Button>
                 </DialogFooter>
             </form>

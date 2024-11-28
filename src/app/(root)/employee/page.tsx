@@ -14,15 +14,15 @@ type Props = {
 
 export default async function Employee({ searchParams }: Props) {
     const isTrash = searchParams.status === "trash"
-    let employees
-    if (isTrash) {
-        employees = await getEmployeesListTrashedActions()
-    } else {
-        employees = await getEmployeesListActions()
-    }
+    let employees = await getEmployeesListActions(isTrash)
+
 
     if (!employees.success) {
-        return <div>{employees.message}</div>
+        return <div className="w-full h-full flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-2">
+                <h1 className="text-lg font-medium">{employees.message}</h1>
+            </div>
+        </div>
     }
 
     return (

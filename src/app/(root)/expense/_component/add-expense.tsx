@@ -102,7 +102,7 @@ export default function AddExpense({ expense, title, handleClose }: Props) {
                             variant="outline"
                             className="min-w-full"
                         >
-                            داخستن
+                        داخستن
                         </Button>
                     </DialogClose>
                     <Button type="submit" className="flex-1 basis-60">

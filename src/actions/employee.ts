@@ -8,7 +8,7 @@ import {
     updateEmployeeAction,
     deleteEmployeeAction
 } from "@/server/access-layer/employee"
-import { CreateEmployee, CreateEmployeeAction, UpdateEmployee, UpdateEmployeeAction } from "@/server/schema/employee"
+import { CreateEmployee, CreateEmployeeAction, MonthParams, UpdateEmployee, UpdateEmployeeAction } from "@/server/schema/employee"
 import { revalidatePath } from "next/cache"
 
 
@@ -22,8 +22,8 @@ export async function getOneEmployeeActions(id: number) {
     return { success: true, data: employee }
 }
 
-export async function getEmployeesListActions() {
-    const employees = await getEmployeesList()
+export async function getEmployeesListActions(isTrash: boolean) {
+    const employees = await getEmployeesList(isTrash)
     if ("error" in employees) {
         return { success: false, message: employees.error }
     }
@@ -137,9 +137,9 @@ export async function updateEmployeeActionActions(id: number, dataEmployeeAction
     }
 }
 
-export async function getEmployeeActionActions(empId: number, { startOfMonth, endOfMonth }:
-    { startOfMonth: Date, endOfMonth: Date }) {
-    const employeeActions = await getEmployeeActionsSpecificTime(empId, { startOfMonth, endOfMonth })
+
+export async function getEmployeeActionActions(empId: number, dataQuery: MonthParams) {
+    const employeeActions = await getEmployeeActionsSpecificTime(empId, dataQuery)
 
     if ("error" in employeeActions) throw new Error(employeeActions.error)
     return employeeActions

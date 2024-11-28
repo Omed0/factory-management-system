@@ -1,14 +1,17 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDebouncedCallback } from "use-debounce";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export default function useSetQuery(delay = 500) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
 
+  // New state to cache search parameters
+  const [cachedSearchParams, setCachedSearchParams] = useState(searchParams.toString());
+
   // Memoize the searchParams and pathname to prevent unnecessary recalculations
-  const memoizedSearchParams = useMemo(() => searchParams.toString(), [searchParams]);
+  const memoizedSearchParams = useMemo(() => cachedSearchParams, [cachedSearchParams]);
   const memoizedPathname = useMemo(() => pathname, [pathname]);
 
   const setQuery = useDebouncedCallback(
@@ -29,6 +32,8 @@ export default function useSetQuery(delay = 500) {
         deleteArrayKeys.forEach((item) => newSearchParams.delete(item));
       }
 
+      // Update cached search parameters
+      setCachedSearchParams(newSearchParams.toString());
       replace(`${memoizedPathname}?${newSearchParams.toString()}`);
     },
     delay

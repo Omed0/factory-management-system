@@ -7,13 +7,30 @@ import { getWeekNumber } from "./utils";
 import path from "path";
 import { unlink } from "fs";
 
+
 export const tryCatch = async <T>(fn: () => Promise<T>): Promise<T | { error: string }> => {
     try {
         return await fn();
     } catch (error) {
-        if (error instanceof ZodError) return { error: "تکایە داتای هەڵەداخلی سیستەمەکە مەکە" };
-        if (error instanceof PrismaClientKnownRequestError)
+        if (error instanceof ZodError) {
+            const errors = error.flatten();
+            const firstKey = Object.keys(errors.fieldErrors)[0];
+            return {
+                error: firstKey
+                    ? `${firstKey}: ${errors.fieldErrors[firstKey]?.[0]}`
+                    : "تکایە داتای هەڵەداخلی سیستەمەکە مەکە"
+            };
+        }
+        if (error instanceof PrismaClientKnownRequestError) {
+            if (error.code === 'P2025' || error.code === 'P2016') {
+                return { error: `ئەم داتایە نەدۆزرایەوە` }
+            }
+            if (error.code === 'P2002') {
+                const isSaleNumber = error.meta?.modelName === "Sales" ? "ناوی وەصڵ" : error.meta?.target
+                return { error: `دووبارە ناتوانرێت دانرابێت لە ${isSaleNumber}` };
+            }
             return { error: "هەڵەیەک لە داتابەیس هەیە" };
+        }
         if (error instanceof Error) return { error: error.message };
         return { error: 'هەڵەیەک هەیە' };
     }
@@ -49,7 +66,7 @@ export async function uploadImage(file: File | Blob) {
     const relativePath = path.join("images", weekFolder, fileName)
         .replace(/\\/g, '/'); // Convert all backslashes to forward slashes
 
-    if (!relativePath) return { success: false, error: "Failed to upload image" };
+    if (!relativePath) return { success: false, error: "دانانی وێنە سەرکەوتوو نەبوو" };
 
     return { success: true, filePath: relativePath };
 }
@@ -64,7 +81,7 @@ export async function unlinkImage(filePath: string): Promise<{ success: boolean;
     } catch (error) {
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'سڕینەوەی ئیمەیج سەرکەوتوو نەبوو'
+            error: error instanceof Error ? error.message : 'سڕینەوەی وێنە سەرکەوتوو نەبوو'
         };
     }
 }

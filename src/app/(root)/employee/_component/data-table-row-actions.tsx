@@ -1,6 +1,6 @@
 "use client"
 
-import { Edit, History, Info, MoreHorizontalIcon } from "lucide-react"
+import { Edit, Info, MoreHorizontalIcon } from "lucide-react"
 import { Row } from "@tanstack/react-table"
 
 import { Button } from "@/components/ui/button"
@@ -13,18 +13,24 @@ import {
 import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
 import AddEmployee from "./add-employee"
 import { OneEmployee } from "@/server/schema/employee"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import DeleteModal from "@/components/delete-modal"
 import useSetQuery from "@/hooks/useSetQuery"
 import EmployeeInfoActions from "./employee-info-actions"
 import RestorModal from "@/components/restore-modal"
-import { deleteEmployeeActions, forceDeleteEmployeeActions, restoreEmployeeActions } from "@/actions/employee"
+import {
+  deleteEmployeeActions, forceDeleteEmployeeActions,
+  restoreEmployeeActions
+} from "@/actions/employee"
+import { Badge } from "@/components/ui/badge"
+import CalenderRangMultiSide from "@/components/calender-rang-multi-side"
+import MonthSelector from "@/components/months-selector"
 
 
 export function DataTableRowActions({
   row
 }: { row: Row<OneEmployee> }) {
-  const { searchParams } = useSetQuery()
+  const { searchParams, setQuery } = useSetQuery()
   const isTrash = searchParams.get("status") === "trash"
 
   const [open, setOpen] = useState(false)
@@ -55,7 +61,10 @@ export function DataTableRowActions({
           <CustomDialogWithTrigger
             open={open}
             onOpenChange={(e) => {
-              if (!e) setDropdownOpen(false)
+              if (!e) {
+                setQuery("", "", ["month", "currency"])
+                setDropdownOpen(false)
+              }
               setOpen(e)
             }}
             button={<Button className="w-full h-9" variant={isTrash ? "link" : "ghost"}>
@@ -69,6 +78,12 @@ export function DataTableRowActions({
           </CustomDialogWithTrigger>
         )}
         <CustomDialogWithTrigger
+          onOpenChange={(e) => {
+            if (!e) {
+              setQuery("", "", ["month", "currency"])
+              setDropdownOpen(e)
+            }
+          }}
           button={
             <Button className="w-full h-9" variant="ghost">
               <Info className="size-5 me-2" />
@@ -77,6 +92,12 @@ export function DataTableRowActions({
           }
         >
           <section className="w-full p-4">
+            <div className="w-fit flex items-center gap-4 justify-evenly">
+              <Badge variant="secondary" className="text-lg font-medium rounded">
+                {rowData.name}
+              </Badge>
+              <MonthSelector />
+            </div>
             <EmployeeInfoActions empId={rowData.id} name={rowData.name} />
           </section>
         </CustomDialogWithTrigger>
@@ -93,4 +114,3 @@ export function DataTableRowActions({
     </DropdownMenu>
   )
 }
-

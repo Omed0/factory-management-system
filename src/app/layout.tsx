@@ -25,10 +25,10 @@ export const generateMetadata = (): Metadata => ({
   },
 });
 
-const RootLayout = ({ children }: PropsWithChildren) => {
+const MainLayout = ({ children }: PropsWithChildren) => {
   const id = useId();
   return (
-    <html lang='ar' suppressHydrationWarning>
+    <html suppressHydrationWarning lang='ckb'>
       <body className={cn('min-h-screen', fonts)}>
         {children}
         <Toaster key={id} duration={3000} />
@@ -37,4 +37,4 @@ const RootLayout = ({ children }: PropsWithChildren) => {
   );
 };
 
-export default RootLayout;
+export default MainLayout;

@@ -7,6 +7,7 @@ import { DataTableColumnHeader } from "./data-table-column-header"
 import { DataTableRowActions } from "./data-table-row-actions"
 import { OneEmployee } from "@/server/schema/employee"
 import Image from "next/image"
+import useConvertCurrency from "@/hooks/useConvertCurrency"
 
 export const columns: ColumnDef<OneEmployee>[] = [
   {
@@ -79,9 +80,10 @@ export const columns: ColumnDef<OneEmployee>[] = [
       <DataTableColumnHeader column={column} title="مووچەی مانگانە" />
     ),
     cell: ({ row }) => {
+      const formatPrice = useConvertCurrency(row.getValue("monthSalary"))
       return (
         <div className="flex w-[100px] items-center">
-          <span>{row.getValue("monthSalary")}</span>
+          <span>{formatPrice}</span>
         </div>
       )
     },

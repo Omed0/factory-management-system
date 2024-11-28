@@ -4,7 +4,7 @@ import { PropsWithChildren } from 'react';
 
 const AuthLayout = ({ children }: PropsWithChildren) => {
     return (
-        <html suppressHydrationWarning>
+        <html>
             <body>
                 {children}
             </body>

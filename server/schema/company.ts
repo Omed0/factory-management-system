@@ -26,6 +26,9 @@ export const getOneCompanySchema = z.object({
     id: z.number().int().positive(),
 });
 
+export const getOneCompanyByNameSchema = z.object({
+    name: z.string().min(1).max(100),
+});
 
 export const deleteCompanySchema = getOneCompanySchema;
 export const deleteManyCompanySchema = z.object({
@@ -57,7 +60,12 @@ export const createCompanyPurchaseSchema = z.object({
             totalRemaining: z.number().min(0, 'بڕی پارەی پێشەکی نابێت کەمتر بێت لە سفر').positive(),
         }),
     ])
-);
+).refine((data) => {
+    if (data.type === "LOAN") {
+        return data.totalRemaining < data.totalAmount
+    }
+    return true
+}, { message: "نابێ پێشەکی لە کۆی گشتی پارەکە زیاتربێت", path: ["totalRemaining"] })
 
 export const updateCompanyPurchaseSchema = createCompanyPurchaseSchema.and(z.object({
     id: z.number().int().positive(),
@@ -90,7 +98,7 @@ export const createCompanyPurchaseInfoSchema = z.object({
     companyPurchaseId: z.number().int().positive(),
     amount: z.number().min(0, 'بڕی پارەکەت با لە سفر کەمتر نەبێت').positive(),
     date: z.date(),
-    note: z.string().optional(),
+    note: z.string().nullable().optional(),
 });
 
 export const updateCompanyPurchaseInfoSchema = createCompanyPurchaseInfoSchema.and(z.object({

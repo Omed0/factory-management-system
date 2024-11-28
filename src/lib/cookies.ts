@@ -25,7 +25,7 @@ export async function decrypt(input: string): Promise<any> {
 
 export async function login<T>(data: T) {
   const expires = new Date(Date.now() + expiteTime);
-  const session = await encrypt({ data, expires });
+  const session = await encrypt({ ...data, expires });
 
   // Save the session in a cookie
   cookies().set('session', session, { expires, httpOnly: true });
@@ -38,9 +38,13 @@ export async function logout() {
 }
 
 export async function getSession() {
-  const session = cookies().get('session')?.value;
-  if (!session) return null;
-  return await decrypt(session);
+  try {
+    const session = cookies().get('session')?.value;
+    if (!session) return null;
+    return await decrypt(session);
+  } catch (error) {
+    return null
+  }
 }
 
 export async function updateSession(request: NextRequest) {

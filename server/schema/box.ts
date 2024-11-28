@@ -21,3 +21,9 @@ export const updateBoxSchema = z.object({
     amount: z.number(),
 });
 
+
+// DOLLAR
+export const updateDollarSchema = z.object({
+    amount: z.number(),
+});
+

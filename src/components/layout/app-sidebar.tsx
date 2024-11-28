@@ -10,6 +10,9 @@ import {
   TicketPercent,
   Settings,
   BellDot,
+  UserRound,
+  Trash,
+  LayoutDashboard,
 } from "lucide-react"
 
 import { NavMain } from "@/components/layout/nav-main"
@@ -22,48 +25,29 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/components/ui/sidebar"
+import { useAuthUser } from "@/hooks/useSession"
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
-      title: "فرۆشتن",
-      url: "/sale",
-      icon: ShoppingCart,
-      isActive: false,
-      items: [
-        {
-          title: "زیادکردن",
-          url: "/sale/add",
-        },
-        {
-          title: "قەرزەکان",
-          url: "/sale?type=loan",
-        },
-        {
-          title: "کڕیارەکان",
-          url: "/sale/customer",
-        },
-      ],
+      title: "سەرەکی",
+      url: "/dashboard",
+      icon: LayoutDashboard,
     },
     {
-      title: "ڕاپۆرتەکان",
-      url: "#",
-      icon: SquareKanban,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-      ],
+      title: "کڕیارەکان",
+      url: "/customer",
+      icon: UserRound,
+    },
+    {
+      title: "کۆمپانیاکان",
+      url: "/company",
+      icon: Building2,
+    },
+    {
+      title: "کارمەندەکان",
+      url: "/employee",
+      icon: Users,
     },
     {
       title: "خەرجیەکان",
@@ -76,14 +60,27 @@ const data = {
       icon: PackageSearch,
     },
     {
-      title: "کارمەندەکان",
-      url: "/employee",
-      icon: Users,
-    },
-    {
-      title: "کۆمپانیاکان",
-      url: "/company",
-      icon: Building2,
+      title: "ڕاپۆرتات",
+      url: "/report",
+      icon: SquareKanban,
+      items: [
+        {
+          title: "کڕین",
+          url: "/report?report=purchase",
+        },
+        {
+          title: "خەرجی",
+          url: "/report?report=expense",
+        },
+        {
+          title: "فرۆشتن",
+          url: "/report?report=sale",
+        },
+        {
+          title: "بەپێی مەواد",
+          url: "/report/product",
+        },
+      ],
     },
   ],
   settings: [
@@ -92,15 +89,11 @@ const data = {
       url: "/setting",
       icon: Settings,
     },
-    {
-      name: "ئاگادارکردنەوەکان",
-      url: "#",
-      icon: BellDot,
-    },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useAuthUser()
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -111,7 +104,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSetting settings={data.settings} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={session} />
       </SidebarFooter>
       {/*<SidebarRail />*/}
     </Sidebar>

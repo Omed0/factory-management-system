@@ -25,16 +25,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { LogoutAction } from "@/actions/auth"
+import { LoginUserType } from "@/server/access-layer/user"
 
 export function NavUser({
   user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
-}) {
+}: { user: LoginUserType }) {
   const { isMobile } = useSidebar()
 
   return (
@@ -47,7 +43,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={user.image ?? undefined} alt={user.name} />
                 <AvatarFallback className="rounded-lg">CN</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-start text-sm leading-tight">
@@ -66,7 +62,7 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={user.image ?? undefined} alt={user.name} />
                   <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-start text-sm leading-tight">
@@ -99,9 +95,7 @@ const menuItems = [
   {
     title: "Log out",
     icon: LogOut,
-    className: "text-red-500",
-    action: () => {
-      console.log("Log out")
-    }
+    className: "text-red-500 cursor-pointer",
+    action: async () => await LogoutAction()
   },
 ]

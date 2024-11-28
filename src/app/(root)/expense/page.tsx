@@ -1,13 +1,8 @@
-import { PlusCircleIcon } from "lucide-react"
 
 import { HandCoins } from "lucide-react"
-import { getExpensesListActions, getExpensesListTrashedActions } from "@/actions/expense"
-import { Button } from "@/components/ui/button"
-import AddEmployee from "../employee/_component/add-employee"
+import { getExpensesListActions } from "@/actions/expense"
 import { DataTable } from "./_component/data-table"
 import { columns } from "./_component/columns"
-import CustomDialogWithTrigger from "@/components/layout/custom-dialog-trigger"
-import AddExpense from "./_component/add-expense"
 
 type Props = {
     searchParams: {
@@ -18,15 +13,14 @@ type Props = {
 export default async function Expense({ searchParams }: Props) {
     const isTrash = searchParams.status === "trash"
 
-    let expenses
-    if (isTrash) {
-        expenses = await getExpensesListTrashedActions()
-    } else {
-        expenses = await getExpensesListActions()
-    }
+    const expenses = await getExpensesListActions({ isTrash })
 
     if (!expenses.success) {
-        return <div>{expenses.message as string}</div>
+        return <div className="w-full h-full flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center gap-2">
+                <h1 className="text-lg font-medium">{expenses.message}</h1>
+            </div>
+        </div>
     }
 
     return (

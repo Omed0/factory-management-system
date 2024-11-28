@@ -7,6 +7,7 @@ import { Users } from "lucide-react"
 import AddPurchase from "../_component/add-purchase-form"
 import { DataTable } from "../_component/data-table"
 import { column_purchase } from "../_component/column-purchase"
+import Link from "next/link"
 
 type Props = {
     searchParams: {
@@ -25,6 +26,10 @@ export default async function SpecificCompany({ searchParams, params }: Props) {
         return <div className="w-full h-full flex items-center justify-center">
             <div className="flex flex-col items-center justify-center gap-2">
                 <h1 className="text-lg font-medium">{companyPurchase.message}</h1>
+                <Link
+                    replace href="/company"
+                    className="p-3 hover:underline underline-offset-8 text-blue-500"
+                >بچۆرەوە بۆ کۆمپانیاکان</Link>
             </div>
         </div>
     }

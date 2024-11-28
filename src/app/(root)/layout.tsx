@@ -1,16 +1,24 @@
-import CustomLayout from '@/components/layout/customLayout';
 import '@/styles/globals.css';
-
 import { PropsWithChildren } from 'react';
+import CustomLayout from '@/components/layout/customLayout';
+import { getSession } from '@/lib/cookies';
+import ProviderReactQuery from '@/components/layout/provider-react-query';
+import { getDollarActions } from '@/actions/boxes';
 
 
-const RootLayout = ({ children }: PropsWithChildren) => {
+async function RootLayout({ children }: PropsWithChildren) {
+    const session = await getSession()
+    const { success, data, message } = await getDollarActions()
+    if (!success || !data?.dollar) throw new Error(message || "دۆلار کێشەی تیایە")
+
     return (
-        <html suppressHydrationWarning>
+        <html>
             <body className="w-full">
-                <CustomLayout>
-                    {children}
-                </CustomLayout>
+                <ProviderReactQuery>
+                    <CustomLayout session={session} dollar={data.dollar}>
+                        {children}
+                    </CustomLayout>
+                </ProviderReactQuery>
             </body>
         </html>
     );

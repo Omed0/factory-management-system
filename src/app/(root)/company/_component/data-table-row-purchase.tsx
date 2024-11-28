@@ -19,17 +19,17 @@ import { OneCompanyPurchase } from "@/server/schema/company"
 import {
     deleteCompanyPurchaseActions, deleteCompanyPurchaseInfoActions,
     forceDeleteCompanyPurchaseActions,
-    getListCompanyPurchaseInfoActions, restoreCompanyPurchaseActions
+    restoreCompanyPurchaseActions
 } from "@/actions/company"
 import AddPurchase from "./add-purchase-form"
 import {
     Table, TableCaption, TableHead, TableRow,
     TableHeader, TableCell, TableBody
 } from "@/components/ui/table"
-import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@/components/ui/badge"
 import AddCompanyPurchaseInfo from "./add-purchase-info-form"
 import { toast } from "sonner"
+import { usePurchaseInfo } from "../purchase-info-state"
 
 
 export function DataTableRowPurchaseActions({
@@ -61,6 +61,7 @@ export function DataTableRowPurchaseActions({
                 {isShowInvoiceInfo && (
                     <>
                         <CustomDialogWithTrigger
+                            onOpenChange={(e) => !e && setDropdownOpen(e)}
                             className="w-full p-6 pt-4"
                             button={<Button
                                 className="w-full h-9 hover:bg-accent"
@@ -71,7 +72,7 @@ export function DataTableRowPurchaseActions({
                             </Button>}
                         >
                             <ModalTablePurchaseInfo
-                                companyPurchaseId={Number(rowData.id)}
+                                companyPurchaseId={rowData.id}
                                 isTrash={isTrash}
                             />
                         </CustomDialogWithTrigger>
@@ -81,9 +82,9 @@ export function DataTableRowPurchaseActions({
                 {isTrash ? (
                     <RestorModal
                         description="دڵنیای لە هێنانەوەی ئەم کۆمپانیایە"
-                        restorKey={Number(rowData.id)}
+                        restorKey={rowData.id}
                         classNameButton="w-full h-9"
-                        action={(id) => restoreCompanyPurchaseActions(id, Number(rowData.companyId))}
+                        action={(id) => restoreCompanyPurchaseActions(id, rowData.companyId)}
                         title={`${rowData.name}`}
                     />
                 ) : (
@@ -107,6 +108,10 @@ export function DataTableRowPurchaseActions({
                             <AddPurchase
                                 title="زیادکردنی کڕین"
                                 purchase={{ ...rowData } as OneCompanyPurchase}
+                                handleClose={() => {
+                                    setDropdownOpen(false)
+                                    setOpen(false)
+                                }}
                             />
                         </section>
                     </CustomDialogWithTrigger>
@@ -114,10 +119,12 @@ export function DataTableRowPurchaseActions({
                 <DropdownMenuSeparator />
                 <DeleteModal
                     description={`${isTrash ? "ئەم داتایە بە تەواوی دەسڕێتەوە" : 'دڵنیایی لە ئەرشیفکردنی ئەم داتایە'}`}
-                    submit={isTrash ? (id) => forceDeleteCompanyPurchaseActions(id, Number(rowData.companyId)) : (id) => deleteCompanyPurchaseActions(id, Number(rowData.companyId))}
+                    submit={isTrash ? (id) => forceDeleteCompanyPurchaseActions(id, rowData.companyId) :
+                        (id) => deleteCompanyPurchaseActions(id, rowData.companyId)}
                     classNameButton="bg-red-500 text-white w-full h-9"
+                    onClose={() => setDropdownOpen(false)}
                     title={`${rowData.name}`}
-                    deleteKey={Number(rowData.id)}
+                    deleteKey={rowData.id}
                     isTrash={isTrash}
                 />
             </DropdownMenuContent>
@@ -126,17 +133,13 @@ export function DataTableRowPurchaseActions({
 }
 
 
-export function ModalTablePurchaseInfo(
+export function ModalTablePurchaseInfo<T extends number>(
     { companyPurchaseId, isTrash }:
-        { companyPurchaseId: number, isTrash: boolean }
+        { companyPurchaseId: T, isTrash: boolean }
 ) {
     const [open, setOpen] = useState(false)
 
-    const { data, isLoading, isError, error, refetch } = useQuery({
-        queryKey: ["company-purchase-info", companyPurchaseId],
-        queryFn: async () => await getListCompanyPurchaseInfoActions(companyPurchaseId),
-        enabled: !isTrash && companyPurchaseId !== 0
-    })
+    const { isLoading, data, isError, error, refetch } = usePurchaseInfo(companyPurchaseId, isTrash)
 
     if (isLoading) return <div className="text-center p-4">Loading...</div>
     if (isError || !data?.success || isTrash) {
@@ -208,7 +211,7 @@ export function ModalTablePurchaseInfo(
                     {purchaseInfo.map((item) => (
                         <TableRow key={item.id}>
                             <TableCell className="w-[80px]">
-                                {Number(item.id) === 1 ? "پێشەکی" : `${Number(item.id)}`}
+                                {item.id === 1 ? "پێشەکی" : `${item.id}`}
                             </TableCell>
                             <TableCell>{item.amount}</TableCell>
                             <TableCell>{new Date(item.date).toLocaleDateString('en-US')}</TableCell>
@@ -216,7 +219,7 @@ export function ModalTablePurchaseInfo(
                             <TableCell className="text-center">
                                 <form id="deletePurchaseInfo" action={async () => {
                                     const { success, message } = await
-                                        deleteCompanyPurchaseInfoActions(Number(item.id), companyPurchaseId)
+                                        deleteCompanyPurchaseInfoActions(item.id, companyPurchaseId)
                                     if (success) {
                                         toast.success(message)
                                         refetch()

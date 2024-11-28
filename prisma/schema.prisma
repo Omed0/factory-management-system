@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Users {
-  id         Int      @id @default(autoincrement())
+  id         String   @id @default(cuid()) @db.VarChar(40)
   name       String
   email      String   @unique
   phone      String?
@@ -21,8 +21,8 @@ model Users {
 }
 
 model PurchasesInfo {
-  id                BigInt          @id @default(autoincrement())
-  companyPurchaseId BigInt
+  id                Int             @id @default(autoincrement())
+  companyPurchaseId Int
   amount            Float
   date              DateTime
   note              String?
@@ -35,8 +35,8 @@ model PurchasesInfo {
 }
 
 model PaidLoans {
-  id       BigInt   @id @default(autoincrement())
-  saleId   BigInt
+  id       Int      @id @default(autoincrement())
+  saleId   Int
   amount   Float
   paidDate DateTime
   note     String?
@@ -49,7 +49,7 @@ model PaidLoans {
 }
 
 model Expenses {
-  id         BigInt   @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   title      String
   note       String?
   amount     Float
@@ -90,7 +90,7 @@ model EmployeeActions {
 }
 
 model CompanyPurchase {
-  id             BigInt              @id @default(autoincrement())
+  id             Int                 @id @default(autoincrement())
   name           String
   companyId      Int
   totalAmount    Float
@@ -110,26 +110,29 @@ model CompanyPurchase {
 }
 
 model Boxes {
-  id     BigInt @id @default(autoincrement())
-  amount Float  @default(0)
+  id     Int   @id @default(autoincrement())
+  amount Float @default(0)
+  dollar Float @default(1500)
 
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())
 }
 
 model Sales {
-  id             BigInt     @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   customerId     Int?
-  saleNumber     String
-  totalAmount    Float
-  totalRemaining Float      @default(0)
-  saleType       SaleType   @default(CASH)
-  discount       Float      @default(0)
-  prepayment     Float      @default(0)
-  monthlyPaid    Float      @default(0)
-  isFinished     Boolean    @default(false)
-  deleted_at     DateTime?
-  customer       Customers? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  saleNumber     String   @unique @db.VarChar(255)
+  totalAmount    Float    @default(0)
+  totalRemaining Float    @default(0)
+  saleType       SaleType @default(CASH)
+  discount       Float    @default(0)
+  monthlyPaid    Float    @default(0)
+  saleDate       DateTime @default(now())
+  isFinished     Boolean  @default(false)
+
+  note       String?
+  deleted_at DateTime?
+  customer   Customers? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   paidLoans PaidLoans[]
   saleItems SaleItems[]
@@ -141,11 +144,12 @@ model Sales {
 }
 
 model Customers {
-  id      Int     @id @default(autoincrement())
-  name    String
-  phone   String
-  address String
-  sales   Sales[]
+  id                  Int     @id @default(autoincrement())
+  name                String
+  phone               String
+  address             String
+  isSalariedeEmployee Boolean @default(false)
+  sales               Sales[]
 
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())
@@ -154,7 +158,7 @@ model Customers {
 }
 
 model Products {
-  id        BigInt      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   name      String
   price     Float
   image     String?
@@ -168,9 +172,9 @@ model Products {
 }
 
 model SaleItems {
-  id        BigInt    @id @default(autoincrement())
-  saleId    BigInt
-  productId BigInt?
+  id        Int       @id @default(autoincrement())
+  saleId    Int
+  productId Int?
   price     Float
   quantity  Int
   sale      Sales     @relation(fields: [saleId], references: [id], onDelete: Cascade)

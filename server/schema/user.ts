@@ -21,18 +21,20 @@ export const createUserSchema = z.object({
   image: z.string().optional(),
 });
 
-export const updateUserSchema = createUserSchema.partial();
+export const updateUserSchema = createUserSchema.partial().and(z.object({
+  id: z.string()
+}));
 
 export const getOneUserSchema = z.object({
-  id: z.number(),
+  id: z.string(),
 });
 
 export const deleteUserSchema = z.object({
-  id: z.number(),
+  id: z.string(),
 });
 
 export const deleteManyUsersSchema = z.object({
-  ids: z.array(z.number()),
+  ids: z.array(z.string()),
 });
 
 export const loginSchema = z.object({

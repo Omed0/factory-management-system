@@ -12,7 +12,9 @@ import { useEffect, useMemo, useState } from "react"
 import { Table } from "@tanstack/react-table"
 import useSetQuery from "@/hooks/useSetQuery"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { IQDtoUSD, cn, getMonthStartAndEndOfMonth } from "@/lib/utils"
+import { createEmployeeActionActions } from "@/actions/employee"
+import { CurrencyInput } from "@/components/custom-currency-input"
 import {
     Command,
     CommandEmpty,
@@ -26,9 +28,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import { createEmployeeActionActions } from "@/actions/employee"
-import { useQuery } from "@tanstack/react-query"
-
+import { useDollar } from "@/hooks/useDollar"
+import useActionEmployee from "../useActionEmployee"
 
 type Props<TData> = {
     table: Table<TData>
@@ -42,8 +43,12 @@ type Props<TData> = {
 
 export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
     const [open, setOpen] = useState(false)
-    const { searchParams } = useSetQuery()
+    const { searchParams, setQuery } = useSetQuery()
+    const { data } = useDollar()
+
     const isTrash = searchParams.get("status") === "trash"
+    const currency = searchParams.get("currency") || "USD"
+
     const getSelectedEmployee = useMemo(() =>
         table.getSelectedRowModel().rows.map((row) => row.original as OneEmployee), [table])
 
@@ -61,17 +66,17 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
         },
     });
 
-
     const exit = () => {
         form.reset()
         setOpen(false)
     }
-    const { refetch } = useQuery({
-        queryKey: ["employeeActions", String(form.watch("employeeId"))],
-        enabled: !!form.watch("employeeId") && form.watch("employeeId") > 0
-    })
+
+    const { refetch } = useActionEmployee(form.watch("employeeId"), getMonthStartAndEndOfMonth(new Date()))
 
     async function onSubmit(values: CreateEmployeeAction) {
+        if (currency === "IQD") {
+            values.amount = IQDtoUSD(values.amount, data.dollar)
+        }
         const { success, message } = await createEmployeeActionActions(values)
         if (!success) {
             toast.error(message)
@@ -105,6 +110,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
                 className="!max-w-fit px-6 lg:px-16"
                 onOpenChange={(e) => {
                     if (isTrash) return toast.error("تەنها بۆ کارمەندە ئەکتیڤەکانە")
+                    if (!e) setQuery("", "", ["currency"])
                     setOpen(e)
                 }}
                 button={
@@ -184,18 +190,11 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                        <CurrencyInput
+                            className="w-96"
                             control={form.control}
                             name="amount"
-                            render={({ field }) => (
-                                <FormItem className="w-96">
-                                    <FormLabel>بڕی پارە</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} type="number" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            label="بڕی پارە"
                         />
                         <FormField
                             control={form.control}

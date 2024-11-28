@@ -16,12 +16,7 @@ type Props = {
 
 export default async function Company({ searchParams }: Props) {
     const isTrash = searchParams.status === "trash"
-    let companies
-    if (isTrash) {
-        companies = await getCompanyListActions(true)
-    } else {
-        companies = await getCompanyListActions()
-    }
+    const companies = await getCompanyListActions(isTrash)
 
     if (!companies.success) {
         return <div>{companies.message}</div>

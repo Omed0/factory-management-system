@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE `Users` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `id` VARCHAR(40) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NULL,
@@ -16,11 +16,11 @@ CREATE TABLE `Users` (
 
 -- CreateTable
 CREATE TABLE `PurchasesInfo` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `companyPurchaseId` BIGINT NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `companyPurchaseId` INTEGER NOT NULL,
     `amount` DOUBLE NOT NULL,
     `date` DATETIME(3) NOT NULL,
-    `note` VARCHAR(191) NOT NULL,
+    `note` VARCHAR(191) NULL,
     `updated_at` DATETIME(3) NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
@@ -30,8 +30,8 @@ CREATE TABLE `PurchasesInfo` (
 
 -- CreateTable
 CREATE TABLE `PaidLoans` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `saleId` BIGINT NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `saleId` INTEGER NOT NULL,
     `amount` DOUBLE NOT NULL,
     `paidDate` DATETIME(3) NOT NULL,
     `note` VARCHAR(191) NULL,
@@ -44,7 +44,7 @@ CREATE TABLE `PaidLoans` (
 
 -- CreateTable
 CREATE TABLE `Expenses` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
     `note` VARCHAR(191) NULL,
     `amount` DOUBLE NOT NULL,
@@ -72,9 +72,9 @@ CREATE TABLE `Employee` (
 
 -- CreateTable
 CREATE TABLE `EmployeeActions` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `type` ENUM('PUNISHMENT', 'BONUS', 'ABSENT', 'OVERTIME') NOT NULL DEFAULT 'ABSENT',
-    `amount` DOUBLE NULL,
+    `amount` DOUBLE NOT NULL,
     `note` VARCHAR(191) NULL,
     `dateAction` DATETIME(3) NOT NULL,
     `employeeId` INTEGER NOT NULL,
@@ -87,7 +87,8 @@ CREATE TABLE `EmployeeActions` (
 
 -- CreateTable
 CREATE TABLE `CompanyPurchase` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(191) NOT NULL,
     `companyId` INTEGER NOT NULL,
     `totalAmount` DOUBLE NOT NULL,
     `totalRemaining` DOUBLE NOT NULL DEFAULT 0,
@@ -104,7 +105,7 @@ CREATE TABLE `CompanyPurchase` (
 
 -- CreateTable
 CREATE TABLE `Boxes` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `amount` DOUBLE NOT NULL DEFAULT 0,
     `updated_at` DATETIME(3) NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -114,20 +115,22 @@ CREATE TABLE `Boxes` (
 
 -- CreateTable
 CREATE TABLE `Sales` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `customerId` INTEGER NULL,
-    `saleNumber` VARCHAR(191) NOT NULL,
+    `saleNumber` VARCHAR(255) NOT NULL,
     `totalAmount` DOUBLE NOT NULL,
     `totalRemaining` DOUBLE NOT NULL DEFAULT 0,
     `saleType` ENUM('CASH', 'LOAN') NOT NULL DEFAULT 'CASH',
     `discount` DOUBLE NOT NULL DEFAULT 0,
-    `prepayment` DOUBLE NOT NULL DEFAULT 0,
     `monthlyPaid` DOUBLE NOT NULL DEFAULT 0,
+    `saleDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `isFinished` BOOLEAN NOT NULL DEFAULT false,
+    `note` VARCHAR(191) NULL,
     `deleted_at` DATETIME(3) NULL,
     `updated_at` DATETIME(3) NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    UNIQUE INDEX `Sales_saleNumber_key`(`saleNumber`),
     INDEX `sales_customer_id_index`(`customerId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -138,6 +141,7 @@ CREATE TABLE `Customers` (
     `name` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NOT NULL,
     `address` VARCHAR(191) NOT NULL,
+    `isSalariedeEmployee` BOOLEAN NOT NULL DEFAULT false,
     `updated_at` DATETIME(3) NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `deleted_at` DATETIME(3) NULL,
@@ -147,7 +151,7 @@ CREATE TABLE `Customers` (
 
 -- CreateTable
 CREATE TABLE `Products` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `price` DOUBLE NOT NULL,
     `image` VARCHAR(191) NULL,
@@ -161,9 +165,9 @@ CREATE TABLE `Products` (
 
 -- CreateTable
 CREATE TABLE `SaleItems` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `saleId` BIGINT NOT NULL,
-    `productId` BIGINT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `saleId` INTEGER NOT NULL,
+    `productId` INTEGER NULL,
     `price` DOUBLE NOT NULL,
     `quantity` INTEGER NOT NULL,
     `updated_at` DATETIME(3) NOT NULL,

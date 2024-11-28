@@ -47,7 +47,7 @@ export function DataTableRowActions({
             description="دڵنیای لە هێنانەوەی ئەم کۆمپانیایە"
             restorKey={rowData.id}
             classNameButton="w-full h-9"
-            action={restoreCompanyActions}
+            action={(id) => restoreCompanyActions(id)}
             title={`${rowData.name}`}
           />
         ) : (
@@ -77,7 +77,7 @@ export function DataTableRowActions({
         <DropdownMenuSeparator />
         <DeleteModal
           description={`${isTrash ? "ئەم کۆمپانیایە بە تەواوی دەسڕێتەوە" : 'دڵنیایی لە ئەرشیفکردنی ئەم کۆمپانیایە'}`}
-          submit={isTrash ? forceDeleteCompanyActions : deleteCompanyActions}
+          submit={(id) => isTrash ? forceDeleteCompanyActions(id) : deleteCompanyActions(id)}
           classNameButton="bg-red-500 text-white w-full h-9"
           title={`${rowData.name}`}
           onClose={() => {

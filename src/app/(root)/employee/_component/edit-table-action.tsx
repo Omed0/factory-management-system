@@ -18,6 +18,10 @@ import {
     UpdateEmployeeAction,
     updateEmployeeActionSchema
 } from "@/server/schema/employee"
+import { CurrencyInput } from "@/components/custom-currency-input"
+import useSetQuery from "@/hooks/useSetQuery"
+import { IQDtoUSD } from "@/lib/utils"
+import { useDollar } from "@/hooks/useDollar"
 
 type Props = {
     id: number
@@ -26,6 +30,10 @@ type Props = {
 
 export default function EditTableAction({ id, infoAction }: Props) {
     const [open, setOpen] = useState(false)
+    const { searchParams } = useSetQuery()
+    const { data } = useDollar()
+
+    const currency = searchParams.get("currency") || "USD"
 
     const form = useForm<UpdateEmployeeAction>({
         resolver: zodResolver(updateEmployeeActionSchema),
@@ -37,12 +45,18 @@ export default function EditTableAction({ id, infoAction }: Props) {
         setOpen(false)
     }
 
+    const empId = form.watch("employeeId") || 0
+
     const { refetch } = useQuery({
-        queryKey: ["employeeActions", String(form.watch("employeeId"))],
-        enabled: !!form.watch("employeeId") && form.watch("employeeId") > 0
+        queryKey: ["employeeActions", String(empId)],
+        enabled: empId > 0
     })
 
     async function onSubmit(values: UpdateEmployeeAction) {
+        if (values.amount && currency === "IQD") {
+            values.amount = IQDtoUSD(values.amount, data.dollar)
+        }
+
         const { success, message } = await updateEmployeeActionActions(id, values)
         if (!success) {
             toast.error(message)
@@ -96,18 +110,11 @@ export default function EditTableAction({ id, infoAction }: Props) {
                                 </FormItem>
                             )}
                         />
-                        <FormField
+                        <CurrencyInput
+                            className="w-96"
                             control={form.control}
                             name="amount"
-                            render={({ field }) => (
-                                <FormItem className="w-96">
-                                    <FormLabel>بڕی پارە</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} type="number" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            label="بڕی پارە"
                         />
                         <FormField
                             control={form.control}

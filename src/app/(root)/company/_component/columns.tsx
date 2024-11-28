@@ -6,6 +6,7 @@ import { DataTableColumnHeader } from "./data-table-column-header"
 import { DataTableRowActions } from "./data-table-row-actions"
 import { OneCompany } from "@/server/schema/company"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 export const columns: ColumnDef<OneCompany>[] = [
   {
@@ -14,10 +15,14 @@ export const columns: ColumnDef<OneCompany>[] = [
       <DataTableColumnHeader column={column} title="ناو" />
     ),
     cell: ({ row }) => {
+      const isTrash = Boolean(row.original.deleted_at)
       return (
         <Link
-          href={`/company/${row.original.id}`}
-          className="flex w-[100px] items-center text-blue-500 underline"
+          href={!isTrash ? `/company/${row.original.id}` : "#"}
+          className={cn("flex w-[100px] items-center ", {
+            "text-blue-500 underline": !isTrash,
+            "text-foreground/70 cursor-default": isTrash,
+          })}
         >
           <span>{row.original.name}</span>
         </Link>

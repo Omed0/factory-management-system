@@ -6,16 +6,20 @@ import { DataTableColumnHeader } from "./data-table-column-header"
 import { OneCompanyPurchase } from "@/server/schema/company"
 import { DataTableRowPurchaseActions } from "./data-table-row-purchase"
 import { Badge } from "@/components/ui/badge"
+import useConvertCurrency from "@/hooks/useConvertCurrency"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
     {
         accessorKey: "name",
         header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="ناو مەواد" />
+            <DataTableColumnHeader column={column} title="ناو" />
         ),
         cell: ({ row }) => {
+            const isFinish = row.original?.totalAmount === row.original?.totalRemaining;
             return (
-                <div className="flex w-32 items-center">
+                <div className="flex w-32 items-center gap-3">
+                    <Checkbox checked={isFinish} />
                     <span>{row.original?.name}</span>
                 </div>
             )
@@ -27,11 +31,11 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
             <DataTableColumnHeader column={column} title="جۆری کڕین" />
         ),
         cell: ({ row }) => {
-            const isFinish = row.original?.totalAmount === row.original?.totalRemaining;
+            const type = row.original?.type
             return (
                 <div className="w-[100px]">
-                    <Badge variant={!isFinish ? "destructive" : "default"}>
-                        {row.original?.type}
+                    <Badge variant={type === "LOAN" ? "destructive" : "default"}>
+                        {type}
                     </Badge>
                 </div>
             )
@@ -43,9 +47,10 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
             <DataTableColumnHeader column={column} title="کۆی پارەی گشتی" />
         ),
         cell: ({ row }) => {
+            const formatedAmount = useConvertCurrency(row.original?.totalAmount || 0)
             return (
                 <div className="w-[100px]">
-                    <span>{row.original?.totalAmount}</span>
+                    <span>{formatedAmount}</span>
                 </div>
             )
         },
@@ -56,9 +61,10 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
             <DataTableColumnHeader column={column} title="کۆی پارەی دراو" />
         ),
         cell: ({ row }) => {
+            const formatedAmount = useConvertCurrency(row.original?.totalRemaining || 0)
             return (
                 <div className="w-[100px]">
-                    <span>{row.original?.totalRemaining ?? 0}</span>
+                    <span>{formatedAmount}</span>
                 </div>
             )
         },
@@ -69,7 +75,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
             <DataTableColumnHeader column={column} title="بەروار" />
         ),
         cell: ({ row }) => {
-            const date = new Date(row.original?.purchaseDate ?? "").toLocaleDateString("en-GB")
+            const date = new Date(row.original?.purchaseDate ?? new Date()).toLocaleDateString("en-GB")
             return (
                 <div className="w-[100px]">
                     <span>{date}</span>
