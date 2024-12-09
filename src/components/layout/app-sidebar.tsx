@@ -1,99 +1,88 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 import {
   Building2,
-  PackageSearch,
-  ShoppingCart,
-  SquareKanban,
-  Users,
-  TicketPercent,
-  Settings,
-  BellDot,
-  UserRound,
-  Trash,
   LayoutDashboard,
-} from "lucide-react"
+  PackageSearch,
+  Settings,
+  SquareKanban,
+  TicketPercent,
+  UserRound,
+  Users,
+} from 'lucide-react';
 
-import { NavMain } from "@/components/layout/nav-main"
-import { NavSetting } from "@/components/layout/nav-settings"
-import { NavUser } from "@/components/layout/nav-user"
-import { Brand } from "@/components/layout/brand"
+import { Brand } from '@/components/layout/brand';
+import { NavMain } from '@/components/layout/nav-main';
+import { NavUser } from '@/components/layout/nav-user';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "@/components/ui/sidebar"
-import { useAuthUser } from "@/hooks/useSession"
+} from '@/components/ui/sidebar';
+import { useAuthUser } from '@/hooks/useSession';
 
 const data = {
   navMain: [
     {
-      title: "سەرەکی",
-      url: "/dashboard",
+      title: 'سەرەکی',
+      url: '/dashboard',
       icon: LayoutDashboard,
     },
     {
-      title: "کڕیارەکان",
-      url: "/customer",
+      title: 'کڕیارەکان',
+      url: '/customer',
       icon: UserRound,
     },
     {
-      title: "کۆمپانیاکان",
-      url: "/company",
+      title: 'کۆمپانیاکان',
+      url: '/company',
       icon: Building2,
     },
     {
-      title: "کارمەندەکان",
-      url: "/employee",
+      title: 'کارمەندەکان',
+      url: '/employee',
       icon: Users,
     },
     {
-      title: "خەرجیەکان",
-      url: "/expense",
+      title: 'خەرجیەکان',
+      url: '/expense',
       icon: TicketPercent,
     },
     {
-      title: "بەرهەمەکان",
-      url: "/product",
+      title: 'بەرهەمەکان',
+      url: '/product',
       icon: PackageSearch,
     },
     {
-      title: "ڕاپۆرتات",
-      url: "/report",
+      title: 'ڕاپۆرتات',
+      url: '/report',
       icon: SquareKanban,
       items: [
         {
-          title: "کڕین",
-          url: "/report?report=purchase",
+          title: 'کڕین',
+          url: '/report/purchase',
         },
         {
-          title: "خەرجی",
-          url: "/report?report=expense",
+          title: 'خەرجی',
+          url: '/report/expense',
         },
         {
-          title: "فرۆشتن",
-          url: "/report?report=sale",
+          title: 'فرۆشتن',
+          url: '/report/sale',
         },
         {
-          title: "بەپێی مەواد",
-          url: "/report/product",
+          title: 'بەپێی کەس',
+          url: '/report/person',
         },
       ],
     },
   ],
-  settings: [
-    {
-      name: "ڕێکخستنی سیستەم",
-      url: "/setting",
-      icon: Settings,
-    },
-  ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useAuthUser()
+  const { data: session } = useAuthUser();
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -101,12 +90,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavSetting settings={data.settings} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={session} />
       </SidebarFooter>
       {/*<SidebarRail />*/}
     </Sidebar>
-  )
+  );
 }

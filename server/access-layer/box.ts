@@ -1,6 +1,14 @@
 import 'server-only';
 
-import { CreateBox, createBoxSchema, GetOneBox, getOneBoxSchema, UpdateBox, updateBoxSchema, updateDollarSchema } from '../schema/box';
+import {
+  CreateBox,
+  createBoxSchema,
+  GetOneBox,
+  getOneBoxSchema,
+  UpdateBox,
+  updateBoxSchema,
+  updateDollarSchema,
+} from '../schema/box';
 import { tryCatch } from '@/lib/helper';
 import { prisma } from '@/lib/client';
 
@@ -28,12 +36,11 @@ export async function updateBox(box: UpdateBox) {
     const updatedBox = await prisma.boxes.update({
       where: { id: data.id },
       data: { amount: data.amount },
-      select: { amount: true }
+      select: { amount: true },
     });
     return updatedBox;
   });
 }
-
 
 //UPDATE DOLLAR
 
@@ -41,14 +48,13 @@ export async function getDollar() {
   return tryCatch(async () => {
     const dollar = await prisma.boxes.findFirst({
       where: { id: 1 },
-      select: { dollar: true }
+      select: { dollar: true },
     });
 
-    if (!dollar) throw new Error("دۆلار بوونی نییە")
+    if (!dollar) throw new Error('دۆلار بوونی نییە');
     return { dollar };
   });
 }
-
 
 export async function updateDollar({ amount }: { amount: number }) {
   return tryCatch(async () => {
@@ -56,7 +62,7 @@ export async function updateDollar({ amount }: { amount: number }) {
     const updateDollar = await prisma.boxes.update({
       where: { id: 1 },
       data: { dollar: data.amount },
-      select: { dollar: true }
+      select: { dollar: true },
     });
     return updateDollar;
   });

@@ -1,22 +1,23 @@
-"use client"
+'use client';
 
-import { ColumnDef, Row } from "@tanstack/react-table"
-import { Checkbox } from "@/components/ui/checkbox"
+import { ColumnDef, Row } from '@tanstack/react-table';
+import Image from 'next/image';
 
-import { DataTableColumnHeader } from "./data-table-column-header"
-import { DataTableRowActions } from "./data-table-row-actions"
-import { OneEmployee } from "@/server/schema/employee"
-import Image from "next/image"
-import useConvertCurrency from "@/hooks/useConvertCurrency"
+import { DataTableColumnHeader } from './data-table-column-header';
+import { DataTableRowActions } from './data-table-row-actions';
+
+import { Checkbox } from '@/components/ui/checkbox';
+import useConvertCurrency from '@/hooks/useConvertCurrency';
+import { OneEmployee } from '@/server/schema/employee';
 
 export const columns: ColumnDef<OneEmployee>[] = [
   {
-    id: "select",
+    id: 'select',
     header: ({ table }) => (
       <Checkbox
         checked={
           table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
+          (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
@@ -35,16 +36,16 @@ export const columns: ColumnDef<OneEmployee>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "name",
+    accessorKey: 'name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ناوی کارمەند" />
     ),
     cell: ({ row }) => {
       return (
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-2">
           {row.original.image && (
             <Image
-              className="rounded-full size-10 object-contain aspect-square"
+              className="aspect-square size-10 rounded-full object-contain"
               src={`/${row.original.image}`}
               alt={row.original.name}
               height={120}
@@ -55,58 +56,60 @@ export const columns: ColumnDef<OneEmployee>[] = [
             {row.original.name}
           </span>
         </div>
-      )
+      );
     },
   },
   {
-    accessorKey: "phone",
+    accessorKey: 'phone',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ژمارەی مۆبایل" />
     ),
     cell: ({ row }) => {
       return (
         <div className="flex w-[100px] items-center">
-          <span>{row.getValue("phone")}</span>
+          <span>{row.getValue('phone')}</span>
         </div>
-      )
+      );
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      return value.includes(row.getValue(id));
     },
   },
   {
-    accessorKey: "monthSalary",
+    accessorKey: 'monthSalary',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="مووچەی مانگانە" />
     ),
-    cell: ({ row }) => {
-      const formatPrice = useConvertCurrency(row.getValue("monthSalary"))
+    cell: function CellComponent({ row }) {
+      const formatPrice = useConvertCurrency(row.getValue('monthSalary'));
       return (
         <div className="flex w-[100px] items-center">
           <span>{formatPrice}</span>
         </div>
-      )
+      );
     },
   },
   {
-    accessorKey: "address",
+    accessorKey: 'address',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ناونیشان" />
     ),
     cell: ({ row }) => {
       return (
         <div className="flex w-[100px] items-center">
-          <span>{row.getValue("address")}</span>
+          <span>{row.getValue('address')}</span>
         </div>
-      )
+      );
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id))
+      return value.includes(row.getValue(id));
     },
   },
   {
-    id: "actions",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="زیاتر" />,
+    id: 'actions',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="زیاتر" />
+    ),
     cell: ({ row }) => <DataTableRowActions row={row as Row<OneEmployee>} />,
   },
-]
+];

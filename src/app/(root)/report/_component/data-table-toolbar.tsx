@@ -1,22 +1,29 @@
-"use client"
+'use client';
 
-import { Table } from "@tanstack/react-table"
-import { Input } from "@/components/ui/input"
-import CalenderRangMultiSide from "@/components/calender-rang-multi-side"
-import useSetQuery from "@/hooks/useSetQuery"
-import { LineChartIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Table } from '@tanstack/react-table';
+import { LineChartIcon } from 'lucide-react';
+
+import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import useSetQuery from '@/hooks/useSetQuery';
+import { tr_report_name } from '../_constant';
+import { useParams } from 'next/navigation';
 
 interface DataTableToolbarProps<TData> {
-  table: Table<TData>
+  table: Table<TData>;
 }
 
 export function DataTableToolbar<TData>({
   table,
 }: DataTableToolbarProps<TData>) {
-  const { searchParams } = useSetQuery()
-  const report = searchParams.get("report") || "خەرجی"
+  const params = useParams()
+  const report = params.id
 
   return (
     <div className="flex items-center justify-between">
@@ -32,15 +39,15 @@ export function DataTableToolbar<TData>({
           </TooltipContent>
         </Tooltip>
         <Input
-          placeholder={`بگەڕێ بۆ ${report}...`}
-          value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
+          placeholder={`بگەڕێ بۆ ${tr_report_name.find((e) => e.name === report)?.value}...`}
+          value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
+            table.getColumn('name')?.setFilterValue(event.target.value)
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
       </div>
       <CalenderRangMultiSide className="h-8" />
     </div>
-  )
+  );
 }

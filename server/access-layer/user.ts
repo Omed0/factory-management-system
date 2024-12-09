@@ -1,16 +1,18 @@
-"use server"
+'use server';
 //import 'server-only';
 
 import {
-  createUserSchema, getOneUserSchema,
-  updateUserSchema, loginSchema,
-  CreateUser, deleteManyUsersSchema,
-  OneUser
+  createUserSchema,
+  getOneUserSchema,
+  updateUserSchema,
+  loginSchema,
+  CreateUser,
+  deleteManyUsersSchema,
+  OneUser,
 } from '@/server/schema/user';
 import { tryCatch } from '@/lib/helper';
 import bcrypt from 'bcrypt';
 import { prisma } from '@/lib/client';
-
 
 export async function getOneUser(id: OneUser['id']) {
   return tryCatch(async () => {
@@ -27,8 +29,8 @@ export async function getUsersList(trashed: boolean = false) {
     const users = await prisma.users.findMany({
       where: { deleted_at: trashed ? { not: null } : null },
       orderBy: {
-        created_at: 'desc'
-      }
+        created_at: 'desc',
+      },
     });
     return users;
   });
@@ -46,14 +48,12 @@ export async function createUser(user: CreateUser) {
   });
 }
 
-export async function updateUser(
-  user: CreateUser
-) {
+export async function updateUser(user: CreateUser) {
   return tryCatch(async () => {
     const data = updateUserSchema.parse(user);
     const updatedUser = await prisma.users.update({
       where: { id: data.id, deleted_at: null },
-      data
+      data,
     });
     return updatedUser;
   });
@@ -61,38 +61,40 @@ export async function updateUser(
 
 export async function deleteManyUsers(ids: number[]) {
   return tryCatch(async () => {
-    const data = deleteManyUsersSchema.parse({ ids })
+    const data = deleteManyUsersSchema.parse({ ids });
     const deletedUsers = await prisma.users.deleteMany({
-      where: { id: { in: data.ids } }
-    })
-    return deletedUsers
-  })
+      where: { id: { in: data.ids } },
+    });
+    return deletedUsers;
+  });
 }
 
 export async function forceDeleteManyUsers(ids: number[]) {
   return tryCatch(async () => {
-    const data = deleteManyUsersSchema.parse({ ids })
+    const data = deleteManyUsersSchema.parse({ ids });
     const deletedUsers = await prisma.users.deleteMany({
-      where: { id: { in: data.ids } }
-    })
-    return deletedUsers
-  })
+      where: { id: { in: data.ids } },
+    });
+    return deletedUsers;
+  });
 }
 
 export async function restoreManyUsers(ids: number[]) {
   return tryCatch(async () => {
-    const data = deleteManyUsersSchema.parse({ ids })
+    const data = deleteManyUsersSchema.parse({ ids });
     const restoredUsers = await prisma.users.updateMany({
-      where: { id: { in: data.ids } }, data: { deleted_at: null }
-    })
-    return restoredUsers
-  })
+      where: { id: { in: data.ids } },
+      data: { deleted_at: null },
+    });
+    return restoredUsers;
+  });
 }
 
 export async function forceDeleteAllTrashedUsers() {
   return tryCatch(async () => {
-    const deletedUsers = await prisma.users.deleteMany(
-      { where: { deleted_at: { not: null } } });
+    const deletedUsers = await prisma.users.deleteMany({
+      where: { deleted_at: { not: null } },
+    });
     return deletedUsers;
   });
 }
@@ -101,7 +103,7 @@ export async function restoreAllTrashedUsers() {
   return tryCatch(async () => {
     const restoredUsers = await prisma.users.updateMany({
       where: { deleted_at: { not: null } },
-      data: { deleted_at: null }
+      data: { deleted_at: null },
     });
     return restoredUsers;
   });
@@ -113,7 +115,7 @@ export type LoginUserType = {
   email: string;
   phone: string | null;
   image: string | null;
-}
+};
 
 export async function loginUser(email: string, password: string) {
   try {
@@ -122,15 +124,21 @@ export async function loginUser(email: string, password: string) {
       where: { email: data.email, deleted_at: null },
     });
 
-    if (!user) return { error: "User not found" }
+    if (!user) return { error: 'User not found' };
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
-    if (!isPasswordValid) return { error: "Invalid password" }
+    if (!isPasswordValid) return { error: 'Invalid password' };
 
-    const { password: pass, deleted_at, created_at, updated_at, ...userWithoutPassword } = user;
+    const {
+      password: pass,
+      deleted_at,
+      created_at,
+      updated_at,
+      ...userWithoutPassword
+    } = user;
     return userWithoutPassword;
   } catch (error: unknown) {
     return {
-      error: "هەڵەیەک هەیە"
-    }
+      error: 'هەڵەیەک هەیە',
+    };
   }
 }

@@ -2,20 +2,20 @@ import '@/styles/globals.css';
 
 import { PropsWithChildren, useId } from 'react';
 import type { Metadata } from 'next';
+import { Toaster } from 'sonner';
 
 import { siteConfig } from '@/lib/constant';
 import { fonts } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
-import { Toaster } from 'sonner';
-
 
 export const generateMetadata = (): Metadata => ({
   metadataBase: new URL(siteConfig.url()),
   title: {
-    default: "Factory System Management",
+    default: 'Factory System Management',
     template: `%s | Factory System Management`,
   },
-  description: "Factory System Management is a system that helps you manage your factory and its employees",
+  description:
+    'Factory System Management is a system that helps you manage your factory and its employees',
   keywords: siteConfig.keywords(),
   robots: { index: true, follow: true },
   icons: {
@@ -28,7 +28,7 @@ export const generateMetadata = (): Metadata => ({
 const MainLayout = ({ children }: PropsWithChildren) => {
   const id = useId();
   return (
-    <html suppressHydrationWarning lang='ckb'>
+    <html suppressHydrationWarning lang="ckb">
       <body className={cn('min-h-screen', fonts)}>
         {children}
         <Toaster key={id} duration={3000} />

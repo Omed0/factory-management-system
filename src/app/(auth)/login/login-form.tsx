@@ -1,8 +1,20 @@
-'use client'
+'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { Button } from "@/components/ui/button"
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+
+import { LoginAction } from '@/actions/auth';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -10,45 +22,37 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { loginSchema, LoginUser } from '@/server/schema/user'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { LoginAction } from '@/actions/auth'
-import Image from 'next/image'
-import { sleep } from '@/lib/utils'
-
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { sleep } from '@/lib/utils';
+import { loginSchema, LoginUser } from '@/server/schema/user';
 
 export default function LoginForm() {
-  const router = useRouter()
+  const router = useRouter();
   const form = useForm<LoginUser>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
     },
-  })
+  });
 
   async function onSubmit(values: LoginUser) {
-    const { error } = await LoginAction(values.email, values.password)
+    const { error } = await LoginAction(values.email, values.password);
     if (error) {
-      toast.error(error as string)
-      return
+      toast.error(error as string);
+      return;
     }
-    toast.success(
-      "You have successfully logged in!",
-      { description: "Redirecting to customer..." }
-    )
-    await sleep(1000)
-    router.replace("/customer")
+    toast.success('You have successfully logged in!', {
+      description: 'Redirecting to customer...',
+    });
+    await sleep(1000);
+    router.replace('/customer');
   }
 
-
   return (
-    <div className="h-dvh flex flex-col lg:flex-row">
-      <div className="hidden lg:block lg:w-1/2 bg-accent p-16">
+    <div className="flex h-dvh flex-col lg:flex-row">
+      <div className="bg-accent hidden p-16 lg:block lg:w-1/2">
         <Image
           priority
           quality={100}
@@ -56,18 +60,23 @@ export default function LoginForm() {
           height={800}
           src="/images/login.svg"
           alt="Login visual"
-          className="w-full h-full object-contain aspect-square"
+          className="aspect-square size-full object-contain"
         />
       </div>
-      <div className="w-full lg:w-1/2 flex items-center bg-backgrounds justify-center p-8">
+      <div className="bg-backgrounds flex w-full items-center justify-center p-8 lg:w-1/2">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className='mb-2'>چوونە ژوورەوە</CardTitle>
-            <CardDescription>زانیارییەکانت داخڵ بکە بۆ چوونەژوورەوە</CardDescription>
+            <CardTitle className="mb-2">چوونە ژوورەوە</CardTitle>
+            <CardDescription>
+              زانیارییەکانت داخڵ بکە بۆ چوونەژوورەوە
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-8"
+              >
                 <FormField
                   control={form.control}
                   name="email"
@@ -88,13 +97,19 @@ export default function LoginForm() {
                     <FormItem>
                       <FormLabel>پاسوۆرد</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="پاسوۆردەکەت بنووسە" {...field} />
+                        <Input
+                          type="password"
+                          placeholder="پاسوۆردەکەت بنووسە"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full">چوونە ژوورەوە</Button>
+                <Button type="submit" className="w-full">
+                  چوونە ژوورەوە
+                </Button>
               </form>
             </Form>
           </CardContent>
@@ -102,5 +117,5 @@ export default function LoginForm() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

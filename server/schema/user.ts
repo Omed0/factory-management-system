@@ -21,9 +21,11 @@ export const createUserSchema = z.object({
   image: z.string().optional(),
 });
 
-export const updateUserSchema = createUserSchema.partial().and(z.object({
-  id: z.string()
-}));
+export const updateUserSchema = createUserSchema.partial().and(
+  z.object({
+    id: z.string(),
+  })
+);
 
 export const getOneUserSchema = z.object({
   id: z.string(),

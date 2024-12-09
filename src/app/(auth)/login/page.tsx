@@ -1,19 +1,16 @@
-import { Metadata } from "next";
-import LoginForm from "./login-form"
+import { Metadata } from 'next';
 
-type Props = {}
+import LoginForm from './login-form';
 
-export default function LoginPage({ }: Props) {
-    return (
-        <main>
-            <LoginForm />
-        </main>
-    )
+export default function LoginPage() {
+  return (
+    <main>
+      <LoginForm />
+    </main>
+  );
 }
 
-
-
 export const generateMetadata = (): Metadata => ({
-    title: "Login Page",
-    description: "Login Page Factory System Management",
+  title: 'Login Page',
+  description: 'Login Page Factory System Management',
 });

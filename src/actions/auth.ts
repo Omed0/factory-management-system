@@ -1,23 +1,23 @@
 'use server';
 
-import { login, logout } from "@/lib/cookies";
-import { loginUser } from "@/server/access-layer/user";
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
+
+import { login, logout } from '@/lib/cookies';
+import { loginUser } from '@/server/access-layer/user';
 
 export async function LoginAction(email: string, password: string) {
-    const user = await loginUser(email, password)
+  const user = await loginUser(email, password);
 
-    if ('error' in user) {
-        return { error: user.error }
-    }
+  if ('error' in user) {
+    return { error: user.error };
+  }
 
-    const token = await login(user)
+  const token = await login(user);
 
-    return { user, token }
+  return { user, token };
 }
 
-
 export async function LogoutAction() {
-    await logout()
-    redirect('/login')
+  await logout();
+  redirect('/login');
 }

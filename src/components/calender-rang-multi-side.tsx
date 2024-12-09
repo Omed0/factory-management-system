@@ -1,41 +1,35 @@
-import useSetQuery from "@/hooks/useSetQuery"
-import { addDays, format, formatDate } from "date-fns"
-import { Dispatch, SetStateAction, useEffect, useState } from "react"
-import { DateRange } from "react-day-picker"
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { Button } from "./ui/button"
-import { cn } from "@/lib/utils"
-import { CalendarIcon } from "lucide-react"
-import { Calendar } from "./ui/calendar"
+"use client"
+
+import { Dispatch, SetStateAction, useState } from 'react';
+import { DateRange, SelectRangeEventHandler } from 'react-day-picker';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+
+import { Button } from './ui/button';
+import { Calendar } from './ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+
+import useSetQuery from '@/hooks/useSetQuery';
+import { cn, seperateDates, toIsoString } from '@/lib/utils';
 
 type Props = {
-  className?: string
-  setState?: Dispatch<SetStateAction<DateRange | undefined>>
-}
+  className?: string;
+  setState?: Dispatch<SetStateAction<DateRange | undefined>>;
+};
 
 export default function CalenderRangMultiSide({ className, setState }: Props) {
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth()
 
-  const { setQuery } = useSetQuery(100)
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(currentYear, currentMonth, 1),
-    to: addDays(new Date(currentYear, currentMonth, 1), 30),
-  })
 
-  useEffect(() => {
-    if (!setState && date?.from && date.to) {
-      setQuery("date", `${toIsoString(date.from)}&${toIsoString(date.to)}`)
-    } else {
-      setState?.(date)
+  const { setQuery, searchParams } = useSetQuery(30);
+  const dates = seperateDates(searchParams.get("date"))
+  const [date, setDate] = useState<DateRange | undefined>({ from: new Date(dates.from), to: new Date(dates.to) });
+
+  const handleChange: SelectRangeEventHandler = (range, selectedDay, activeModifiers, e) => {
+    setDate(range);
+    if (range && range.from && range.to) {
+      setQuery('date', `${toIsoString(range.from)}&${toIsoString(range.to)}`);
     }
-
-    return () => {
-      setQuery("date", "")
-    }
-  }, [date?.from, date?.to])
-
+  };
 
   return (
     <Popover>
@@ -44,19 +38,20 @@ export default function CalenderRangMultiSide({ className, setState }: Props) {
           id="date"
           variant="outline"
           className={cn(
-            "w-[300px] justify-start text-left font-normal",
-            !date && "text-muted-foreground", className
+            'w-[300px] justify-start text-left font-normal',
+            !date && 'text-muted-foreground',
+            className
           )}
         >
           <CalendarIcon />
           {date?.from ? (
             date.to ? (
               <>
-                {format(date.from, "LLL dd, y")} -{" "}
-                {format(date.to, "LLL dd, y")}
+                {format(date.from, 'LLL dd, y')} -{' '}
+                {format(date.to, 'LLL dd, y')}
               </>
             ) : (
-              format(date.from, "LLL dd, y")
+              format(date.from, 'LLL dd, y')
             )
           ) : (
             <span>بەروار دیاری بکە</span>
@@ -70,16 +65,10 @@ export default function CalenderRangMultiSide({ className, setState }: Props) {
           dir="ltr"
           defaultMonth={date?.from}
           selected={date}
-          onSelect={setDate}
+          onSelect={handleChange}
           numberOfMonths={2}
         />
       </PopoverContent>
     </Popover>
-  )
-}
-
-
-function toIsoString(date: Date) {
-  const Time = format(date.getTime(), "LLL dd, y")
-  return Time;
+  );
 }

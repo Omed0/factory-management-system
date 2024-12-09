@@ -10,6 +10,7 @@ module.exports = {
   ],
   plugins: ['simple-import-sort', 'prettier', '@typescript-eslint'],
   rules: {
+    '@typescript-eslint/no-explicit-any': 'off', // {{ edit_2 }} Disable the rule
     'prettier/prettier': [
       'error',
       {

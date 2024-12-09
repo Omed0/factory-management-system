@@ -1,9 +1,10 @@
 'use server';
 
-import { env } from '@/env.mjs';
-import { SignJWT, jwtVerify } from 'jose';
+import { jwtVerify, SignJWT } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+
+import { env } from '@/env.mjs';
 
 const key = new TextEncoder().encode(env.SECRET);
 const expiteTime = 100 * 24 * 60 * 60 * 1000;
@@ -29,7 +30,7 @@ export async function login<T>(data: T) {
 
   // Save the session in a cookie
   cookies().set('session', session, { expires, httpOnly: true });
-  return session
+  return session;
 }
 
 export async function logout() {
@@ -43,7 +44,7 @@ export async function getSession() {
     if (!session) return null;
     return await decrypt(session);
   } catch (error) {
-    return null
+    return null;
   }
 }
 
