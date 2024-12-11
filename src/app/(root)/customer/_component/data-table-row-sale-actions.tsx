@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { type Row } from '@tanstack/react-table';
-import { Edit, Info, MoreHorizontalIcon, Plus, Trash } from 'lucide-react';
+import { Edit, Info, MoreHorizontalIcon, Plus, Receipt, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 
 import AddPaidLoanSale from './add-loan-sale-form';
@@ -20,7 +20,7 @@ import DeleteModal from '@/components/delete-modal';
 import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
 import RestorModal from '@/components/restore-modal';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, ButtonProps } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,23 @@ import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
 import { formatCurrency } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
+import InvoiceComponent from './invoice';
+import { Printer } from 'lucide-react'
+import usePrintById from '@/hooks/usePrintById'
+
+type Props = {
+  nameId?: string
+} & ButtonProps;
+
+export function ButtonPrint({ nameId = "print", ...props }: Props) {
+  const printId = usePrintById()
+
+  return (
+    <Button onClick={() => printId(nameId)} {...props}>
+      <Printer className="size-5" />
+    </Button>
+  )
+}
 
 export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
   const { searchParams } = useSetQuery();
@@ -73,14 +90,34 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="m-2 w-[160px]">
+        <CustomDialogWithTrigger
+          closeProps={{ className: "bg-accent relative w-fit" }}
+          onOpenChange={(e) => {
+            if (!e) setDropdownOpen(e)
+          }}
+          className="md:max-w-[62rem] p-6"
+          button={
+            <Button className="hover:bg-accent h-9 w-full" variant="link">
+              <Receipt className="me-2 size-5" />
+              وەصڵ
+            </Button>
+          }
+        >
+          <ButtonPrint nameId='print-invoice' className='w-fit' />
+          <InvoiceComponent sale={sale} />
+        </CustomDialogWithTrigger>
+        <DropdownMenuSeparator />
         {isShowInvoiceInfo && (
           <>
             <CustomDialogWithTrigger
+              onOpenChange={(e) => {
+                if (!e) setDropdownOpen(e)
+              }}
               className="w-full p-6 pt-4"
               button={
                 <Button className="hover:bg-accent h-9 w-full" variant="link">
                   <Info className="me-2 size-5" />
-                  زانیاری وەصڵ
+                  زانیاری قیست
                 </Button>
               }
             >

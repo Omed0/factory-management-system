@@ -12,7 +12,10 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { seperateDates } from '@/lib/utils';
-import { getCustomersWhoDidntGiveLoanActions, getDashboardInfoActions, getDashboardInfoChartActions } from '@/actions/information';
+import {
+  getCustomersWhoDidntGiveLoanActions, getDashboardInfoActions,
+  getDashboardInfoChartActions
+} from '@/actions/information';
 import Cards from './components/cards';
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import NotificationCard from './components/notification-card';
@@ -35,9 +38,9 @@ export default async function DashboardPage({ searchParams }: Props) {
   const chartInfo = await getDashboardInfoChartActions()
   const notificationLoan = await getCustomersWhoDidntGiveLoanActions()
 
-  const isSuccess = !informations.data || !chartInfo.data || !notificationLoan.data
+  const isFail = !informations.data || !chartInfo.data || !notificationLoan.data
 
-  if (isSuccess) {
+  if (isFail) {
     return <div className="w-full h-full flex items-center justify-center">
       <div className="flex flex-col items-center justify-center gap-2">
         <h1 className="text-lg font-medium">{informations.message || chartInfo.message}</h1>

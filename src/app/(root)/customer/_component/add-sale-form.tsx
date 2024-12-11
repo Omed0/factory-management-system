@@ -65,7 +65,9 @@ export default function FormSaleForCustomer({
     }) as FormType<typeof isEdit>,
   });
 
+  const { isDirty } = form.formState; // Check if any field is dirty
   const isLoan = form.watch('saleType') === 'LOAN';
+
   async function onSubmit(values: FormType<typeof isEdit>) {
     let resSale;
     if (isEdit && sale) {
@@ -164,7 +166,7 @@ export default function FormSaleForCustomer({
           )}
         />
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <Button type="submit" className="flex-1 basis-60">
+          <Button type="submit" className="flex-1 basis-60" disabled={!isDirty}>
             زیادکردن
           </Button>
           <DialogClose className="flex-1 basis-60" onClick={handleClose}>

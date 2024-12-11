@@ -7,7 +7,6 @@ import { DataTableColumnHeader } from './data-table-column-header';
 import { DataTableRowSaleActions } from './data-table-row-sale-actions';
 
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +17,15 @@ import { cn } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
 
 export const column_sale: ColumnDef<OneSale>[] = [
+  {
+    accessorKey: 'id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="ژمارە" />
+    ),
+    cell: ({ row }) => {
+      return (<span>{row.original.id}</span>);
+    },
+  },
   {
     accessorKey: 'saleNumber',
     header: ({ column }) => (
@@ -30,12 +38,11 @@ export const column_sale: ColumnDef<OneSale>[] = [
 
       return (
         <div className="flex items-center gap-2">
-          <Checkbox asChild checked={status} className={status ? '' : ''} />
           <Link
             href={status ? '#' : `${sale.customerId}/sale?invoice=${sale.id}`}
             className={cn('w-32', {
               'text-blue-500 underline': !status,
-              'text-foreground/70 cursor-default': status,
+              'text-foreground/70 cursor-default line-through': status,
             })}
           >
             <TooltipMonthlyPaid
@@ -98,20 +105,10 @@ export const column_sale: ColumnDef<OneSale>[] = [
       <DataTableColumnHeader column={column} title="کۆی دراوە" />
     ),
     cell: function CellComponent({ row }) {
-      const { discount, totalRemaining, totalAmount } = row.original;
-      const isEqual = totalAmount === totalRemaining;
-      const totalAfterDiscount = useConvertCurrency(totalRemaining - discount);
-      const formatedTotalRemaining = useConvertCurrency(totalRemaining);
+      const formatedTotalRemaining = useConvertCurrency(row.original.totalRemaining);
       return (
         <div className="amount-cell w-[100px]">
-          {isEqual && !!discount ? (
-            <>
-              <del className="text-red-500">{formatedTotalRemaining}</del>
-              <span className="block">{totalAfterDiscount}</span>
-            </>
-          ) : (
-            <span>{formatedTotalRemaining}</span>
-          )}
+          <span>{formatedTotalRemaining}</span>
         </div>
       );
     },

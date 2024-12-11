@@ -3,11 +3,10 @@ import { Printer } from 'lucide-react'
 import usePrintById from '@/hooks/usePrintById'
 
 type Props = {
-    props: ButtonProps
-    nameId: string
-}
+    nameId?: string
+} & ButtonProps; // Accept ButtonProps directly
 
-export default function ButtonPrint({ props, nameId = "print" }: Props) {
+export default function ButtonPrint({ nameId = "print", ...props }: Props) {
     const printId = usePrintById()
 
     return (

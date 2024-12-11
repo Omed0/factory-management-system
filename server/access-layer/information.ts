@@ -10,6 +10,7 @@ import {
 } from '../schema/information';
 import { keyExpense, keyPurchase, keySale } from '@/app/(root)/report/_constant';
 import { Prisma } from '@prisma/client';
+import { addDays, addMonths } from 'date-fns';
 
 
 
@@ -98,7 +99,7 @@ export async function getDashboardChartInformation() {
         month: date.getMonth() + 1, // Month is 0-indexed
         year: date.getFullYear(),
       };
-    });
+    }).reverse();
 
     const chartData = await Promise.all(last12Months.map(async ({ month, year }) => {
       const totalSalesData = await prisma.sales.aggregate({
@@ -129,27 +130,28 @@ export async function getDashboardChartInformation() {
 export async function getCustomersWhoDidntGiveLoan() {
   return tryCatch(async () => {
     const now = new Date();
-    const oneMonthAgo = new Date(now);
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-    const twoMonthsAgo = new Date(now);
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    const oneMonthAgo = addMonths(now, -1);
+    const twoMonthAgo = addMonths(now, -2);
 
     // Helper function for query
-    const getCustomersByDateRange = async (startDate: Date, endDate?: Date) => {
-      return prisma.customers.findMany({
+    const getCustomersByDateRange = async (
+      startDate: Date,
+      endDate?: Date
+    ) => {
+      const customers = await prisma.customers.findMany({
         where: {
           sales: {
             some: {
               paidLoans: {
                 some: {
                   paidDate: endDate
-                    ? { gte: startDate, lt: endDate }
-                    : { lte: startDate }, // awanay ka lam kata bchuktrn(kon konakan)
+                    ? { gt: startDate, lt: endDate }
+                    : { lt: startDate },
                 },
               },
               saleType: "LOAN",
               deleted_at: null,
+              isFinished: false,
             },
           },
         },
@@ -157,13 +159,26 @@ export async function getCustomersWhoDidntGiveLoan() {
           sales: { include: { paidLoans: true } },
         },
       });
+
+      // Filter customers based on totalRemaining condition
+      const filteredCustomers = customers.filter((customer) =>
+        customer.sales.some(
+          (sale) =>
+            sale.totalRemaining !== sale.totalAmount - sale.discount
+        )
+      );
+
+      return filteredCustomers;
     };
 
-    // Query 1: Customers with last payment 1 month ago
-    const oneMonthAgoCustomers = await getCustomersByDateRange(oneMonthAgo, now);
+    // Query 2: Customers who did not pay last month but paid before that
+    const oneMonthAgoCustomers = await getCustomersByDateRange(
+      twoMonthAgo, oneMonthAgo
+    );
 
-    // Query 2: Customers with last payment 2 months ago
-    const twoMonthsAgoCustomers = await getCustomersByDateRange(twoMonthsAgo);
+    // Query 3: Customers who did not pay for more than one month
+    const twoMonthsAgoCustomers = await getCustomersByDateRange(twoMonthAgo);
+    console.log(new Date("2024-10-06T12:02:30.647Z") > twoMonthAgo)
 
     return {
       oneMonthAgoCustomers,
@@ -171,7 +186,6 @@ export async function getCustomersWhoDidntGiveLoan() {
     };
   });
 }
-
 
 
 export async function getExpensesListSpecificTime(

@@ -18,6 +18,8 @@ import { useDollar } from '@/hooks/useDollar';
 import { formatCurrency } from '@/lib/utils';
 import { OneProduct } from '@/server/schema/product';
 import { OneSale } from '@/server/schema/sale';
+import { Badge } from '@/components/ui/badge';
+import { FALLBACK_IMAGE } from '@/lib/constant';
 
 type Props = {
   product: OneProduct[];
@@ -35,9 +37,11 @@ export default function Products({ product, invoice, currency }: Props) {
       {product.map((product) => (
         <Card key={product.id} className="h-fit">
           <CardHeader className="flex-row items-center justify-between p-3">
-            <CardTitle>{product.name}</CardTitle>
-            <CardDescription className="font-semibold">
-              {product.unitType === 'PIECE' ? 'دانە' : 'مەتر'}
+            <CardTitle className='font-medium'>{product.name}</CardTitle>
+            <CardDescription className="font-medium">
+              <Badge variant="outline">
+                {product.unitType === 'PIECE' ? 'دانە' : 'مەتر'}
+              </Badge>
             </CardDescription>
           </CardHeader>
           <CardContent className="p-3">
@@ -46,10 +50,10 @@ export default function Products({ product, invoice, currency }: Props) {
               height={300}
               className="aspect-video max-w-48 object-contain"
               alt={product.name}
-              src={product.image ? `/${product.image}` : '/opengraph-image.png'}
+              src={product.image ? `/${product.image}` : FALLBACK_IMAGE}
               onError={(event) => {
-                event.currentTarget.id = '/opengraph-image.png';
-                event.currentTarget.srcset = '/opengraph-image.png';
+                event.currentTarget.id = FALLBACK_IMAGE;
+                event.currentTarget.srcset = FALLBACK_IMAGE;
               }}
             />
           </CardContent>

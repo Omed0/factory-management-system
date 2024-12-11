@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneCompanyPurchase } from '@/server/schema/company';
+import { cn } from '@/lib/utils';
 
 export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
   {
@@ -21,8 +22,10 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
         row.original?.totalAmount === row.original?.totalRemaining;
       return (
         <div className="flex w-32 items-center gap-3">
-          <Checkbox checked={isFinish} />
-          <span>{row.original?.name}</span>
+          <span className={cn("", {
+            "line-through": isFinish
+          })}>
+            {row.original?.name}</span>
         </div>
       );
     },
@@ -33,11 +36,14 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
       <DataTableColumnHeader column={column} title="جۆری کڕین" />
     ),
     cell: ({ row }) => {
-      const type = row.original?.type;
+      const invoiceType = row.original.type === 'CASH';
       return (
         <div className="w-[100px]">
-          <Badge variant={type === 'LOAN' ? 'destructive' : 'default'}>
-            {type}
+          <Badge
+            className="min-w-20 justify-center"
+            variant={invoiceType ? 'outline' : 'secondary'}
+          >
+            {invoiceType ? 'نەقد' : 'قەرز'}
           </Badge>
         </div>
       );
@@ -49,7 +55,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
       <DataTableColumnHeader column={column} title="کۆی پارەی گشتی" />
     ),
     cell: function CellComponent({ row }) {
-      const formatedAmount = useConvertCurrency(row.original?.totalAmount || 0);
+      const formatedAmount = useConvertCurrency(row.original.totalAmount || 0);
       return (
         <div className="w-[100px]">
           <span>{formatedAmount}</span>
@@ -64,7 +70,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
     ),
     cell: function CellComponent({ row }) {
       const formatedAmount = useConvertCurrency(
-        row.original?.totalRemaining || 0
+        row.original.totalRemaining || 0
       );
       return (
         <div className="w-[100px]">
@@ -80,7 +86,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
     ),
     cell: ({ row }) => {
       const date = new Date(
-        row.original?.purchaseDate ?? new Date()
+        row.original.purchaseDate ?? new Date()
       ).toLocaleDateString('en-GB');
       return (
         <div className="w-[100px]">
@@ -97,7 +103,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
     cell: ({ row }) => {
       return (
         <div className="max-w-96 text-wrap">
-          <span>{row.original?.note}</span>
+          <span>{row.original.note}</span>
         </div>
       );
     },

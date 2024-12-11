@@ -1,6 +1,6 @@
 'use client';
 
-import { DialogProps } from '@radix-ui/react-dialog';
+import { Close, DialogProps } from '@radix-ui/react-dialog';
 
 import {
   Dialog,
@@ -17,6 +17,7 @@ type Props = {
   button: React.ReactNode;
   onOpenChange?: DialogProps['onOpenChange'];
   open?: boolean;
+  closeProps?: React.ComponentPropsWithoutRef<typeof Close>
 };
 
 export default function CustomDialogWithTrigger({
@@ -25,11 +26,13 @@ export default function CustomDialogWithTrigger({
   onOpenChange,
   open,
   className,
+  closeProps
 }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{button}</DialogTrigger>
       <DialogContent
+        closeProps={closeProps}
         className={cn(
           'max-h-[95%] w-[97%] min-w-0 overflow-y-auto overflow-x-hidden rounded-lg border-none p-0 outline-none md:max-w-[44rem]',
           className

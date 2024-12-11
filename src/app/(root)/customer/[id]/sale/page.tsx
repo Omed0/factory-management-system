@@ -30,12 +30,15 @@ export default async function SpecificCustomerSale({
 
   const { success, SaleWithProducts, message } =
     await getProductSaleListActions(saleId, customerId);
+
   const [sales, product] = await Promise.all([
     getCustomerListSaleActions(customerId, false),
-    getListProductActions({ isTrash: undefined }),
+    getListProductActions({ isTrash: false }),
   ]);
 
-  if (!success || !product.success || !SaleWithProducts || !product.data) {
+  const isFail = !success || !product.success || !SaleWithProducts || !product.data
+
+  if (isFail) {
     return (
       <div className="flex size-full items-center justify-center">
         <div className="flex flex-col items-center justify-center gap-2">

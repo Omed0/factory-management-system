@@ -283,26 +283,25 @@ export async function finishSaleInvoice({
     if (!currentSale) throw new Error('ئەم وەصڵە نەدۆزرایەوە');
 
     const isCash = currentSale.saleType === 'CASH';
+    const amount = currentSale.totalAmount - currentSale.discount
 
+    const sale = await prisma.sales.update({
+      where: { id: data.saleId },
+      data: {
+        isFinished: true,
+        totalRemaining: isCash ? amount : undefined,
+      },
+    });
     if (isCash) {
-      const sale = await prisma.sales.update({
-        where: { id: data.saleId },
-        data: {
-          isFinished: data.isFinished,
-          totalRemaining: currentSale.totalAmount,
-        },
-      });
       await prisma.boxes.update({
         where: { id: 1 },
         data: {
-          amount: { increment: currentSale.totalAmount - currentSale.discount },
+          amount: { increment: amount },
         },
       });
-
-      return sale;
     }
 
-    return currentSale;
+    return sale;
   });
 }
 

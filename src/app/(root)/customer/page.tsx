@@ -30,27 +30,13 @@ export default async function Customer({ searchParams }: Props) {
 
   return (
     <section className="w-full space-y-4 p-2">
-      <div className="flex justify-between">
-        <div className="flex items-center gap-2">
-          <UsersRound className="size-5" />
-          <h1 className="text-lg font-medium">
-            {isTrash ? 'کڕیارە ئەرشیفکراوەکان' : 'کڕیارە بەردەستەکان'}
-          </h1>
-        </div>
-        <CustomDialogWithTrigger
-          button={
-            <Button>
-              <PlusCircleIcon className="me-2 size-4" />
-              کڕیار
-            </Button>
-          }
-        >
-          <section className="w-full p-4">
-            <AddCustomer title="زیادکردنی کڕیار" />
-          </section>
-        </CustomDialogWithTrigger>
+      <div className="flex items-center gap-2">
+        <UsersRound className="size-5" />
+        <h1 className="text-lg font-medium">
+          {isTrash ? 'کڕیارە ئەرشیفکراوەکان' : 'کڕیارە بەردەستەکان'}
+        </h1>
       </div>
       <DataTable columns={columns} data={customers.data ?? []} />
-    </section>
+    </section >
   );
 }

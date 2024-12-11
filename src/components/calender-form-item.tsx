@@ -57,11 +57,13 @@ export default function CalendarFormItem<T extends FieldValues>({
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
+                dir='ltr'
                 initialFocus
                 mode="single"
                 selected={field.value}
                 onSelect={field.onChange}
                 disabled={isEdit}
+                month={field.value || undefined}
               />
             </PopoverContent>
           </Popover>

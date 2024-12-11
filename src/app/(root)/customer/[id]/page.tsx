@@ -1,13 +1,10 @@
-import { PlusCircleIcon, UsersRound } from 'lucide-react';
+import { UsersRound } from 'lucide-react';
 import Link from 'next/link';
 
-import FormSaleForCustomer from '../_component/add-sale-form';
 import { column_sale } from '../_component/column-sales';
 import { DataTable } from '../_component/data-table';
-
 import { getCustomerListSaleActions } from '@/actions/sale';
-import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
-import { Button } from '@/components/ui/button';
+
 
 type Props = {
   searchParams: {
@@ -52,22 +49,6 @@ export default async function SpecificCustomerSales({
             {isTrash ? 'وەصڵە ئەرشیفکراوەکان' : 'وەصڵە بەردەستەکان'}
           </h1>
         </div>
-        <CustomDialogWithTrigger
-          button={
-            <Button>
-              <PlusCircleIcon className="me-2 size-4" />
-              فرۆشتن
-            </Button>
-          }
-        >
-          <section className="w-full p-4">
-            <FormSaleForCustomer
-              customerName={sales.data?.name}
-              customerId={customerId}
-              title="زیادکردنی وەصڵ"
-            />
-          </section>
-        </CustomDialogWithTrigger>
       </div>
       <DataTable columns={column_sale} data={sales.data?.sale ?? []} />
     </section>

@@ -8,6 +8,8 @@ export const siteConfig = {
   url: () => env.APP_URL,
 };
 
+export const FALLBACK_IMAGE = "/opengraph-image.png"
+
 export const months = [
   { name: 'مانگی ١', value: 1 },
   { name: 'مانگی ٢', value: 2 },

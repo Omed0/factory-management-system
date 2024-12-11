@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
+import { FALLBACK_IMAGE } from '@/lib/constant';
 import { formatCurrency } from '@/lib/utils';
 
 
@@ -22,7 +23,7 @@ export function RecentSales({ data }: Props) {
       {latestSales.map((sale: any) => (
         <div key={sale.id} className="flex items-center">
           <Avatar className="size-9">
-            <AvatarImage src="/avatars/01.png" alt="Avatar" />
+            <AvatarImage src={FALLBACK_IMAGE} alt="Avatar" />
             <AvatarFallback>{sale.customer.name.slice(0, 3)}</AvatarFallback>
           </Avatar>
           <div className="ms-4 space-y-1">

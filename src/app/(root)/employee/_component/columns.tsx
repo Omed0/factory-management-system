@@ -9,6 +9,7 @@ import { DataTableRowActions } from './data-table-row-actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneEmployee } from '@/server/schema/employee';
+import { FALLBACK_IMAGE } from '@/lib/constant';
 
 export const columns: ColumnDef<OneEmployee>[] = [
   {
@@ -47,6 +48,10 @@ export const columns: ColumnDef<OneEmployee>[] = [
             <Image
               className="aspect-square size-10 rounded-full object-contain"
               src={`/${row.original.image}`}
+              onError={(event) => {
+                event.currentTarget.id = FALLBACK_IMAGE;
+                event.currentTarget.srcset = FALLBACK_IMAGE;
+              }}
               alt={row.original.name}
               height={120}
               width={120}
