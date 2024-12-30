@@ -27,7 +27,7 @@ export function Overview({ data }: Props) {
           tickFormatter={(value) => `$${value}`}
         />
         <Bar
-          dataKey="totalRemainingAfterDiscount"
+          dataKey="totalIncome"
           fill="currentColor"
           radius={[4, 4, 0, 0]}
           className="fill-primary"

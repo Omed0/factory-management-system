@@ -8,6 +8,8 @@ import { DataTableRowActions } from './data-table-row-actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneProduct } from '@/server/schema/product';
+import Image from 'next/image';
+import { FALLBACK_IMAGE } from '@/lib/constant';
 
 export const columns: ColumnDef<OneProduct>[] = [
   {
@@ -40,7 +42,26 @@ export const columns: ColumnDef<OneProduct>[] = [
       <DataTableColumnHeader column={column} title="ناو" />
     ),
     cell: ({ row }) => {
-      return <div className="w-[100px]">{row.original.name}</div>;
+      const image = row.original.image
+      return (
+        <div className="flex items-center gap-3">
+          {!!image && (
+            <Image
+              src={`/${image}`}
+              className='aspect-square size-16 object-contain'
+              alt={row.original.name}
+              onError={(event) => {
+                event.currentTarget.id = FALLBACK_IMAGE;
+                event.currentTarget.srcset = FALLBACK_IMAGE;
+              }}
+              quality={100}
+              height={200}
+              width={200}
+            />
+          )}
+          <span>{row.original.name}</span>
+        </div>
+      );
     },
   },
   {
@@ -49,8 +70,8 @@ export const columns: ColumnDef<OneProduct>[] = [
       <DataTableColumnHeader column={column} title="نرخ" />
     ),
     cell: function CellComponent({ row }) {
-      const price = row.original.price;
-      const formatPrice = useConvertCurrency(price);
+      const { price, dollar } = row.original;
+      const formatPrice = useConvertCurrency(price, dollar);
       return (
         <div className="w-[100px]">
           <span>{formatPrice}</span>
@@ -64,9 +85,10 @@ export const columns: ColumnDef<OneProduct>[] = [
       <DataTableColumnHeader column={column} title="جۆری یەکە" />
     ),
     cell: ({ row }) => {
+      const unitType = row.original.unitType === "METER" ? "مەتر" : "دانە"
       return (
         <div className="w-[100px]">
-          <span>{row.original.unitType}</span>
+          <span>{unitType}</span>
         </div>
       );
     },

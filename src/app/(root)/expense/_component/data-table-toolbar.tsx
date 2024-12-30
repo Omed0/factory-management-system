@@ -34,6 +34,7 @@ import {
 import { Input } from '@/components/ui/input';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneExpense } from '@/server/schema/expense';
+import { useState } from 'react';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -43,6 +44,7 @@ export function DataTableToolbar<TData>({
   table,
 }: DataTableToolbarProps<TData>) {
   const { searchParams } = useSetQuery();
+  const [open, setOpen] = useState(false)
   const isSelected =
     table.getIsSomeRowsSelected() || table.getIsAllPageRowsSelected();
   const isTrash = searchParams.get('status') === 'trash';
@@ -85,6 +87,8 @@ export function DataTableToolbar<TData>({
         </Button>
       </div>
       <CustomDialogWithTrigger
+        open={open}
+        onOpenChange={setOpen}
         button={
           <Button>
             <PlusCircleIcon className="me-2 size-4" />
@@ -93,7 +97,9 @@ export function DataTableToolbar<TData>({
         }
       >
         <section className="w-full p-4">
-          <AddExpense title="زیادکردن خەرجی" />
+          <AddExpense
+            handleClose={() => setOpen(false)}
+            title="زیادکردن خەرجی" />
         </section>
       </CustomDialogWithTrigger>
     </div>

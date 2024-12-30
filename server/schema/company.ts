@@ -63,12 +63,13 @@ export const createCompanyPurchaseSchema = z
   .object({
     name: z.string().min(3, 'ناوەکەت زۆر کورتە').max(100, 'ناوەکەت زۆر درێژە'),
     companyId: z.number().int().positive(),
-    totalAmount: z
+    totalAmount: z.coerce
       .number()
       .min(0, 'بڕی پارەکەت با لە سفر کەمترنەبێ')
       .positive(),
     type: z.nativeEnum(CompanyPurchaseType),
     note: z.string().nullable().optional(),
+    dollar: z.coerce.number().positive(),
     purchaseDate: z.date(),
   })
   .and(
@@ -76,7 +77,7 @@ export const createCompanyPurchaseSchema = z
       z.object({ type: z.literal('CASH') }),
       z.object({
         type: z.literal('LOAN'),
-        totalRemaining: z
+        totalRemaining: z.coerce
           .number()
           .min(0, 'بڕی پارەی پێشەکی نابێت کەمتر بێت لە سفر')
           .positive(),
@@ -91,7 +92,7 @@ export const createCompanyPurchaseSchema = z
       return true;
     },
     {
-      message: 'نابێ پێشەکی لە کۆی گشتی پارەکە زیاتربێت',
+      message: 'ئەبێ پێشەکی لە کۆی گشتی پارەکە کەمتر بێت',
       path: ['totalRemaining'],
     }
   );
@@ -136,7 +137,7 @@ export type ListCompanyPurchaseInfo = PurchasesInfo[];
 
 export const createCompanyPurchaseInfoSchema = z.object({
   companyPurchaseId: z.number().int().positive(),
-  amount: z.number().min(0, 'بڕی پارەکەت با لە سفر کەمتر نەبێت').positive(),
+  amount: z.coerce.number().positive(),
   date: z.date(),
   note: z.string().nullable().optional(),
 });

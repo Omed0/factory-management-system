@@ -40,6 +40,7 @@ import {
   createCompanyPurchaseSchema,
   updateCompanyPurchaseSchema,
 } from '@/server/schema/company';
+import { useDollar } from '@/hooks/useDollar';
 
 type Props = {
   purchase?: Partial<OneCompanyPurchase>;
@@ -54,17 +55,20 @@ type FormType<T extends boolean> = T extends true
 export default function AddPurchase({ purchase, title, handleClose }: Props) {
   const isEdit = !!purchase;
   const params = useParams();
-  const companyId = Number(params.id);
+  const companyId = purchase?.companyId || Number(params.id);
+  const { data } = useDollar()
 
   const form = useForm<FormType<typeof isEdit>>({
     mode: 'onSubmit',
     resolver: zodResolver(
       isEdit ? updateCompanyPurchaseSchema : createCompanyPurchaseSchema
     ),
-    defaultValues: defaultValues(companyId, purchase) as FormType<
+    defaultValues: defaultValues(companyId, { dollar: data.dollar, ...purchase }) as FormType<
       typeof isEdit
     >,
   });
+
+  const { isDirty } = form.formState
 
   const type = form.watch('type');
   const { refetch } = usePurchaseInfo(purchase?.id ?? 0);
@@ -95,19 +99,6 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-wrap items-center gap-5 p-6"
       >
-        {/*{isEdit && (
-                    <FormField
-                        control={form.control}
-                        name="id"
-                        render={({ field }) => (
-                            <FormItem className="flex-1 basis-56 hidden" hidden>
-                                <FormControl>
-                                    <Input {...field} hidden />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                )}*/}
         <FormField
           control={form.control}
           name="name"
@@ -153,11 +144,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
             <FormItem className="flex-1 basis-56">
               <FormLabel>کۆی پارەکە</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  type="number"
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <Input {...field} type="number" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -171,17 +158,26 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
               <FormItem className="flex-1 basis-56">
                 <FormLabel>بڕی پێشەکی</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    type="number"
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                  />
+                  <Input {...field} type="number" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         )}
+        <FormField
+          control={form.control}
+          name="dollar"
+          render={({ field }) => (
+            <FormItem className="flex-1 basis-56">
+              <FormLabel>{isEdit ? "نرخی دۆلاری داخڵکراو" : "نرخی دۆلاری ئێستا"}</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <CalendarFormItem form={form} name="purchaseDate" />
         <FormField
           control={form.control}
@@ -197,10 +193,10 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
           )}
         />
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <Button type="submit" className="flex-1 basis-60">
+          <Button type="submit" className="flex-1 basis-60" disabled={isEdit ? !isDirty : false}>
             {isEdit ? 'نوێکردنەوە' : 'زیادکردن'}
           </Button>
-          <DialogClose className="flex-1 basis-60" onClick={handleClose}>
+          <DialogClose className="flex-1 basis-60">
             <Button type="reset" variant="outline" className="min-w-full">
               داخستن
             </Button>
@@ -216,6 +212,7 @@ function defaultValues(
   values?: Partial<OneCompanyPurchase>
 ) {
   if (values) {
+    values.companyId = +companyId
     values.type = values.type ?? 'CASH';
     if (values.purchaseDate) {
       values.purchaseDate = new Date(values.purchaseDate);

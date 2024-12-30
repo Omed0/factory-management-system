@@ -1,12 +1,10 @@
 'use server';
 
 import { unlink } from 'fs';
-import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { ZodError } from 'zod';
 
-import { getWeekNumber } from './utils';
 
 export const tryCatch = async <T>(
   fn: () => Promise<T>
@@ -32,50 +30,12 @@ export const tryCatch = async <T>(
           error.meta?.modelName === 'Sales' ? 'ناوی وەصڵ' : error.meta?.target;
         return { error: `دووبارە ناتوانرێت دانرابێت لە ${isSaleNumber}` };
       }
-      return { error: 'هەڵەیەک لە داتابەیس هەیە' };
+      return { error: error.message || 'هەڵەیەک لە داتابەیس هەیە' };
     }
     if (error instanceof Error) return { error: error.message };
     return { error: 'هەڵەیەک هەیە' };
   }
 };
-
-export async function uploadImage(file: File | Blob) {
-  if (!file) return { success: false, error: 'No file provided' };
-  const bytes =
-    'arrayBuffer' in file
-      ? await file.arrayBuffer()
-      : await new Response(file).arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  const date = new Date();
-  const year = date.getFullYear();
-  const weekNumber = getWeekNumber(date);
-  const weekFolder = `${year}-W${weekNumber.toString().padStart(2, '0')}`;
-  const uploadDir = path.join(process.cwd(), 'public', 'images', weekFolder);
-
-  // Create directory if it doesn't exist
-  await mkdir(uploadDir, { recursive: true });
-
-  const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-  const fileExtension = file instanceof File ? path.extname(file.name) : '.jpg';
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const fileName = `image-${day}.${month}.${year}.${uniqueSuffix}${fileExtension}`;
-  const filePath = path.join(uploadDir, fileName);
-
-  // Write the file
-  await writeFile(filePath, buffer);
-
-  // Return the relative path for client use
-  const relativePath = path
-    .join('images', weekFolder, fileName)
-    .replace(/\\/g, '/'); // Convert all backslashes to forward slashes
-
-  if (!relativePath)
-    return { success: false, error: 'دانانی وێنە سەرکەوتوو نەبوو' };
-
-  return { success: true, filePath: relativePath };
-}
 
 export async function unlinkImage(
   filePath: string

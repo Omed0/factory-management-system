@@ -53,6 +53,7 @@ model Expenses {
   title      String
   note       String?
   amount     Float
+  dollar     Float
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())
 
@@ -66,6 +67,7 @@ model Employee {
   address     String?
   image       String?
   monthSalary Float
+  dollar      Float
   actions     EmployeeActions[]
 
   updated_at DateTime @updatedAt
@@ -78,6 +80,7 @@ model EmployeeActions {
   id         Int                @id @default(autoincrement())
   type       EmployeeActionType @default(ABSENT)
   amount     Float
+  dollar     Float
   note       String?
   dateAction DateTime
   employeeId Int
@@ -98,6 +101,7 @@ model CompanyPurchase {
   type           CompanyPurchaseType @default(CASH)
   note           String?
   purchaseDate   DateTime
+  dollar         Float
   company        Companies           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   purchasesInfo  PurchasesInfo[]
 
@@ -119,20 +123,20 @@ model Boxes {
 }
 
 model Sales {
-  id             Int      @id @default(autoincrement())
+  id             Int        @id @default(autoincrement())
   customerId     Int?
-  saleNumber     String   @unique @db.VarChar(255)
-  totalAmount    Float    @default(0)
-  totalRemaining Float    @default(0)
-  saleType       SaleType @default(CASH)
-  discount       Float    @default(0)
-  monthlyPaid    Float    @default(0)
-  saleDate       DateTime @default(now())
-  isFinished     Boolean  @default(false)
-
-  note       String?
-  deleted_at DateTime?
-  customer   Customers? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  saleNumber     String     @unique @db.VarChar(255)
+  totalAmount    Float      @default(0)
+  totalRemaining Float      @default(0)
+  saleType       SaleType   @default(CASH)
+  discount       Float      @default(0)
+  monthlyPaid    Float      @default(0)
+  saleDate       DateTime   @default(now())
+  isFinished     Boolean    @default(false)
+  dollar         Float
+  note           String?
+  deleted_at     DateTime?
+  customer       Customers? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   paidLoans PaidLoans[]
   saleItems SaleItems[]
@@ -161,6 +165,7 @@ model Products {
   id        Int         @id @default(autoincrement())
   name      String
   price     Float
+  dollar    Float
   image     String?
   unitType  UnitType    @default(PIECE)
   saleItems SaleItems[]

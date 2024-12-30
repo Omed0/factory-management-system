@@ -36,40 +36,28 @@ export type RestorePaidLoanSale = z.infer<typeof restorePaidLoanSaleSchema>;
 
 export const createSaleSchema = z
   .object({
-    customerId: z.number().int().nonnegative(),
+    customerId: z.number().int().positive(),
     saleNumber: z
       .string()
       .regex(
         /^[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s-]+$/,
         'شیوازی نوسینی ناوی وەصڵ بگۆڕە'
       ),
-    //totalAmount: z.number().min(0).nonnegative(),
     saleType: z.nativeEnum(SaleType),
     note: z.string().nullable().optional(),
     saleDate: z.date(),
+    dollar: z.coerce.number().positive()
   })
   .and(
     z.discriminatedUnion('saleType', [
       z.object({ saleType: z.literal('CASH') }),
       z.object({
         saleType: z.literal('LOAN'),
-        //totalRemaining: z.number().min(0, 'بڕی پارەی پێشەکی نابێت کەمتر بێت لە سفر').nonnegative(),
-        monthlyPaid: z.number().min(1).positive(),
+        monthlyPaid: z.coerce.number().positive(),
       }),
     ])
   );
-//.refine((data) => {
-//    if (data.saleType === "LOAN") {
-//        return data.totalRemaining < data.totalAmount
-//    }
-//    return true
-//}, { message: "نابێ پێشەکی لە کۆی گشتی پارەکە زیاتربێت", path: ["totalRemaining"] }).
-//    refine((data) => {
-//        if (data.saleType === "LOAN") {
-//            return data.monthlyPaid < data.totalAmount
-//        }
-//        return true
-//    }, { message: "نابێ پارەدانی مانگانە لە کۆی گشتی پارەکە زیاتربێت", path: ["monthlyPaid"] })
+
 
 export const updateSaleSchema = createSaleSchema.and(
   z.object({
@@ -87,7 +75,7 @@ export const getListSaleSchema = z.object({
 });
 
 export const discountSaleSchema = z.object({
-  discount: z.number().min(0),
+  discount: z.coerce.number().nonnegative(),
   saleId: z.number().int().positive(),
 });
 
@@ -104,13 +92,13 @@ export const restoreSaleSchema = getOneSaleSchema;
 export const createProductSaleSchema = z.object({
   saleId: z.number().int().positive(),
   productId: z.number().int().positive(),
-  price: z.number().nonnegative(),
-  quantity: z.number().int().nonnegative(),
+  price: z.coerce.number().positive(),
+  quantity: z.coerce.number().positive(),
 });
 
 export const changeProductQuantitySchema = z.object({
   id: z.number().int().positive(),
-  amount: z.number().int().positive(),
+  amount: z.coerce.number().positive(),
 });
 
 export const updateProductSaleSchema = createProductSaleSchema.partial().and(
@@ -136,7 +124,7 @@ export const restoreProductSaleSchema = getOneProductSaleSchema;
 
 export const createPaidLoanSaleSchema = z.object({
   saleId: z.number().int().positive(),
-  amount: z.number().nonnegative(),
+  amount: z.coerce.number().positive(),
   paidDate: z.date().default(new Date()),
   note: z.string().nullable().optional(),
 });

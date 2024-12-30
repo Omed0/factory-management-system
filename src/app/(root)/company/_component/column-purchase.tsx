@@ -55,7 +55,8 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
       <DataTableColumnHeader column={column} title="کۆی پارەی گشتی" />
     ),
     cell: function CellComponent({ row }) {
-      const formatedAmount = useConvertCurrency(row.original.totalAmount || 0);
+      const { totalAmount, dollar } = row.original
+      const formatedAmount = useConvertCurrency(totalAmount || 0, dollar);
       return (
         <div className="w-[100px]">
           <span>{formatedAmount}</span>
@@ -69,8 +70,9 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
       <DataTableColumnHeader column={column} title="کۆی پارەی دراو" />
     ),
     cell: function CellComponent({ row }) {
+      const { totalRemaining, dollar } = row.original
       const formatedAmount = useConvertCurrency(
-        row.original.totalRemaining || 0
+        totalRemaining || 0, dollar
       );
       return (
         <div className="w-[100px]">

@@ -17,6 +17,7 @@ import {
   getCustomerOneSale,
   getPaidLoanSaleList,
   getProductSaleList,
+  getProductWithSaleWithcustomerForInvoice,
   increaseQuantitySaleItem,
   restoreSaleForCustomer,
   updateSaleForCustomer,
@@ -162,6 +163,20 @@ export async function getProductSaleListActions(
     };
   }
   return { success: true, SaleWithProducts };
+}
+
+export async function getProductWithSaleWithcustomerForInvoiceActions(
+  saleId: number,
+  customerId: number
+) {
+  const sale = await getProductWithSaleWithcustomerForInvoice({ saleId, customerId });
+  if (sale === null || 'error' in sale) {
+    return {
+      success: false,
+      message: sale?.error ?? 'هەڵەیەک ڕوویدا',
+    };
+  }
+  return { success: true, sale };
 }
 
 export async function createProductSaleListActions(data: CreateProductSale) {

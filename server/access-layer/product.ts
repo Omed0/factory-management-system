@@ -55,11 +55,12 @@ export async function createProduct(product: CreateProduct) {
     return result;
   });
 }
-export async function updateProduct(data: UpdateProduct) {
+
+export async function updateProduct(id: number, data: UpdateProduct) {
   return tryCatch(async () => {
     const validatedData = updateProductSchema.parse(data);
     const result = await prisma.products.update({
-      where: { id: validatedData.id, deleted_at: null },
+      where: { id: id, deleted_at: null },
       data: validatedData,
     });
     return result;

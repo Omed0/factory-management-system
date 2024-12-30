@@ -7,18 +7,19 @@ import CustomLayout from '@/components/layout/customLayout';
 import ProviderReactQuery from '@/components/layout/provider-react-query';
 import { getSession } from '@/lib/cookies';
 
+export const dynamic = 'force-dynamic'
+
 async function RootLayout({ children }: PropsWithChildren) {
   const session = await getSession();
-  const { success, data, message } = await getDollarActions();
-  if (!success || !data?.dollar)
-    throw new Error(message || 'دۆلار کێشەی تیایە');
+  const { data, message } = await getDollarActions();
+  if (!data || !data.dollar) throw new Error(message);
 
   return (
     <html>
       <body className="w-full">
         <ProviderReactQuery>
           <Suspense fallback={"چاوەڕوانبە..."}>
-            <CustomLayout session={session} dollar={data.dollar}>
+            <CustomLayout session={session} dollar={(data?.dollar || 0)}>
               {children}
             </CustomLayout>
           </Suspense>

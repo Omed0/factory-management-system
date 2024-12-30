@@ -1,14 +1,15 @@
-import { env } from '@/env.mjs';
+//import { env } from '@/env.mjs';
+import { EmployeeActionType } from '@prisma/client';
 import { addDays } from 'date-fns';
 
-export const siteConfig = {
-  title: '',
-  description: '',
-  keywords: () => [],
-  url: () => env.APP_URL,
-};
+//export const siteConfig = {
+//  title: 'zanyar group',
+//  description: 'zanyar group',
+//  keywords: () => [],
+//  url: () => env.APP_URL,
+//};
 
-export const FALLBACK_IMAGE = "/opengraph-image.png"
+export const FALLBACK_IMAGE = "/placeholder.jpg"
 
 export const months = [
   { name: 'مانگی ١', value: 1 },
@@ -24,6 +25,16 @@ export const months = [
   { name: 'مانگی ١١', value: 11 },
   { name: 'مانگی ١٢', value: 12 },
 ];
+
+export const tr_employee_action = new Map<EmployeeActionType, string>([
+  [EmployeeActionType.ABSENT, "مۆڵەت"],
+  [EmployeeActionType.BONUS, "پاداشت"],
+  [EmployeeActionType.OVERTIME, "کارکردنی زیادە"],
+  [EmployeeActionType.PUNISHMENT, "سزادان"],
+]);
+
+export const subtraction_actions = [EmployeeActionType.ABSENT, EmployeeActionType.PUNISHMENT]
+export const addition_actions = [EmployeeActionType.OVERTIME, EmployeeActionType.BONUS]
 
 const now = new Date();
 const currentYear = now.getFullYear();

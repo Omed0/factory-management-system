@@ -55,7 +55,7 @@ type Props<TData> = {
 
 export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
   const [open, setOpen] = useState(false);
-  const { searchParams, setQuery } = useSetQuery();
+  const { searchParams } = useSetQuery();
   const { data } = useDollar();
 
   const isTrash = searchParams.get('status') === 'trash';
@@ -64,9 +64,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
   const form = useForm<CreateEmployeeAction>({
     resolver: zodResolver(createEmployeeActionSchema),
     defaultValues: {
-      employeeId: 0,
-      note: '',
-      amount: 0,
+      dollar: data.dollar,
       type: item.type,
       dateAction: new Date(),
     },
@@ -77,12 +75,12 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
       table
         .getSelectedRowModel()
         .rows.map((row) => row.original as OneEmployee),
-    [table]
+    [table, open]
   );
 
   const employees = useMemo(
     () => table.getRowModel().rows.map((row) => row.original as OneEmployee),
-    [table]
+    [table, open]
   );
 
   const exit = () => {
@@ -97,7 +95,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
 
   async function onSubmit(values: CreateEmployeeAction) {
     if (currency === 'IQD') {
-      values.amount = IQDtoUSD(values.amount, data.dollar);
+      values.amount = IQDtoUSD(values.amount, values.dollar || data.dollar);
     }
     const { success, message } = await createEmployeeActionActions(values);
     if (!success) {
@@ -132,7 +130,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
         className="!max-w-fit px-6 lg:px-16"
         onOpenChange={(e) => {
           if (isTrash) return toast.error('تەنها بۆ کارمەندە ئەکتیڤەکانە');
-          if (!e) setQuery('', '', ['currency']);
+          //if (!e) setQuery('', '', ['currency']);
           setOpen(e);
         }}
         button={
@@ -227,9 +225,23 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
             />
             <CurrencyInput
               className="w-96"
-              control={form.control}
+              form={form}
               name="amount"
               label="بڕی پارە"
+              dollar={form.watch("dollar")}
+            />
+            <FormField
+              control={form.control}
+              name="dollar"
+              render={({ field }) => (
+                <FormItem className="w-96">
+                  <FormLabel>نرخی دۆلار</FormLabel>
+                  <FormControl>
+                    <Input {...field} type='number' />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
             <FormField
               control={form.control}
@@ -250,7 +262,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
               )}
             />
             <div className="flex w-full flex-wrap gap-5">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1" disabled={!form.formState.isDirty}>
                 {item.name}
               </Button>
               <Button

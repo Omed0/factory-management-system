@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useDebouncedCallback } from 'use-debounce';
 
@@ -7,25 +7,25 @@ export default function useSetQuery(delay = 500) {
   const pathname = usePathname();
   const { replace } = useRouter();
 
-  // New state to cache search parameters
-  const [cachedSearchParams, setCachedSearchParams] = useState(
-    searchParams.toString()
-  );
+  // State to cache search parameters
+  const [cachedSearchParams, setCachedSearchParams] = useState(searchParams.toString());
 
-  // Memoize the searchParams and pathname to prevent unnecessary recalculations
-  const memoizedSearchParams = useMemo(
-    () => cachedSearchParams,
-    [cachedSearchParams]
-  );
+  // Keep cachedSearchParams in sync with actual searchParams
+  useEffect(() => {
+    setCachedSearchParams(searchParams.toString());
+  }, [searchParams]);
+
+  // Memoize the pathname to prevent unnecessary recalculations
   const memoizedPathname = useMemo(() => pathname, [pathname]);
 
   const setQuery = useDebouncedCallback(
     (key: string, value: string, deleteArrayKeys?: string[]) => {
-      const newSearchParams = new URLSearchParams(memoizedSearchParams);
+      // Start with the latest searchParams, not just the cached version
+      const newSearchParams = new URLSearchParams(searchParams.toString());
 
       if (key && value) {
         newSearchParams.set(key, value);
-      } else {
+      } else if (key) {
         newSearchParams.delete(key);
       }
 
@@ -35,6 +35,8 @@ export default function useSetQuery(delay = 500) {
 
       // Update cached search parameters
       setCachedSearchParams(newSearchParams.toString());
+
+      // Push the new query to the URL
       replace(`${memoizedPathname}?${newSearchParams.toString()}`);
     },
     delay

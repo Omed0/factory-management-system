@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'rabar';
+  src: url('../../public/fonts/rabar_21.woff');
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -103,4 +108,14 @@ body {
 
 .amount-cell {
   font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    /*margin: 4px;*/
+  }
+  * {
+    font-family: 'rabar';
+  }
 }

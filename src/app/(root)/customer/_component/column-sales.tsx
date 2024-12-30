@@ -16,11 +16,12 @@ import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { cn } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
 
+
 export const column_sale: ColumnDef<OneSale>[] = [
   {
     accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ژمارە" />
+      <DataTableColumnHeader column={column} title="زنجیرە" />
     ),
     cell: ({ row }) => {
       return (<span>{row.original.id}</span>);
@@ -29,7 +30,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
   {
     accessorKey: 'saleNumber',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="وەصڵ" />
+      <DataTableColumnHeader column={column} title="کۆدی وەصڵ" />
     ),
     cell: function CellComponent({ row }) {
       const sale = row.original;
@@ -48,6 +49,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
             <TooltipMonthlyPaid
               isShow={sale.saleType === 'LOAN'}
               amount={sale.monthlyPaid}
+              dollar={sale.dollar}
             >
               <p>{sale.saleNumber}</p>
             </TooltipMonthlyPaid>
@@ -81,10 +83,9 @@ export const column_sale: ColumnDef<OneSale>[] = [
       <DataTableColumnHeader column={column} title="کۆی گشتی" />
     ),
     cell: function CellComponent({ row }) {
-      const discount = row.original.discount;
-      const totalAmount = row.original.totalAmount;
-      const formatedTotalAmount = useConvertCurrency(totalAmount);
-      const totalAfterDiscount = useConvertCurrency(totalAmount - discount);
+      const { discount, totalAmount, dollar } = row.original;
+      const formatedTotalAmount = useConvertCurrency(totalAmount, dollar);
+      const totalAfterDiscount = useConvertCurrency(totalAmount - discount, dollar);
       return (
         <div className="amount-cell w-[100px]">
           {discount ? (
@@ -105,7 +106,8 @@ export const column_sale: ColumnDef<OneSale>[] = [
       <DataTableColumnHeader column={column} title="کۆی دراوە" />
     ),
     cell: function CellComponent({ row }) {
-      const formatedTotalRemaining = useConvertCurrency(row.original.totalRemaining);
+      const { totalRemaining, dollar } = row.original
+      const formatedTotalRemaining = useConvertCurrency(totalRemaining, dollar);
       return (
         <div className="amount-cell w-[100px]">
           <span>{formatedTotalRemaining}</span>
@@ -119,7 +121,8 @@ export const column_sale: ColumnDef<OneSale>[] = [
       <DataTableColumnHeader column={column} title="داشکاندن" />
     ),
     cell: function CellComponent({ row }) {
-      const formatedDiscount = useConvertCurrency(row.original.discount || 0);
+      const { discount, dollar } = row.original
+      const formatedDiscount = useConvertCurrency(discount, dollar);
       return <div className="amount-cell">{formatedDiscount}</div>;
     },
   },
@@ -159,12 +162,14 @@ const TooltipMonthlyPaid = ({
   children,
   amount,
   isShow,
+  dollar,
 }: {
   children: React.ReactNode;
   amount: number;
   isShow: boolean;
+  dollar?: number
 }) => {
-  const showAmount = useConvertCurrency(amount);
+  const showAmount = useConvertCurrency(amount, dollar);
   return (
     <Tooltip>
       <TooltipTrigger className="text-inherit decoration-inherit [cursor:inherit] [text-decoration:inherit]">

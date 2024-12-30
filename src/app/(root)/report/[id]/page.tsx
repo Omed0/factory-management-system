@@ -17,7 +17,7 @@ type Props = {
 export default async function Report({ searchParams, params }: Props) {
     const dates = seperateDates(searchParams.date)
 
-    const reports = await getReportByNameActions({ ...dates, name: params.id as any ?? report_name[0] })
+    const reports = await getReportByNameActions({ ...dates, name: params?.id as any ?? report_name[0] })
 
     if (!reports.success || !reports.data) {
         return <div className="w-full h-full flex items-center justify-center">
@@ -28,7 +28,7 @@ export default async function Report({ searchParams, params }: Props) {
     }
 
     return (
-        <section className="w-full space-y-4 p-2">
+        <section className="w-full space-y-4 p-2 pt-5">
             <DataTable columns={columns} data={reports.data} />
         </section>
     );

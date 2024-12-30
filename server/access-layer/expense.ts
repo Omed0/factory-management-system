@@ -40,11 +40,12 @@ export async function createExpense(dataExpense: CreateExpense) {
   return tryCatch(async () => {
     const data = createExpenseSchema.parse(dataExpense);
     const { expense, box } = await prisma.$transaction(async (tx) => {
-      const expense = await tx.expenses.create({ data });
       const box = await tx.boxes.update({
         where: { id: 1 },
-        data: { amount: { decrement: expense.amount } },
+        data: { amount: { decrement: data.amount } },
+        select: { dollar: true }
       });
+      const expense = await tx.expenses.create({ data });
 
       return { expense, box };
     });
@@ -56,7 +57,7 @@ export async function updateExpense(id: number, dataExpense: UpdateExpense) {
   return tryCatch(async () => {
     const data = updateExpenseSchema.parse(dataExpense);
     const expenseId = getOneExpenseSchema.parse({ id });
-    const { expense, box } = await prisma.$transaction(async (tx) => {
+    const { expense } = await prisma.$transaction(async (tx) => {
       const oldExpense = await tx.expenses.findUnique({
         where: { id: expenseId.id, deleted_at: null },
       });
@@ -67,15 +68,22 @@ export async function updateExpense(id: number, dataExpense: UpdateExpense) {
         data,
       });
 
-      const amountDifference = expense.amount - oldExpense.amount;
+      const amountDifference = expense.amount !== oldExpense.amount;
 
-      const box = await tx.boxes.update({
-        where: { id: 1 },
-        data: { amount: { decrement: amountDifference } },
-      });
-      return { expense, box };
+      if (amountDifference) {
+        await tx.boxes.update({
+          where: { id: 1 },
+          data: { amount: { increment: oldExpense.amount } },
+        });
+        await tx.boxes.update({
+          where: { id: 1 },
+          data: { amount: { decrement: expense.amount } },
+        });
+      }
+
+      return { expense };
     });
-    return { expense, box };
+    return { expense };
   });
 }
 

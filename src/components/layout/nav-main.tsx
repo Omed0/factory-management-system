@@ -18,6 +18,8 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export function NavMain({
   items,
@@ -34,10 +36,15 @@ export function NavMain({
     }[];
   }[];
 }) {
+
+  const pathname = usePathname()
+  const currentPath = `/${pathname.split("/")[1]}`
+  //const currentSubPath = `/${pathname.split("/")[2]}`
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>پەیجەکان</SidebarGroupLabel>
-      <SidebarMenu>
+      <SidebarMenu className='gap-2'>
         {items.map((item) => {
           const hasSubItems = item.items && item.items.length > 0;
           return (
@@ -47,11 +54,13 @@ export function NavMain({
               defaultOpen={item.isActive}
               className="group/collapsible"
             >
-              <SidebarMenuItem>
+              <SidebarMenuItem className={cn("", {
+                "text-blue-500 hover:text-blue-700": currentPath.includes(item.url)
+              })}>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title} className="h-9">
+                  <SidebarMenuButton tooltip={item.title} className="h-9 hover:text-inherit">
                     <Link className="flex items-center gap-2" href={item.url}>
-                      {item.icon && <item.icon className="size-4" />}
+                      {item.icon && <item.icon className="size-5" />}
                       <span>{item.title}</span>
                     </Link>
                     {hasSubItems && (
@@ -65,9 +74,8 @@ export function NavMain({
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem
                           key={subItem.title}
-                          className="flex items-center"
                         >
-                          {subItem.icon && <subItem.icon className="size-4" />}
+                          {subItem.icon && <subItem.icon className="size-5" />}
                           <SidebarMenuSubButton asChild>
                             <Link href={subItem.url}>
                               <span>{subItem.title}</span>

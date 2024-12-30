@@ -11,14 +11,14 @@ export type ListProduct = Products[];
 
 export const createProductSchema = z.object({
   name: z.string().min(1).max(255),
-  price: z.number().positive(),
-  image: z.any().nullable().optional(),
+  price: z.coerce.number().positive(),
+  dollar: z.coerce.number().positive(),
+  image: z.any().optional(),
   unitType: z.nativeEnum(UnitType),
 });
 
-export const updateProductSchema = createProductSchema
-  .partial()
-  .and(z.object({ id: z.number().positive() }));
+export const updateProductSchema = createProductSchema.partial()
+
 export const deleteProductSchema = z.object({
   id: z.number().int().positive(),
 });

@@ -39,7 +39,7 @@ export default function FormDollar({ dollar }: Props) {
       >
         <div className="flex items-center justify-between gap-4 rounded border p-2">
           <p>نرخی دۆلار : </p>
-          <p>{formatDollar}</p>
+          <p>{formatDollar.toLocaleString()}</p>
         </div>
         <Label htmlFor="dollar" className="w-full">
           <Input

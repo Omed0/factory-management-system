@@ -14,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useDollar } from '@/hooks/useDollar';
 import { formatCurrency } from '@/lib/utils';
 import { OneProduct } from '@/server/schema/product';
 import { OneSale } from '@/server/schema/sale';
@@ -28,10 +27,6 @@ type Props = {
 };
 
 export default function Products({ product, invoice, currency }: Props) {
-  const {
-    data: { dollar },
-  } = useDollar();
-
   return (
     <section className="flex h-full flex-[4] flex-wrap gap-4 overflow-scroll rounded-lg border-2 p-4 shadow">
       {product.map((product) => (
@@ -58,7 +53,7 @@ export default function Products({ product, invoice, currency }: Props) {
             />
           </CardContent>
           <CardFooter className="justify-between p-2 px-3">
-            <p>{formatCurrency(product.price, dollar, currency)}</p>
+            <p>{formatCurrency(product.price, product.dollar, currency)}</p>
             <form
               className="[all:unset]"
               action={async () => {

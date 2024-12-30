@@ -63,7 +63,7 @@ export async function deleteManyEmployees(ids: number[]) {
   return tryCatch(async () => {
     const data = deleteManyEmployeesSchema.parse({ ids });
     const deletedEmployees = await prisma.employee.updateMany({
-      where: { id: { in: data.ids } },
+      where: { id: { in: data.ids }, deleted_at: null },
       data: { deleted_at: new Date() },
     });
     return deletedEmployees;
@@ -74,7 +74,7 @@ export async function forceDeleteManyEmployees(ids: number[]) {
   return tryCatch(async () => {
     const data = deleteManyEmployeesSchema.parse({ ids });
     const deletedEmployees = await prisma.employee.deleteMany({
-      where: { id: { in: data.ids } },
+      where: { id: { in: data.ids }, deleted_at: { not: null } },
     });
     return deletedEmployees;
   });
@@ -84,7 +84,7 @@ export async function restoreManyEmployees(ids: number[]) {
   return tryCatch(async () => {
     const data = deleteManyEmployeesSchema.parse({ ids });
     const restoredEmployees = await prisma.employee.updateMany({
-      where: { id: { in: data.ids } },
+      where: { id: { in: data.ids }, deleted_at: { not: null } },
       data: { deleted_at: null },
     });
     return restoredEmployees;
@@ -142,16 +142,16 @@ export async function updateEmployeeAction(
       if (oldEmployeeAction.amount !== data.amount) {
         await tx.boxes.update({
           where: { id: 1 },
-          data: { amount: { decrement: oldEmployeeAction.amount } },
+          data: { amount: { increment: oldEmployeeAction.amount } },
         });
         await tx.boxes.update({
           where: { id: 1 },
-          data: { amount: { increment: data.amount } },
+          data: { amount: { decrement: data.amount } },
         });
       }
       const updatedAction = await tx.employeeActions.update({
         where: { id },
-        data: { ...data, dateAction: new Date() },
+        data: { ...data },
       });
       return updatedAction;
     });
@@ -169,7 +169,7 @@ export async function deleteEmployeeAction(id: number) {
       if (!employeeAction) throw new Error('ئەم ئەرکە نەدۆزرایەوە');
       await tx.boxes.update({
         where: { id: 1 },
-        data: { amount: { increment: employeeAction.amount! } },
+        data: { amount: { increment: employeeAction.amount } },
       });
       return await tx.employeeActions.delete({ where: { id: data.id } });
     });

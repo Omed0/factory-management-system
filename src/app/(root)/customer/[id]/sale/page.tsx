@@ -47,10 +47,10 @@ export default async function SpecificCustomerSale({
           </h1>
           <Link
             replace
-            href="/customer"
+            href={`/customer/${params.id}`}
             className="p-3 text-blue-500 underline-offset-8 hover:underline"
           >
-            بچۆرەوە بۆ کڕیارەکان
+            بچۆرەوە بۆ کڕیار
           </Link>
         </div>
       </div>
@@ -58,7 +58,7 @@ export default async function SpecificCustomerSale({
   }
 
   return (
-    <section className="w-full space-y-4 p-2">
+    <section className="w-full space-y-4 p-2 relative">
       <div className="flex h-[86svh] flex-1 justify-between gap-5 overflow-hidden">
         <SaleInvoice saleWithProduct={SaleWithProducts} sales={sales.data} />
         <Products

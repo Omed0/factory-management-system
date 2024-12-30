@@ -10,18 +10,6 @@ const constants = {
     image: 'https://via.placeholder.com/150',
     phone: '07777777777',
   },
-  employee: {
-    name: 'Admin',
-    phone: '07777777777',
-    address: 'suli',
-    monthSalary: 600,
-  },
-  employeeAction: (id: number) => ({
-    employeeId: id,
-    amount: 5,
-    type: 'BONUS' as EmployeeActionType,
-    dateAction: new Date(),
-  }),
 };
 
 async function main() {
@@ -31,26 +19,10 @@ async function main() {
     const user = await createUser(constants.user);
     console.log('Created user:', user);
 
-    const box = await prisma.boxes.create({
-      data: { amount: 0 },
+    const existingBox = await prisma.boxes.create({
+      data: { amount: 0, dollar: 1500 }
     });
-    console.log('Created box:', box);
-
-    const updatedBox = await prisma.boxes.update({
-      where: { id: 1 },
-      data: { amount: 1000 },
-    });
-    console.log('Updated box:', updatedBox);
-
-    const employee = await prisma.employee.create({
-      data: constants.employee,
-    });
-    console.log('Created employee:', employee);
-
-    const employeeAction = await prisma.employeeActions.create({
-      data: constants.employeeAction(employee.id),
-    });
-    console.log('Create Employee Action:', employeeAction);
+    console.log('box:', existingBox);
 
     console.log('Seeding completed.');
   } catch (error) {

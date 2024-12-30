@@ -77,6 +77,10 @@ export function DataTableRowActions({ row }: { row: Row<OneEmployee> }) {
           >
             <section className="w-full p-4">
               <AddEmployee
+                handleClose={() => {
+                  setOpen(false)
+                  setDropdownOpen(false)
+                }}
                 title="زیادکردن کارمەند"
                 employee={{ ...rowData } as OneEmployee}
               />
@@ -84,9 +88,10 @@ export function DataTableRowActions({ row }: { row: Row<OneEmployee> }) {
           </CustomDialogWithTrigger>
         )}
         <CustomDialogWithTrigger
+          className='md:max-w-4xl'
           onOpenChange={(e) => {
             if (!e) {
-              setQuery('', '', ['month', 'currency']);
+              setQuery('', '', ['month']);
               setDropdownOpen(e);
             }
           }}
@@ -107,7 +112,7 @@ export function DataTableRowActions({ row }: { row: Row<OneEmployee> }) {
               </Badge>
               <MonthSelector />
             </div>
-            <EmployeeInfoActions empId={rowData.id} name={rowData.name} />
+            <EmployeeInfoActions employee={rowData} />
           </section>
         </CustomDialogWithTrigger>
         <DropdownMenuSeparator />

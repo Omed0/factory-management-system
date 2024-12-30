@@ -6,11 +6,13 @@ import {
     getDashboardChartInformation,
     getDashboardInforamtion,
     getExpensesListSpecificTime,
+    getLoanSummary,
     getPurchasesListSpecificTime,
+    getReportPartnerFromChart,
     getSalesListSpecificTime,
     getTradePartnerFromType
 } from "@/server/access-layer/information";
-import { DashboardInfoTypes, ReportDateTypes, TradePartnerTypes } from "@/server/schema/information";
+import { DashboardInfoTypes, getReportChartPartnerTypes, ReportDateTypes, ReportTradePartnerTypes, TradePartnerTypes } from "@/server/schema/information";
 
 
 const reportes = [
@@ -32,6 +34,28 @@ export async function getReportByNameActions(data: ReportDateTypes) {
 
 export async function getTradePartnerActions(data: TradePartnerTypes) {
     const res = await getTradePartnerFromType(data)
+    if (!res || 'error' in res) {
+        return {
+            success: false,
+            message: res?.error ?? 'هەڵەیەک هەیە',
+        };
+    }
+    return { success: true, data: res };
+}
+
+export async function getReportPartnerChartActions(data: getReportChartPartnerTypes) {
+    const res = await getReportPartnerFromChart(data)
+    if (!res || 'error' in res) {
+        return {
+            success: false,
+            message: res?.error ?? 'هەڵەیەک هەیە',
+        };
+    }
+    return { success: true, data: res };
+}
+
+export async function getReportPartnerSpecificTimeActions(data: ReportTradePartnerTypes) {
+    const res = await getLoanSummary(data)
     if (!res || 'error' in res) {
         return {
             success: false,

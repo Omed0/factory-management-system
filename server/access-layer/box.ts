@@ -50,7 +50,6 @@ export async function getDollar() {
       where: { id: 1 },
       select: { dollar: true },
     });
-
     if (!dollar) throw new Error('دۆلار بوونی نییە');
     return { dollar };
   });

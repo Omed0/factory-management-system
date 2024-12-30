@@ -132,7 +132,7 @@ export default function AddCustomer({ customer, title, handleClose }: Props) {
           )}
         />
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <Button type="submit" className="flex-1 basis-60">
+          <Button type="submit" className="flex-1 basis-60" disabled={!form.formState.isDirty}>
             {isEdit ? 'نوێکردنەوە' : 'زیادکردن'}
           </Button>
           <DialogClose className="flex-1 basis-60" onClick={handleClose}>

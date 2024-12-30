@@ -45,25 +45,11 @@ export default async function SpecificCompany({ searchParams, params }: Props) {
 
   return (
     <section className="w-full space-y-4 p-2">
-      <div className="flex justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="size-5" />
-          <h1 className="text-lg font-medium">
-            {isTrash ? 'کڕدراوە ئەرشیفکراوەکان' : 'کڕدراوە بەردەستەکان'}
-          </h1>
-        </div>
-        <CustomDialogWithTrigger
-          button={
-            <Button>
-              <PlusCircleIcon className="me-2 size-4" />
-              کڕین
-            </Button>
-          }
-        >
-          <section className="w-full p-4">
-            <AddPurchase title="زیادکردنی کڕین" />
-          </section>
-        </CustomDialogWithTrigger>
+      <div className="flex items-center gap-2">
+        <Users className="size-5" />
+        <h1 className="text-lg font-medium">
+          {isTrash ? 'کڕدراوە ئەرشیفکراوەکان' : 'کڕدراوە بەردەستەکان'}
+        </h1>
       </div>
       <DataTable
         columns={column_purchase as any[]}

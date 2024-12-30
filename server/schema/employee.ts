@@ -13,6 +13,7 @@ export const createEmployeeSchema = z.object({
   name: z.string().min(3, 'ناوەکەت زۆر کورتە').max(75, 'ناوەکەت زۆر درێژە'),
   address: z.string().optional(),
   monthSalary: z.coerce.number().min(0, { message: 'بڕی مەعاش بنووسە' }),
+  dollar: z.coerce.number().min(0),
   phone: z.string().min(6).max(16),
   image: z.any().optional(),
 });
@@ -34,7 +35,8 @@ export const deleteManyEmployeesSchema = z.object({
 export const createEmployeeActionSchema = z.object({
   employeeId: z.coerce.number(),
   type: z.nativeEnum(EmployeeActionType),
-  amount: z.coerce.number().nonnegative(),
+  amount: z.coerce.number().positive(),
+  dollar: z.coerce.number().positive(),
   note: z.string().optional(),
   dateAction: z.date(),
 });

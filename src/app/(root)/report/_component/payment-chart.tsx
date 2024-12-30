@@ -2,19 +2,21 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { TrendingUp } from "lucide-react"
+import { TrendingDown, TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 type Props = {
-  type: "company" | "customer"
-}
+  type: "companies" | "customers"
+  data: {
+    chartData: {
+      month: number;
+      now: number;
+      past: number;
+    }[];
+    percentageChange: number;
+  }
 
-const chartData = [
-  { month: "یەکەم", now: 186, past: 80 },
-  { month: "دووەم", now: 305, past: 200 },
-  { month: "سێیەم", now: 237, past: 120 },
-  { month: "چوارەم", now: 73, past: 190 },
-]
+}
 
 const chartConfig = {
   now: {
@@ -27,8 +29,8 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export default function PaymentChart({ type }: Props) {
-  const isCompany = type === "company" ? "کڕدراو" : "فرۆشراو"
+export default function PaymentChart({ type, data }: Props) {
+  const isCompany = type === "companies" ? "کڕدراو" : "فرۆشراو"
   const now = new Date().toLocaleDateString()
 
   return (
@@ -46,7 +48,7 @@ export default function PaymentChart({ type }: Props) {
         <ChartContainer config={chartConfig}>
           <AreaChart
             accessibilityLayer
-            data={chartData}
+            data={data.chartData}
             margin={{
               left: 20,
               right: 20,
@@ -84,8 +86,12 @@ export default function PaymentChart({ type }: Props) {
         </ChartContainer>
       </CardContent>
       <CardFooter>
-        <div className="flex items-center gap-2 font-medium leading-none">
-          لەچاو چوار مانگی ڕابردوو تر  <TrendingUp className="h-4 w-4" />
+        <div className="flex items-center gap-3 font-medium leading-none">
+          لەچاو چوار مانگی ڕابردوو تر {data.percentageChange} {data.percentageChange > 0 ? (
+            <TrendingUp className="size-5 text-green-600" />
+          ) : (
+            <TrendingDown className="size-5 text-red-600" />
+          )}
         </div>
       </CardFooter>
     </Card>

@@ -24,24 +24,13 @@ import {
 import { prisma } from '@/lib/client';
 import { Prisma } from '@prisma/client';
 
+
 async function getCustomerById(id: number, tx: Prisma.TransactionClient) {
   const customer = await tx.customers.findFirst({
     where: { id, deleted_at: null },
   });
   if (!customer) throw new Error('کڕیار نەدۆزرایەوە');
   return { customer };
-}
-
-async function getSalesByCustomerId(
-  customerId: number,
-  tx: Prisma.TransactionClient
-) {
-  const sales = await tx.sales.findMany({
-    where: { customerId, customer: { deleted_at: null } },
-  });
-  if (!sales) throw new Error('وەصڵ نەدۆزرایەوە');
-  if (!sales.length) throw new Error('ئەم کەسە وەصڵی نییە');
-  return { sales };
 }
 
 async function getSaleById(
@@ -58,18 +47,6 @@ async function getSaleById(
   });
   if (!sale) throw new Error('وەصڵ نەدۆزرایەوە');
   return { sale };
-}
-
-async function getPaidLoansBySaleId(
-  saleId: number,
-  tx: Prisma.TransactionClient
-) {
-  const loan = await tx.paidLoans.findMany({
-    where: { saleId, sale: { deleted_at: null } },
-  });
-  if (!loan) throw new Error('قەرزەکانی ئەم وەصڵە نەدۆزرایەوە');
-  if (!loan.length) throw new Error('ئەم وەصڵە هیچ قەرزێکی نییە');
-  return { loan };
 }
 
 // SALE DATA LAYERS
@@ -104,18 +81,20 @@ export async function getCustomerListSale({
 }) {
   return tryCatch(async () => {
     const data = getListSaleSchema.parse({ customerId });
-    const sales = await prisma.sales.findMany({
-      where: {
-        customerId: data.customerId,
-        deleted_at: isTrash ? { not: null } : null,
-      },
-      orderBy: { created_at: 'desc' },
-      include: { customer: true },
-    });
+    const { customer, sale } = await prisma.$transaction(async (tx) => {
+      const { customer } = await getCustomerById(data.customerId, tx)
+      const sales = await prisma.sales.findMany({
+        where: {
+          customerId: customer.id,
+          deleted_at: isTrash ? { not: null } : null,
+        },
+        orderBy: { created_at: 'desc' },
+      });
 
-    if (!sales) throw new Error('ئەم فرۆشتنانە نەدۆزرانەوە');
-
-    return { sale: sales, name: sales?.[0]?.customer?.name };
+      if (!sales) throw new Error('ئەم فرۆشتنانە نەدۆزرانەوە');
+      return { sale: sales, customer };
+    })
+    return { customer, sale }
   });
 }
 
@@ -126,7 +105,6 @@ export async function createSaleForCustomer({
 }) {
   return tryCatch(async () => {
     const data = createSaleSchema.parse({ ...saleValues });
-
     const sale = await prisma.$transaction(async (tx) => {
       const { customer } = await getCustomerById(data.customerId, tx);
       const newSale = await tx.sales.create({ data });
@@ -354,6 +332,36 @@ export async function getProductSaleList({
   });
 }
 
+export async function getProductWithSaleWithcustomerForInvoice({
+  saleId,
+  customerId,
+}: {
+  saleId: number;
+  customerId: number;
+}) {
+  return tryCatch(async () => {
+    const data = getListProductSaleSchema.parse({ saleId, customerId });
+    const sale = await prisma.sales.findFirst({
+      where: {
+        id: data.saleId,
+        customerId: data.customerId,
+        //isFinished: true,
+        deleted_at: null,
+        customer: { deleted_at: null },
+      },
+      include: {
+        customer: true,
+        paidLoans: true,
+        saleItems: { include: { product: true } }
+      }
+    });
+
+    if (!sale) throw new Error('ئەم وەصڵە بوونی نییە یان تەواو نەبووە');
+
+    return sale
+  });
+}
+
 export async function createProductSaleList({
   product,
 }: {
@@ -518,23 +526,18 @@ export async function createPaidLoanSaleList({
   paidLoanInfo: CreatePaidLoanSale;
 }) {
   return tryCatch(async () => {
-    const data = createPaidLoanSaleSchema.parse({ ...paidLoanInfo });
+    const data = createPaidLoanSaleSchema.parse(paidLoanInfo);
     const loan = await prisma.$transaction(async (tx) => {
-      const totalAmount = await tx.paidLoans.aggregate({
-        _sum: { amount: true },
-        where: { saleId: data.saleId },
-      });
-
-      const sale = await tx.sales.findUnique({
+      const sale = await tx.sales.aggregate({
+        _sum: { totalRemaining: true, discount: true, totalAmount: true },
         where: { id: data.saleId },
-        select: { discount: true },
       });
 
-      const adjustedTotalAmount =
-        (totalAmount._sum.amount || 0) - (sale?.discount || 0);
-      const isLessThanTotalAmount = adjustedTotalAmount + data.amount;
+      const adjustedTotalAmount = (sale._sum.totalAmount || 0) - (sale._sum.discount || 0);
+      const isLessThanTotalAmount = (sale._sum.totalRemaining || 0) + data.amount
+      if (isLessThanTotalAmount > adjustedTotalAmount) throw new Error("نابێ درانەوەکان لە کۆی گشتی زیاتربێت")
 
-      await tx.sales.update({
+      const updateSale = await tx.sales.update({
         where: {
           id: data.saleId,
           deleted_at: null,
@@ -542,6 +545,7 @@ export async function createPaidLoanSaleList({
         },
         data: { totalRemaining: { increment: data.amount } },
       });
+      if (!updateSale) throw new Error("هەڵەیەک هەیە")
       const createLoan = await tx.paidLoans.create({ data });
 
       if (!createLoan) throw new Error('هەڵەیەک ڕوویدا');
@@ -552,7 +556,7 @@ export async function createPaidLoanSaleList({
       return createLoan;
     });
 
-    if (!loan) throw new Error('هەڵەیەک ڕوویدا لە زیادکردنی قەرز');
+    if (!loan) throw new Error('هەڵەیەک ڕوویدا لە پێدانەوەی قەرز');
 
     return loan;
   });

@@ -71,7 +71,7 @@ export function DataTableRowActions({ row }: { row: Row<OneProduct> }) {
           >
             <section className="w-full p-4">
               <AddProduct
-                title="زیادکردنی مەواد"
+                title="گۆڕانکاری لە مەواد"
                 product={{ ...rowData } as OneProduct}
                 handleClose={() => {
                   setDropdownOpen(false);

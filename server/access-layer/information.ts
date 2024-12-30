@@ -4,32 +4,44 @@ import { prisma } from '@/lib/client';
 import { tryCatch } from '@/lib/helper';
 import {
   DashboardInfoTypes, getDashboardInfoSchema, getReportByDateSchema,
-  getReportProductByDateSchema, getTradePartnerSchema,
-  ReportDateTypes, ReportProductTypes, TradePartner,
+  getReportChartPartnerSchema,
+  getReportChartPartnerTypes,
+  getReportProductByDateSchema, getReportTradePartnerSchema, getTradePartnerSchema,
+  ReportDateTypes, ReportProductTypes, ReportTradePartnerTypes, TradePartner,
   TradePartnerTypes
 } from '../schema/information';
 import { keyExpense, keyPurchase, keySale } from '@/app/(root)/report/_constant';
 import { Prisma } from '@prisma/client';
-import { addDays, addMonths } from 'date-fns';
+import { addMonths } from 'date-fns';
 
+type LoanSummary = {
+  _sum: {
+    totalRemaining: number | null;
+    totalAmount: number | null;
+    discount?: number | null;
+  }
+}
 
+type PartnerChartSummary = {
+  _sum: {
+    totalRemaining: number | null;
+  }
+}
 
 export async function getDashboardInforamtion(data: DashboardInfoTypes) {
   return tryCatch(async () => {
     const formated = getDashboardInfoSchema.parse(data);
 
-    // Count total remaining sales and subtract discounts
     const totalSalesData = await prisma.sales.aggregate({
       _sum: {
         totalRemaining: true,
-        discount: true,
       },
       where: {
         saleDate: { gte: formated.from, lte: formated.to },
         deleted_at: null,
       },
     });
-    const totalRemainingAfterDiscount = (totalSalesData._sum.totalRemaining || 0) - (totalSalesData._sum.discount || 0);
+    const totalIncome = (totalSalesData._sum.totalRemaining || 0)
 
     // Count customers created within the date range
     const totalCustomers = await prisma.customers.count({
@@ -78,13 +90,20 @@ export async function getDashboardInforamtion(data: DashboardInfoTypes) {
       },
     });
 
+    const box = await prisma.boxes.findFirst({
+      where: { id: 1 }
+    })
+
+    const totalMoneyInBox = box?.amount || 0
+
     return {
-      totalRemainingAfterDiscount,
+      totalIncome,
       totalCustomers,
       totalSalesCount,
       activeLoanCustomersCount,
       latestSales,
       salesCreatedCount,
+      totalMoneyInBox
     };
   });
 }
@@ -105,7 +124,6 @@ export async function getDashboardChartInformation() {
       const totalSalesData = await prisma.sales.aggregate({
         _sum: {
           totalRemaining: true,
-          discount: true,
         },
         where: {
           saleDate: {
@@ -115,11 +133,11 @@ export async function getDashboardChartInformation() {
           deleted_at: null,
         },
       });
-      const totalRemainingAfterDiscount = (totalSalesData._sum.totalRemaining || 0) - (totalSalesData._sum.discount || 0);
+      const totalIncome = (totalSalesData._sum.totalRemaining || 0)
       return {
         month,
         year,
-        totalRemainingAfterDiscount,
+        totalIncome,
       };
     }));
 
@@ -164,7 +182,7 @@ export async function getCustomersWhoDidntGiveLoan() {
       const filteredCustomers = customers.filter((customer) =>
         customer.sales.some(
           (sale) =>
-            sale.totalRemaining !== sale.totalAmount - sale.discount
+            sale.totalRemaining !== (sale.totalAmount - sale.discount)
         )
       );
 
@@ -178,7 +196,6 @@ export async function getCustomersWhoDidntGiveLoan() {
 
     // Query 3: Customers who did not pay for more than one month
     const twoMonthsAgoCustomers = await getCustomersByDateRange(twoMonthAgo);
-    console.log(new Date("2024-10-06T12:02:30.647Z") > twoMonthAgo)
 
     return {
       oneMonthAgoCustomers,
@@ -294,17 +311,149 @@ export async function getTradePartnerFromType(data: TradePartnerTypes) {
   return tryCatch(async () => {
     let table = Prisma.sql`customers`;
     const formated = getTradePartnerSchema.parse(data);
-    if (formated.type === "company") {
+    if (formated.type === "companies") {
       table = Prisma.sql`companies`;
     }
 
     const tradePartner = await prisma.$queryRaw<TradePartner[]>`
-    SELECT * FROM ${table} WHERE name LIKE ${`%${formated.name}%`} AND deleted_at IS NULL
+    SELECT * FROM ${table} WHERE deleted_at IS NULL
   `;
 
     return tradePartner;
   });
 }
+
+export async function getReportPartnerFromChart(data: getReportChartPartnerTypes) {
+  return tryCatch(async () => {
+    const formated = getReportChartPartnerSchema.parse(data);
+
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth(); // 0-indexed (0 = January, 11 = December)
+    const currentYear = currentDate.getFullYear();
+
+    const chartData = await Promise.all(Array.from({ length: 8 }, async (_, i) => {
+      const monthIndex = (currentMonth - i + 12) % 12; // Calculate month index (0-11)
+      const year = currentYear - Math.floor((currentMonth - i) / 12); // Adjust year if necessary
+
+      let totalPartnerData: PartnerChartSummary
+      if (formated.type === "companies") {
+        totalPartnerData = await prisma.companyPurchase.aggregate({
+          _sum: {
+            totalRemaining: true,
+          },
+          where: {
+            companyId: +formated.id,
+            purchaseDate: {
+              gte: new Date(year, monthIndex, 1), // Start of the month
+              lt: new Date(year, monthIndex + 1, 1), // Start of the next month
+            },
+            deleted_at: null,
+          },
+        });
+      } else {
+        totalPartnerData = await prisma.sales.aggregate({
+          _sum: {
+            totalRemaining: true,
+          },
+          where: {
+            customerId: +formated.id,
+            saleDate: {
+              gte: new Date(year, monthIndex, 1), // Start of the month
+              lt: new Date(year, monthIndex + 1, 1), // Start of the next month
+            },
+            deleted_at: null,
+          },
+        });
+      }
+      const totalRemaining = totalPartnerData._sum.totalRemaining || 0;
+
+      return {
+        month: monthIndex + 1, // Month number (1-12)
+        totalRemaining,
+      };
+    }));
+
+    // Calculate totals for "now" and "past"
+    const nowTotal = chartData
+      .slice(0, 4) // Last 4 months
+      .reduce((sum, data) => sum + data.totalRemaining, 0);
+
+    const pastTotal = chartData
+      .slice(4, 8) // 4 months before the last 4
+      .reduce((sum, data) => sum + data.totalRemaining, 0);
+
+    // Calculate percentage change
+    const percentageChange = pastTotal === 0
+      ? 0
+      : ((nowTotal - pastTotal) / pastTotal) * 100;
+
+    // Return the result along with chart data
+    return {
+      chartData: Array.from({ length: 4 }, (_, i) => {
+        const nowMonthIndex = (12 + currentMonth - i) % 12;
+        const pastMonthIndex = (12 + currentMonth - i - 4) % 12;
+
+        return {
+          month: nowMonthIndex + 1, // Adjust for 1-indexed months
+          now: chartData.find(data => data.month === nowMonthIndex + 1)?.totalRemaining || 0,
+          past: chartData.find(data => data.month === pastMonthIndex + 1)?.totalRemaining || 0,
+        };
+      }),
+      percentageChange,
+    };
+  });
+}
+
+
+export async function getLoanSummary(data: ReportTradePartnerTypes) {
+  return tryCatch(async () => {
+    const formated = getReportTradePartnerSchema.parse(data);
+    let loanSummary: LoanSummary;
+    if (formated.type === "companies") {
+      loanSummary = await prisma.companyPurchase.aggregate({
+        _sum: {
+          totalRemaining: true,
+          totalAmount: true,
+        },
+        where: {
+          companyId: +data.id,
+          purchaseDate: {
+            gte: formated.dates.from,
+            lte: formated.dates.to,
+          },
+          deleted_at: null,
+        },
+      });
+    } else {
+      loanSummary = await prisma.sales.aggregate({
+        _sum: {
+          totalRemaining: true,
+          totalAmount: true,
+          discount: true,
+        },
+        where: {
+          customerId: +data.id,
+          saleDate: {
+            gte: formated.dates.from,
+            lte: formated.dates.to,
+          },
+          deleted_at: null,
+        },
+      });
+    }
+
+    // Calculate the total money available for loans
+    const totalAvailableLoan = ((loanSummary._sum.totalAmount || 0) - (loanSummary._sum?.discount || 0)) - (loanSummary._sum.totalRemaining || 0);
+
+    return {
+      totalRemaining: loanSummary._sum.totalRemaining || 0,
+      totalAmount: loanSummary._sum.totalAmount || 0,
+      totalDiscount: loanSummary._sum?.discount || 0,
+      totalAvailableLoan,
+    };
+  });
+}
+
 
 export function selectAndRenameKeysFromArray<T extends object>(
   array: T[],

@@ -134,6 +134,7 @@ export async function getCompanyOnePurchase(companyId: number) {
         type: true,
         note: true,
         purchaseDate: true,
+        dollar: true,
         deleted_at: true,
         created_at: true,
         updated_at: true,
@@ -170,6 +171,7 @@ export async function getCompanyListPurchase(id: number, trashed: boolean) {
         totalRemaining: true,
         type: true,
         note: true,
+        dollar: true,
         purchaseDate: true,
         deleted_at: true,
         created_at: true,
@@ -192,16 +194,13 @@ export async function createCompanyPurchase(
   return tryCatch(async () => {
     const data = createCompanyPurchaseSchema.parse(dataCompanyPurchase);
 
-    if (data.type === 'LOAN' && data.totalAmount < data.totalRemaining) {
-      throw new Error('کۆی گشتی نابێت کەمتر بێت لە پارەی پێشەکی');
-    }
-
     const companyPurchase = await prisma.$transaction(async (tx) => {
       const company = await tx.companies.findFirst({
         where: { id: data.companyId, deleted_at: null },
       });
       if (!company) throw new Error('کۆمپانیا نەدۆزرایەوە');
       let amount = 0;
+
       if (data.type === 'CASH') {
         amount = data.totalAmount;
         (data as any).totalRemaining = (data as any).totalAmount;
@@ -209,16 +208,6 @@ export async function createCompanyPurchase(
         amount = data.totalRemaining;
       }
       const newCompanyPurchase = await tx.companyPurchase.create({ data });
-
-      if (newCompanyPurchase.type === 'LOAN') {
-        await createCompanyPurchaseInfo({
-          amount: newCompanyPurchase.totalRemaining,
-          companyPurchaseId: newCompanyPurchase.id,
-          note: data.note,
-          date: data.purchaseDate,
-        });
-      }
-
       await tx.boxes.update({
         where: { id: 1 },
         data: { amount: { decrement: amount } },
@@ -244,32 +233,27 @@ export async function updateCompanyPurchase(
       if (!oldCompanyPurchase) throw new Error('وەصڵەکە نەدۆزرایەوە');
       if (oldCompanyPurchase.type !== data.type)
         throw new Error('جۆری پارەدان ناگۆڕدرێت بەردەوامبە لەسەر شێوازی پێشوو');
-      const isCompleted =
-        oldCompanyPurchase.totalAmount === oldCompanyPurchase.totalRemaining;
 
-      if (!isCompleted) {
-        const { id, ...rest } = data;
-        const updatedCompanyPurchase = await tx.companyPurchase.update({
-          where: { id },
-          data: rest,
+
+      const { id, ...rest } = data;
+      const updatedCompanyPurchase = await tx.companyPurchase.update({
+        where: { id },
+        data: rest,
+      });
+      if (
+        data.type === 'LOAN' &&
+        oldCompanyPurchase.totalRemaining !== data.totalRemaining
+      ) {
+        await tx.boxes.update({
+          where: { id: 1 },
+          data: { amount: { increment: oldCompanyPurchase.totalRemaining } },
         });
-        if (
-          data.type === 'LOAN' &&
-          oldCompanyPurchase.totalRemaining !== data.totalRemaining
-        ) {
-          await tx.boxes.update({
-            where: { id: 1 },
-            data: { amount: { increment: oldCompanyPurchase.totalRemaining } },
-          });
-          await tx.boxes.update({
-            where: { id: 1 },
-            data: { amount: { decrement: data.totalRemaining } },
-          });
-        }
-        return updatedCompanyPurchase;
-      } else {
-        throw new Error('وەسڵی تەواو بوو دەسکاری ناکرێت');
+        await tx.boxes.update({
+          where: { id: 1 },
+          data: { amount: { decrement: data.totalRemaining } },
+        });
       }
+      return updatedCompanyPurchase;
     });
     return companyPurchase;
   });

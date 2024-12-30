@@ -19,6 +19,7 @@ import {
 import Cards from './components/cards';
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import NotificationCard from './components/notification-card';
+import BackupButton from '@/components/layout/button-backup';
 
 
 export const metadata: Metadata = {
@@ -57,6 +58,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           <Tabs defaultValue="overview" className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
+                <BackupButton />
                 <CalenderRangMultiSide />
               </div>
               <TabsList>
@@ -90,7 +92,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               <h1 className="text-2xl font-bold mb-5">ئاگادارکردنەوەکان</h1>
               <section className="w-full flex ">
                 <div className='space-y-3 w-[70%]'>
-                  <h2>قەرزارەکانی ئەم مانگە</h2>
+                  <h2>ئەوانەی مانگێکە قەرزارن</h2>
                   <div className='grid gap-4 grid-cols-2'>
                     {notificationLoan.data.oneMonthAgoCustomers.map((customer) => (
                       <NotificationCard key={customer.id} customer={customer} />
@@ -98,7 +100,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </div>
                 </div>
                 <div className='space-y-3 w-[30%] border-s ps-3'>
-                  <h2>ئەوانەی زیاد لەمانگێک بەسەرچووە</h2>
+                  <h2>ئەوانەی لە دوومانگ زیاترە قەرزارن</h2>
                   <div className='grid gap-4 grid-cols-1'>
                     {notificationLoan.data.twoMonthsAgoCustomers.map((customer) => (
                       <NotificationCard key={customer.id} customer={customer} />

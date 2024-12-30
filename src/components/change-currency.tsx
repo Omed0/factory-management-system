@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import {
   Select,
   SelectContent,
@@ -9,13 +10,19 @@ import {
 import useSetQuery from '@/hooks/useSetQuery';
 
 export default function ChangeCurrency() {
-  const { setQuery, searchParams } = useSetQuery();
+  const { setQuery, searchParams } = useSetQuery(0);
   const currentCurrency = searchParams.get('currency') || 'USD';
+
+  const handleChangeCurrency = useCallback((currency: "IQD" | "USD") => {
+    if (currency !== currentCurrency) {
+      setQuery('currency', currency)
+    }
+  }, [currentCurrency, setQuery])
 
   return (
     <Select
-      defaultValue={currentCurrency}
-      onValueChange={(currency) => setQuery('currency', currency)}
+      value={currentCurrency}
+      onValueChange={handleChangeCurrency}
     >
       <SelectTrigger className="h-9 w-32 gap-3">
         <SelectValue placeholder={currentCurrency || 'جۆری پارە'} />

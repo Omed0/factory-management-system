@@ -45,8 +45,8 @@ export async function createProductActions(data: CreateProduct) {
   return { success: true, message: 'مەواد زیادکرا بەسەرکەوتووی' };
 }
 
-export async function updateProductActions(data: UpdateProduct) {
-  const product = await updateProduct(data);
+export async function updateProductActions(id: number, data: UpdateProduct) {
+  const product = await updateProduct(id, data);
   if ('error' in product) {
     return { success: false, message: product.error };
   }

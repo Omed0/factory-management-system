@@ -42,19 +42,21 @@ export const columns: ColumnDef<OneEmployee>[] = [
       <DataTableColumnHeader column={column} title="ناوی کارمەند" />
     ),
     cell: ({ row }) => {
+      const image = row.original.image
       return (
-        <div className="flex items-center gap-2">
-          {row.original.image && (
+        <div className="flex items-center gap-3">
+          {image && (
             <Image
-              className="aspect-square size-10 rounded-full object-contain"
-              src={`/${row.original.image}`}
+              className="aspect-square rounded-full size-16 object-cover object-center"
+              src={`/${image}`}
               onError={(event) => {
                 event.currentTarget.id = FALLBACK_IMAGE;
                 event.currentTarget.srcset = FALLBACK_IMAGE;
               }}
               alt={row.original.name}
-              height={120}
-              width={120}
+              height={400}
+              width={400}
+              quality={100}
             />
           )}
           <span className="max-w-[500px] truncate font-medium">
@@ -86,7 +88,8 @@ export const columns: ColumnDef<OneEmployee>[] = [
       <DataTableColumnHeader column={column} title="مووچەی مانگانە" />
     ),
     cell: function CellComponent({ row }) {
-      const formatPrice = useConvertCurrency(row.getValue('monthSalary'));
+      const { dollar, monthSalary } = row.original
+      const formatPrice = useConvertCurrency(monthSalary, dollar);
       return (
         <div className="flex w-[100px] items-center">
           <span>{formatPrice}</span>

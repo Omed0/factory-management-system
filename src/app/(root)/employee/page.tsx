@@ -1,12 +1,9 @@
-import { PlusCircleIcon, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 
-import AddEmployee from './_component/add-employee';
 import { columns } from './_component/columns';
 import { DataTable } from './_component/data-table';
-
 import { getEmployeesListActions } from '@/actions/employee';
-import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
-import { Button } from '@/components/ui/button';
+import ButtonAddEmployee from './_component/button-addEmployee';
 
 type Props = {
   searchParams: {
@@ -37,18 +34,7 @@ export default async function Employee({ searchParams }: Props) {
             {isTrash ? 'کارمەندە ئەرشیفکراوەکان' : 'کارمەندە بەردەستەکان'}
           </h1>
         </div>
-        <CustomDialogWithTrigger
-          button={
-            <Button>
-              <PlusCircleIcon className="me-2 size-4" />
-              زیادکردن
-            </Button>
-          }
-        >
-          <section className="w-full p-4">
-            <AddEmployee title="زیادکردن کارمەند" />
-          </section>
-        </CustomDialogWithTrigger>
+        <ButtonAddEmployee />
       </div>
       <DataTable columns={columns} data={employees.data!} />
     </section>

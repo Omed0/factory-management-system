@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneExpense } from '@/server/schema/expense';
+import { deleteExpenseActions, forceDeleteExpenseActions, restoreExpenseActions } from '@/actions/expense';
 
 export function DataTableRowActions({ row }: { row: Row<OneExpense> }) {
   const { searchParams } = useSetQuery();
@@ -49,7 +50,7 @@ export function DataTableRowActions({ row }: { row: Row<OneExpense> }) {
             description="دڵنیای لە هێنانەوەی ئەم خەرجیە"
             restorKey={rowData.id}
             classNameButton="w-full h-9"
-            action={restoreCompanyActions}
+            action={restoreExpenseActions}
             title={`${rowData.title}`}
           />
         ) : (
@@ -73,7 +74,10 @@ export function DataTableRowActions({ row }: { row: Row<OneExpense> }) {
               <AddExpense
                 title="زیادکردن خەرجی"
                 expense={{ ...rowData } as OneExpense}
-                handleClose={() => setDropdownOpen(false)}
+                handleClose={() => {
+                  setOpen(false)
+                  setDropdownOpen(false)
+                }}
               />
             </section>
           </CustomDialogWithTrigger>
@@ -81,7 +85,7 @@ export function DataTableRowActions({ row }: { row: Row<OneExpense> }) {
         <DropdownMenuSeparator />
         <DeleteModal
           description={`${isTrash ? 'ئەم خەرجییە بە تەواوی دەسڕێتەوە' : 'دڵنیایی لە ئەرشیفکردنی ئەم خەرجییە'}`}
-          submit={isTrash ? forceDeleteCompanyActions : deleteCompanyActions}
+          submit={isTrash ? forceDeleteExpenseActions : deleteExpenseActions}
           classNameButton="bg-red-500 text-white w-full h-9"
           title={`${rowData.title}`}
           deleteKey={rowData.id}

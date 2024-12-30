@@ -42,7 +42,6 @@ export default function AddCompanyPurchaseInfo<T extends number | undefined>({
     resolver: zodResolver(createCompanyPurchaseInfoSchema),
     defaultValues: {
       companyPurchaseId: companyPurchaseId as number | undefined,
-      amount: 0,
       date: new Date(),
       note: '',
     },
@@ -77,11 +76,7 @@ export default function AddCompanyPurchaseInfo<T extends number | undefined>({
             <FormItem className="mt-4 flex-1 basis-56">
               <FormLabel>بڕی پێدانەوە</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  type="number"
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <Input {...field} type="number" />
               </FormControl>
               <FormDescription className="text-muted-foreground text-sm">
                 بڕی قەرزی ماوە {isNaN(amountPeriod) ? 0 : amountPeriod}
@@ -110,14 +105,14 @@ export default function AddCompanyPurchaseInfo<T extends number | undefined>({
           )}
         />
         <div className="mt-5 flex w-full flex-wrap gap-5">
+          <Button type="submit" className="flex-1 basis-60">
+            زیادکردن
+          </Button>
           <DialogClose className="flex-1 basis-60" onClick={handleClose}>
             <Button type="reset" variant="outline" className="min-w-full">
               داخستن
             </Button>
           </DialogClose>
-          <Button type="submit" className="flex-1 basis-60">
-            زیادکردن
-          </Button>
         </div>
       </form>
     </Form>

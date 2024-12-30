@@ -10,7 +10,8 @@ export type DeleteExpense = z.infer<typeof deleteExpenseSchema>;
 
 export const createExpenseSchema = z.object({
   title: z.string().min(3, 'ناوەکەت زۆر کورتە').max(75, 'ناوەکەت زۆر درێژە'),
-  amount: z.number().nonnegative(),
+  amount: z.coerce.number().positive(),
+  dollar: z.coerce.number().positive(),
   note: z.string().optional(),
 });
 

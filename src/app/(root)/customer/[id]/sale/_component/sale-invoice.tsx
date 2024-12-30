@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useTransition } from 'react';
+import { useCallback, useMemo, useTransition } from 'react';
 import { Calculator, CheckCheck, Minus, Plus, Trash } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { toast } from 'sonner';
@@ -40,6 +40,7 @@ import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
 import { debounce, formatCurrency } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
+import BackButton from '@/components/layout/back-button';
 
 type Props = {
   saleWithProduct: Awaited<
@@ -49,9 +50,6 @@ type Props = {
 };
 
 export default function SaleInvoice({ saleWithProduct, sales }: Props) {
-  const {
-    data: { dollar },
-  } = useDollar();
   const [isPending, startTransition] = useTransition();
   const { setQuery, searchParams } = useSetQuery(10);
   const { productSale, sale } = saleWithProduct!;
@@ -64,58 +62,61 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
     );
   }, [searchParams, sales?.sale]);
 
-  const handleDiscount = debounce(async (v: string) => {
-    // Updated to accept string directly
-    const discount = Number.parseFloat(v || '0');
-    if (discount >= 0) await discountSaleActions(sale.id, discount);
-  }, 500);
+  const handleDiscount = useCallback(
+    debounce(async (v: string) => {
+      const discount = Number.parseFloat(v || '0');
+      if (discount >= 0) await discountSaleActions(sale.id, discount);
+    }, 500),
+    [sale.id] // Dependency array
+  );
 
   const formatedPrices = (amount: number) => {
-    return formatCurrency(amount, dollar, currency);
+    return formatCurrency(amount, sale.dollar, currency);
   };
 
-  const pricing = [
-    {
-      name: 'کۆی گشتی',
-      amount: formatedPrices(sale.totalAmount),
-      del: !!sale.discount,
-    },
-    { name: 'داشکاندن', amount: sale.discount },
-    {
-      name: 'کۆی گشتی دوای داشکاندن',
-      amount: formatedPrices(sale.totalAmount - sale.discount),
-    },
-  ];
+  const pricing = useMemo(() => {
+    return [
+      {
+        name: 'کۆی گشتی',
+        amount: formatedPrices(sale.totalAmount),
+        del: !!sale.discount,
+      },
+      { name: 'داشکاندن', amount: sale.discount },
+      {
+        name: 'کۆی گشتی دوای داشکاندن',
+        amount: formatedPrices(sale.totalAmount - sale.discount),
+      },
+    ];
+  }, [sale])
 
   return (
     <aside className="flex h-full flex-[2] flex-col justify-between gap-4 rounded-lg border p-4 shadow">
       <div>
-        <Select
-          defaultValue={currentInvoice?.id.toString()}
-          onValueChange={(e) => setQuery('invoice', e)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue
-              placeholder={currentInvoice?.saleNumber ?? 'وەصڵێک هەڵبژێرە'}
-            />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>وەصڵەکان</SelectLabel>
-              {sales?.sale.map((sale) => {
-                const isFinish = sale.isFinished === true;
-                return (
-                  <SelectItem key={sale.id} value={sale.id.toString()}>
-                    <p className="me-3 inline">{sale.saleNumber}</p>
-                    <Badge variant={isFinish ? 'default' : 'destructive'}>
-                      {isFinish ? 'تەواوبوو' : 'تەواو نەبوو'}
-                    </Badge>
-                  </SelectItem>
-                );
-              })}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <div className='flex items-center'>
+          <Select
+            defaultValue={currentInvoice?.id.toString()}
+            onValueChange={(e) => setQuery('invoice', e)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue
+                placeholder={currentInvoice?.saleNumber ?? 'وەصڵێک هەڵبژێرە'}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>وەصڵەکان</SelectLabel>
+                {sales?.sale.filter((e) => !e.isFinished).map((sale) => {
+                  return (
+                    <SelectItem key={sale.id} value={sale.id.toString()}>
+                      <p className="me-3 inline">{sale.saleNumber}</p>
+                    </SelectItem>
+                  );
+                })}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <BackButton variant={{ variant: "default" }} />
+        </div>
         <div className="h-fit border-b p-2">
           {pricing.map((p) =>
             p.name === 'داشکاندن' ? (
@@ -124,7 +125,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
                 <Input
                   dir="ltr"
                   className="h-8"
-                  defaultValue={sale.discount}
+                  defaultValue={p.amount}
                   onChange={(e) => handleDiscount(e.currentTarget.value)}
                 />
               </div>
@@ -166,7 +167,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
             <CardHeader className="flex-row items-center justify-between p-2 px-3">
               <CardTitle>{order.product?.name}</CardTitle>
               <CardDescription className="font-semibold">
-                {formatedPrices(order.price)}
+                {formatCurrency(order.price, order.product?.dollar || sale.dollar, currency)}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between p-2 px-3">

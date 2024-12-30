@@ -40,6 +40,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
+    "src/app/api/backup/route.ts", "app.js",
   ],
   "exclude": [
     "node_modules"

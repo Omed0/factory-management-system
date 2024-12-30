@@ -8,6 +8,7 @@ import { DataTableRowActions } from './data-table-row-actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneExpense } from '@/server/schema/expense';
+import useSetQuery from '@/hooks/useSetQuery';
 
 export const columns: ColumnDef<OneExpense>[] = [
   {
@@ -51,7 +52,8 @@ export const columns: ColumnDef<OneExpense>[] = [
       <DataTableColumnHeader column={column} title="بڕی پارە" />
     ),
     cell: function CellComponent({ row }) {
-      const formatPrice = useConvertCurrency(row.getValue('amount'));
+      const { amount, dollar } = row.original
+      const formatPrice = useConvertCurrency(amount, dollar);
       return (
         <div className="flex w-[100px] items-center">
           <span>{formatPrice}</span>
@@ -60,19 +62,6 @@ export const columns: ColumnDef<OneExpense>[] = [
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: 'note',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="تێبینی" />
-    ),
-    cell: ({ row }) => {
-      return (
-        <div className="max-w-96 text-wrap">
-          <span>{row.getValue('note')}</span>
-        </div>
-      );
     },
   },
   {
@@ -92,6 +81,19 @@ export const columns: ColumnDef<OneExpense>[] = [
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
+    },
+  },
+  {
+    accessorKey: 'note',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="تێبینی" />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="max-w-96 text-wrap">
+          <span>{row.getValue('note')}</span>
+        </div>
+      );
     },
   },
   {

@@ -19,31 +19,24 @@ export default async function Company({ searchParams }: Props) {
   const isTrash = searchParams.status === 'trash';
   const companies = await getCompanyListActions(isTrash);
 
+
   if (!companies.success) {
-    return <div>{companies.message}</div>;
+    return (
+      <div className="flex size-full items-center justify-center">
+        <div className="flex flex-col items-center justify-center gap-2">
+          <h1 className="text-lg font-medium">{companies.message}</h1>
+        </div>
+      </div>
+    );
   }
 
   return (
     <section className="w-full space-y-4 p-2">
-      <div className="flex justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="size-5" />
-          <h1 className="text-lg font-medium">
-            {isTrash ? 'کۆمپانیا ئەرشیفکراوەکان' : 'کۆمپانیا بەردەستەکان'}
-          </h1>
-        </div>
-        <CustomDialogWithTrigger
-          button={
-            <Button>
-              <PlusCircleIcon className="me-2 size-4" />
-              کۆمپانیا
-            </Button>
-          }
-        >
-          <section className="w-full p-4">
-            <AddCompany title="زیادکردنی کۆمپانیا" />
-          </section>
-        </CustomDialogWithTrigger>
+      <div className="flex items-center gap-2">
+        <Users className="size-5" />
+        <h1 className="text-lg font-medium">
+          {isTrash ? 'کۆمپانیا ئەرشیفکراوەکان' : 'کۆمپانیا بەردەستەکان'}
+        </h1>
       </div>
       <DataTable columns={columns} data={companies.data ?? []} />
     </section>

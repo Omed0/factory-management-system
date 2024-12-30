@@ -4,6 +4,7 @@ export const keyExpense = {
     amount: "amount",
     created_at: "date",
     note: "note",
+    dollar: "dollar"
 }
 
 export const keySale = {
@@ -14,6 +15,7 @@ export const keySale = {
     customerId: "redirectId",
     saleDate: "date",
     note: "note",
+    dollar: "dollar"
 };
 
 export const keyPurchase = {
@@ -24,6 +26,7 @@ export const keyPurchase = {
     companyId: "redirectId",
     purchaseDate: "date",
     note: "note",
+    dollar: "dollar"
 }
 
 export const report_name = ["expense", "sale", "purchase"] as const;

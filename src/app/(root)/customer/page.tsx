@@ -1,12 +1,8 @@
-import { PlusCircleIcon, UsersRound } from 'lucide-react';
-
-import AddCustomer from './_component/add-customer-form';
+import { UsersRound } from 'lucide-react';
 import { columns } from './_component/columns';
 import { DataTable } from './_component/data-table';
-
 import { getCustomerListActions } from '@/actions/customer';
-import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
-import { Button } from '@/components/ui/button';
+
 
 type Props = {
   searchParams: {

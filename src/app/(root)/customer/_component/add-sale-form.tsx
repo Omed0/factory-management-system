@@ -36,6 +36,7 @@ import {
   UpdateSale,
   updateSaleSchema,
 } from '@/server/schema/sale';
+import { useDollar } from '@/hooks/useDollar';
 
 type Props = {
   title: string;
@@ -55,17 +56,18 @@ export default function FormSaleForCustomer({
   customerName = 'default',
 }: Props) {
   const isEdit = !!sale;
+  const { data } = useDollar()
 
   const form = useForm<FormType<typeof isEdit>>({
     mode: 'onSubmit',
     resolver: zodResolver(isEdit ? updateSaleSchema : createSaleSchema),
     defaultValues: defaultValues(customerName, isEdit, {
+      dollar: data.dollar,
       ...sale,
       customerId,
     }) as FormType<typeof isEdit>,
   });
 
-  const { isDirty } = form.formState; // Check if any field is dirty
   const isLoan = form.watch('saleType') === 'LOAN';
 
   async function onSubmit(values: FormType<typeof isEdit>) {
@@ -136,17 +138,26 @@ export default function FormSaleForCustomer({
               <FormItem className="flex-1 basis-56">
                 <FormLabel>بڕی قیستی مانگانە</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    type="number"
-                    onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                  />
+                  <Input {...field} type="number" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         )}
+        <FormField
+          control={form.control}
+          name="dollar"
+          render={({ field }) => (
+            <FormItem className="flex-1 basis-56">
+              <FormLabel>{isEdit ? "نرخی دۆلاری داخڵکراو" : "نرخی دۆلاری ئەمڕۆ"}</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="note"
@@ -166,7 +177,7 @@ export default function FormSaleForCustomer({
           )}
         />
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <Button type="submit" className="flex-1 basis-60" disabled={!isDirty}>
+          <Button type="submit" className="flex-1 basis-60" disabled={!form.formState.isDirty}>
             زیادکردن
           </Button>
           <DialogClose className="flex-1 basis-60" onClick={handleClose}>
@@ -190,7 +201,7 @@ function defaultValues(
   }
 
   return {
-    customerId: values?.customerId,
+    ...values,
     saleNumber: randomValue(name),
     saleDate: new Date(),
     saleType: 'CASH',

@@ -9,8 +9,21 @@ import { report_link, report_name } from '../_constant';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 
 export const columns: ColumnDef<any>[] = [
+  //{
+  //  accessorKey: 'id',
+  //  header: ({ column }) => (
+  //    <DataTableColumnHeader column={column} title="زنجیرە" />
+  //  ),
+  //  cell: ({ row }) => {
+  //    const id = row.original?.id?.toString()
+  //    return (
+  //      <span className="w-[100px]">{id}</span>
+  //    );
+  //  },
+  //},
   {
     accessorKey: 'name',
     header: ({ column }) => (
@@ -43,7 +56,8 @@ export const columns: ColumnDef<any>[] = [
       <DataTableColumnHeader column={column} title="کۆی دراوە لە وەصڵ" />
     ),
     cell: function CellComponent({ row }) {
-      const formatPrice = useConvertCurrency(row.getValue('amount'));
+      const { amount, dollar } = row.original
+      const formatPrice = useConvertCurrency(amount, dollar);
       return (
         <div className="flex w-[100px] items-center">
           <span>{formatPrice}</span>
@@ -60,10 +74,17 @@ export const columns: ColumnDef<any>[] = [
       <DataTableColumnHeader column={column} title="جۆری وەصڵ" />
     ),
     cell: ({ row }) => {
-      const tr_type = row.original?.type === "CASH" ? "نەقد" : "قەرز"
+      const isLoan = row.original?.type === "LOAN"
+      const isTotal = row.original?.id === 0
       return (
         <div className="flex w-[100px] items-center">
-          <span>{tr_type}</span>
+          {isTotal ? (
+            <span></span>
+          ) : (
+            <Badge variant={isLoan ? "secondary" : "outline"} className='min-w-24 justify-center'>
+              {isLoan ? "قەرز" : "نەقد"}
+            </Badge>
+          )}
         </div>
       );
     },

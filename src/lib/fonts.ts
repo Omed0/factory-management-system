@@ -25,4 +25,5 @@ export const unisirwan = LocalFont({
   preload: true,
 });
 
+
 export const fonts = [unisirwan.className, fontMono.variable];

@@ -20,11 +20,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import UploadFile from '@/components/upload-file';
 import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
-import { unlinkImage, uploadImage } from '@/lib/helper';
-import { IQDtoUSD } from '@/lib/utils';
+import { unlinkImage } from '@/lib/helper';
+import { getImageData, IQDtoUSD, uploadImageUsingHandler } from '@/lib/utils';
 import {
   CreateEmployee,
   createEmployeeSchema,
@@ -32,6 +31,8 @@ import {
   UpdateEmployee,
   updateEmployeeSchema,
 } from '@/server/schema/employee';
+import Image from 'next/image';
+import { X } from 'lucide-react';
 
 type Props = {
   employee?: Partial<OneEmployee>;
@@ -48,42 +49,41 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
   const form = useForm<CreateEmployee>({
     mode: 'onSubmit',
     resolver: zodResolver(isEdit ? updateEmployeeSchema : createEmployeeSchema),
-    defaultValues: { ...(employee as UpdateEmployee) },
+    defaultValues: { dollar: data.dollar, ...(employee as UpdateEmployee), image: null },
   });
+
+  const { displayUrl } = getImageData(form.watch("image"))
 
   async function onSubmit(values: CreateEmployee) {
     if (currency === 'IQD') {
-      values.monthSalary = IQDtoUSD(values.monthSalary, data.dollar);
+      values.monthSalary = IQDtoUSD(values.monthSalary, values.dollar || data.dollar);
     }
-
-    const serializedValues = JSON.parse(JSON.stringify(values));
     let employeeValues;
-    let image;
-
-    if (serializedValues.image) {
-      if (isEdit && employee?.image) {
-        const unlinkedImage = await unlinkImage(employee.image);
-        if (!unlinkedImage.success) return toast.error(unlinkedImage.error);
+    if (form.formState.dirtyFields["image"] && values.image.length) {
+      const { success, message, path } = await uploadImageUsingHandler(values.image, employee?.image)
+      if (!success) {
+        toast.error(message)
+        return
       }
-      image = await uploadImage(serializedValues.image);
-      if (!image.success) return toast.error(image.error);
-      serializedValues.image = image.filePath;
+      values.image = path;
+    } else {
+      values.image = undefined
     }
 
     if (isEdit && employee?.id) {
       employeeValues = await updateEmployeeActions(
         employee.id,
-        serializedValues
+        values
       );
     } else {
-      employeeValues = await createEmployeeActions(serializedValues);
+      employeeValues = await createEmployeeActions(values);
     }
 
     if (!employeeValues.success) {
       toast.error(employeeValues.message);
     } else {
       toast.success(employeeValues.message);
-      form.reset();
+      !isEdit && form.reset();
       handleClose?.();
     }
   }
@@ -136,29 +136,61 @@ export default function AddEmployee({ employee, title, handleClose }: Props) {
         />
         <CurrencyInput
           className="flex-1 basis-56"
-          control={form.control}
+          form={form}
           name="monthSalary"
           label="مووچەی مانگانە"
+          dollar={form.watch("dollar")}
         />
         <FormField
           control={form.control}
-          name="image"
+          name="dollar"
           render={({ field }) => (
             <FormItem className="flex-1 basis-56">
-              <FormLabel>وێنە</FormLabel>
+              <FormLabel>{isEdit ? "نرخی دۆلاری داخڵکراو" : "نرخی دۆلاری ئەمڕۆ"}</FormLabel>
               <FormControl>
-                <UploadFile
-                  name={field.name}
-                  accept={['image/jpeg', 'image/png', 'image/jpg']}
-                  field={field}
-                />
+                <Input {...field} type="number" />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        {displayUrl ? (
+          <div className="relative flex items-center justify-center basis-[300px] grow min-w-60 max-w-[300px]">
+            <Image
+              className="rounded-md aspect-video object-cover w-28 border"
+              alt="employee image"
+              src={displayUrl}
+              height={150}
+              width={150}
+            />
+            <span
+              onClick={() => form.setValue("image", [])}
+              className="cursor-pointer absolute top-2 end-2 rounded-sm">
+              <X className="size-6 text-red-500" />
+            </span>
+          </div>
+        ) : (
+          <FormField
+            control={form.control}
+            name="image"
+            render={({ field }) => (
+              <FormItem className="flex-1 basis-56">
+                <FormLabel>وێنە</FormLabel>
+                <FormControl>
+                  <Input
+                    {...form.register("image")}
+                    type='file'
+                    className="bg-muted"
+                    accept=".png,.jpg,.jpeg"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <Button type="submit" className="flex-1 basis-60">
+          <Button type="submit" className="flex-1 basis-60" disabled={!form.formState.isDirty}>
             {isEdit ? 'نوێکردنەوە' : 'زیادکردن'}
           </Button>
           <DialogClose className="flex-1 basis-60" onClick={handleClose}>

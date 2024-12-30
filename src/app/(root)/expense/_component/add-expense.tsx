@@ -24,6 +24,11 @@ import {
   updateExpenseSchema,
 } from '@/server/schema/expense';
 import { CreateExpense } from '@/server/schema/expense';
+import { useDollar } from '@/hooks/useDollar';
+import { IQDtoUSD } from '@/lib/utils';
+import useSetQuery from '@/hooks/useSetQuery';
+import { CurrencyInput } from '@/components/custom-currency-input';
+
 
 type Props = {
   expense?: Partial<OneExpense>;
@@ -33,24 +38,29 @@ type Props = {
 
 export default function AddExpense({ expense, title, handleClose }: Props) {
   const isEdit = !!expense;
+  const { searchParams } = useSetQuery()
+  const { data: { dollar } } = useDollar()
+  const currency = searchParams.get("currency") || "USD"
 
   const form = useForm<CreateExpense>({
     mode: 'onSubmit',
     resolver: zodResolver(isEdit ? updateExpenseSchema : createExpenseSchema),
-    defaultValues: { ...(expense as UpdateExpense) },
+    defaultValues: { dollar, ...(expense as UpdateExpense) },
   });
 
   async function onSubmit(values: CreateExpense) {
-    const serializedValues = JSON.parse(JSON.stringify(values));
+    if (currency === 'IQD') {
+      values.amount = IQDtoUSD(values.amount, values.dollar || dollar);
+    }
     let expenseValues;
 
     if (isEdit && expense?.id) {
       expenseValues = await updateExpenseActions(
-        Number(expense.id),
-        serializedValues
+        expense.id,
+        values
       );
     } else {
-      expenseValues = await createExpenseActions(serializedValues);
+      expenseValues = await createExpenseActions(values);
     }
 
     if (!expenseValues.success) {
@@ -82,18 +92,21 @@ export default function AddExpense({ expense, title, handleClose }: Props) {
             </FormItem>
           )}
         />
+        <CurrencyInput
+          className="flex-1 basis-56"
+          form={form}
+          name="amount"
+          label="بڕی پارەکە"
+          dollar={form.watch("dollar")}
+        />
         <FormField
           control={form.control}
-          name="amount"
+          name="dollar"
           render={({ field }) => (
             <FormItem className="flex-1 basis-56">
-              <FormLabel>بری پارەکە</FormLabel>
+              <FormLabel>بری دۆلاری ئەم کاتە</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  type="number"
-                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                />
+                <Input {...field} type="number" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -113,14 +126,14 @@ export default function AddExpense({ expense, title, handleClose }: Props) {
           )}
         />
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <DialogClose className="flex-1 basis-60" onClick={handleClose}>
+          <Button type="submit" className="flex-1 basis-60" disabled={!form.formState.isDirty}>
+            {isEdit ? 'نوێکردنەوە' : 'زیادکردن'}
+          </Button>
+          <DialogClose className="flex-1 basis-60">
             <Button type="reset" variant="outline" className="min-w-full">
               داخستن
             </Button>
           </DialogClose>
-          <Button type="submit" className="flex-1 basis-60">
-            {isEdit ? 'نوێکردنەوە' : 'زیادکردن'}
-          </Button>
         </div>
       </form>
     </Form>

@@ -11,7 +11,7 @@ import { months } from '@/lib/constant';
 
 export default function MonthSelector() {
   const now = new Date();
-  const { searchParams, setQuery } = useSetQuery(50);
+  const { searchParams, setQuery } = useSetQuery(10);
   const currentMonth = searchParams.get('month');
 
   return (

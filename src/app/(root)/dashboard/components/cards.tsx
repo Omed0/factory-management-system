@@ -2,27 +2,29 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import useConvertCurrency from "@/hooks/useConvertCurrency"
-import { Contact, CreditCard, DollarSign, LucideIcon, UserRoundPlus } from "lucide-react"
+import { Contact, CreditCard, DollarSign, LucideIcon, UserRoundPlus, Vault } from "lucide-react"
 
 
 type Props = {
     amounts: {
-        totalRemainingAfterDiscount: number;
+        totalIncome: number;
         totalCustomers: number;
         activeLoanCustomersCount: number;
-        salesCreatedCount: number
+        salesCreatedCount: number,
+        totalMoneyInBox: number
     }
 }
 
 export default function Cards({ amounts }: Props) {
     const { activeLoanCustomersCount, totalCustomers,
-        totalRemainingAfterDiscount, salesCreatedCount } = amounts
+        totalIncome, salesCreatedCount, totalMoneyInBox } = amounts
 
     const cards = [
-        { name: "کۆی داهات", amount: useConvertCurrency(totalRemainingAfterDiscount), icon: DollarSign },
+        { name: "کۆی داهات", amount: useConvertCurrency(totalIncome), icon: DollarSign },
         { name: "زیادبوونی کڕیار", amount: totalCustomers, icon: UserRoundPlus },
         { name: "زیادبوونی وەصڵ", amount: salesCreatedCount, icon: CreditCard },
         { name: "کڕیاری قەرز ماوە", amount: activeLoanCustomersCount, icon: Contact },
+        { name: "کۆی گشتی قاسە", amount: useConvertCurrency(totalMoneyInBox), icon: Vault },
     ]
 
     return (

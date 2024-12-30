@@ -50,7 +50,11 @@ export default async function SpecificCustomerSales({
           </h1>
         </div>
       </div>
-      <DataTable columns={column_sale} data={sales.data?.sale ?? []} />
+      <DataTable
+        customer={sales.data?.customer}
+        data={sales.data?.sale ?? []}
+        columns={column_sale}
+      />
     </section>
   );
 }

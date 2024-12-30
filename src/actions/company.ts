@@ -273,17 +273,6 @@ export async function createCompanyPurchaseInfoActions(
   return { success: true, message: 'دروستکراو' };
 }
 
-//export async function updateCompanyPurchaseInfoActions(data: UpdateCompanyPurchaseInfo) {
-//    const companyPurchaseInfo = await updateCompanyPurchaseInfo(data)
-//    if (companyPurchaseInfo === null || "error" in companyPurchaseInfo) {
-//        return {
-//            success: false,
-//            message: companyPurchaseInfo?.error
-//        }
-//    }
-//    return { success: true, message: "گۆڕانکاری سەرکەوتبوو" }
-//}
-
 export async function deleteCompanyPurchaseInfoActions(
   id: number,
   companyPurchaseId: number

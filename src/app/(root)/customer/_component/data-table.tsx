@@ -27,15 +27,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { OneCustomer } from '@/server/schema/customer';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  customer?: OneCustomer
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  customer
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
@@ -71,7 +74,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar table={table as any} />
+      <DataTableToolbar table={table as any} customer={customer} />
       <div className="rounded-md border ps-2">
         <Table>
           <TableHeader>
