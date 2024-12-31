@@ -9,7 +9,7 @@ import { addDays } from 'date-fns';
 //  url: () => env.APP_URL,
 //};
 
-export const FALLBACK_IMAGE = "/placeholder.jpg"
+export const FALLBACK_IMAGE = '/placeholder.jpg';
 
 export const months = [
   { name: 'مانگی ١', value: 1 },
@@ -27,20 +27,33 @@ export const months = [
 ];
 
 export const tr_employee_action = new Map<EmployeeActionType, string>([
-  [EmployeeActionType.ABSENT, "مۆڵەت"],
-  [EmployeeActionType.BONUS, "پاداشت"],
-  [EmployeeActionType.OVERTIME, "کارکردنی زیادە"],
-  [EmployeeActionType.PUNISHMENT, "سزادان"],
+  [EmployeeActionType.ABSENT, 'مۆڵەت'],
+  [EmployeeActionType.BONUS, 'پاداشت'],
+  [EmployeeActionType.OVERTIME, 'کارکردنی زیادە'],
+  [EmployeeActionType.PUNISHMENT, 'سزادان'],
 ]);
 
-export const subtraction_actions = [EmployeeActionType.ABSENT, EmployeeActionType.PUNISHMENT]
-export const addition_actions = [EmployeeActionType.OVERTIME, EmployeeActionType.BONUS]
+export const subtraction_actions = [
+  EmployeeActionType.ABSENT,
+  EmployeeActionType.PUNISHMENT,
+] as const;
+export const addition_actions = [
+  EmployeeActionType.OVERTIME,
+  EmployeeActionType.BONUS,
+] as const;
 
-const now = new Date();
-const currentYear = now.getFullYear();
-const currentMonth = now.getMonth();
+export const now = new Date();
+export const currentYear = now.getFullYear();
+export const currentMonth = now.getMonth();
+
+// Helper function to get the last day of the month
+const getLastDayOfMonthUTC = (year: number, month: number): Date => {
+  const date = new Date(Date.UTC(year, month + 1, 0));
+  date.setUTCHours(23, 59, 59, 999);
+  return date;
+};
 
 export const defaultDates = {
-  from: new Date(currentYear, currentMonth, 1),
-  to: addDays(new Date(currentYear, currentMonth, 1), 30),
-}
+  from: new Date(Date.UTC(currentYear, currentMonth, 1)), // UTC date for the first day of the current month
+  to: getLastDayOfMonthUTC(currentYear, currentMonth), // UTC date for the last day of the current month
+};

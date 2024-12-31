@@ -69,8 +69,8 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
   });
 
   const { isDirty } = form.formState
-
   const type = form.watch('type');
+
   const { refetch } = usePurchaseInfo(purchase?.id ?? 0);
   async function onSubmit(values: FormType<typeof isEdit>) {
     let companyValues;

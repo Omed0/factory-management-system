@@ -2,7 +2,7 @@
 
 import { Dispatch, SetStateAction, useState } from 'react';
 import { DateRange, SelectRangeEventHandler } from 'react-day-picker';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 import { Button } from './ui/button';
@@ -12,22 +12,26 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import useSetQuery from '@/hooks/useSetQuery';
 import { cn, seperateDates, toIsoString } from '@/lib/utils';
 
+
 type Props = {
   className?: string;
   setState?: Dispatch<SetStateAction<DateRange | undefined>>;
 };
 
 export default function CalenderRangMultiSide({ className, setState }: Props) {
-
-
   const { setQuery, searchParams } = useSetQuery(30);
   const dates = seperateDates(searchParams.get("date"))
-  const [date, setDate] = useState<DateRange | undefined>({ from: new Date(dates.from), to: new Date(dates.to) });
+  const [date, setDate] = useState<DateRange | undefined>({
+    from: new Date(dates.from),
+    to: addDays(new Date(dates.to), -1)
+  });
 
   const handleChange: SelectRangeEventHandler = (range, selectedDay, activeModifiers, e) => {
     setDate(range);
     if (range && range.from && range.to) {
-      setQuery('date', `${toIsoString(range.from)}&${toIsoString(range.to)}`);
+      setQuery('date', `${toIsoString(range.from)}&${toIsoString(addDays(range.to, 1))}`);
+    } else {
+      setQuery('date', '');
     }
   };
 

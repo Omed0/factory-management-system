@@ -30,7 +30,7 @@ export default async function PersonReport({ searchParams }: Props) {
         </div>
     }
 
-    const partner = (data.find((partner) => partner.id === +name)?.id || data[0].id).toString()
+    const partner = (data.find((partner) => partner?.id === +name)?.id || data?.[0]?.id || 0).toString()
 
     const report_chart = await getReportPartnerChartActions({ id: partner, type })
     const report_partner = await getReportPartnerSpecificTimeActions({ id: partner, type, dates })

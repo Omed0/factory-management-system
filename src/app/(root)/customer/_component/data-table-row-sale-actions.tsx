@@ -43,6 +43,7 @@ import { OneSale } from '@/server/schema/sale';
 import { useReactToPrint } from "react-to-print"
 import InvoiceComponent from './invoice';
 import useInvoiceData from '../[id]/useInvoiceData';
+import { now } from '@/lib/constant';
 
 
 export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
@@ -292,8 +293,11 @@ export function ModalTablePaidLoanSale({
       >
         <Printer className="size-5" />
       </Button>
-      <div className='mt-3' ref={contentRef}>
-        <div></div>
+      <div className='my-2 mt-5' ref={contentRef}>
+        <div className='flex items-center gap-2 justify-between'>
+          <h2 className='text-2xl font-medium'>وەصڵی قەرز</h2>
+          <p>{now.toLocaleString()}</p>
+        </div>
         <Table className="mt-4 w-full flex-1 border">
           <TableCaption className="my-6">
             <div className="flex w-full flex-wrap items-center justify-center gap-4">

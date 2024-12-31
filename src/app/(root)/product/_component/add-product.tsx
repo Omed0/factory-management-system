@@ -83,7 +83,7 @@ export default function AddProduct({ product, title, handleClose }: Props) {
     } else {
       values.image = undefined
     }
-    console.log(values)
+    
     if (isEdit && product?.id) {
       productValues = await updateProductActions(product.id, values as UpdateProduct);
     } else {

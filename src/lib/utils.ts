@@ -90,24 +90,23 @@ export const formatCurrency = (
   }).format(amount);
 };
 
-
-
 export function toIsoString(date: Date) {
   //const Time = format(date.getTime(), 'PPP');
   return date.toISOString();
 }
 
-
 export function seperateDates(date?: string | null) {
-  let dates = { from: toIsoString(defaultDates.from), to: toIsoString(defaultDates.to) }
-  if (date?.split("&")) {
-    const splitedDate = date?.split("&");
+  let dates = {
+    from: toIsoString(defaultDates.from),
+    to: toIsoString(defaultDates.to),
+  };
+  if (date?.split('&')) {
+    const splitedDate = date?.split('&');
     dates = { from: splitedDate[0], to: splitedDate[1] };
   }
 
   return dates;
 }
-
 
 export function getImageData(event: any) {
   const data = event as FileList | null;
@@ -120,15 +119,17 @@ export function getImageData(event: any) {
   Array.from(data!).forEach((image) => dataTransfer.items.add(image));
 
   const displayUrl = URL.createObjectURL(
-    new Blob(binaryData, { type: "application/zip" })
+    new Blob(binaryData, { type: 'application/zip' })
   );
 
   return { files: dataTransfer.files, displayUrl };
 }
 
-
-export async function uploadImageUsingHandler(files: FileList, updatePath?: string | null) {
-  const file = files[0]
+export async function uploadImageUsingHandler(
+  files: FileList,
+  updatePath?: string | null
+) {
+  const file = files[0];
   const formData = new FormData();
   formData.append('image', file);
 
@@ -144,12 +145,16 @@ export async function uploadImageUsingHandler(files: FileList, updatePath?: stri
   if (!response.ok) {
     return {
       success: false,
-      message: (await response?.json())?.error || "ڕەسمەکە خەزن نەبوو"
-    }
+      message: (await response?.json())?.error || 'ڕەسمەکە خەزن نەبوو',
+    };
   }
 
   return {
     success: true,
-    path: (await response.json()).filePath
-  }
+    path: (await response.json()).filePath,
+  };
 }
+
+export const parseCurrency = (formatted: string): number => {
+  return parseFloat(formatted.replace(/[^0-9.-]+/g, ''));
+};

@@ -81,7 +81,7 @@ export default function SupplierSelector({ type_partner, partners, name }: Props
             <TooltipTrigger asChild>
               <Button
                 size="icon"
-                onClick={() => setQuery("type", type.value)}
+                onClick={() => setQuery("type", type.value, ["name"])}
                 variant={type.value == type_partner ? "default" : "outline"}
               >
                 <type.icon className='size-6 text-inherit' />

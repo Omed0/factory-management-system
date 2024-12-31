@@ -13,6 +13,19 @@ import { cn } from '@/lib/utils';
 
 export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
   {
+    accessorKey: 'id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="زنجیرە" />
+    ),
+    cell: ({ row }) => {
+      return (
+        <div className="w-32">
+          {row.original.id}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ناو" />
@@ -71,9 +84,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
     ),
     cell: function CellComponent({ row }) {
       const { totalRemaining, dollar } = row.original
-      const formatedAmount = useConvertCurrency(
-        totalRemaining || 0, dollar
-      );
+      const formatedAmount = useConvertCurrency(totalRemaining, dollar);
       return (
         <div className="w-[100px]">
           <span>{formatedAmount}</span>

@@ -40,7 +40,7 @@ import { OneCompanyPurchase } from '@/server/schema/company';
 import { formatCurrency } from '@/lib/utils';
 import { useDollar } from '@/hooks/useDollar';
 import { useReactToPrint } from 'react-to-print';
-import { now } from 'lodash';
+import { now } from '@/lib/constant';
 
 export function DataTableRowPurchaseActions({
   row,
@@ -52,10 +52,10 @@ export function DataTableRowPurchaseActions({
 
   const [open, setOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { companyId, id, name, type, totalAmount, totalRemaining } = row.original;
+  const { companyId, id, name, type } = row.original;
 
   const isLoan = type === 'LOAN';
-  const isFinish = totalAmount === totalRemaining;
+  //const isFinish = totalAmount === totalRemaining;
   const isShowInvoiceInfo = isLoan && !isTrash;
 
   return (
@@ -156,7 +156,6 @@ export function ModalTablePurchaseInfo<T extends number>({
   const [open, setOpen] = useState(false);
   const { searchParams } = useSetQuery()
   const { data: { dollar } } = useDollar()
-  const now = new Date()
   const currency = searchParams.get("currency") || "USD"
 
   const contentRef = useRef(null)

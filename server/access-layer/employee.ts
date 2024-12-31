@@ -16,6 +16,7 @@ import {
   deleteEmployeeActionSchema,
   MonthParams,
 } from '../schema/employee';
+import { addition_actions } from '@/lib/constant';
 
 export async function getOneEmployee(id: number) {
   return tryCatch(async () => {
@@ -105,7 +106,9 @@ export async function createEmployeeAction(
 ) {
   return tryCatch(async () => {
     const data = createEmployeeActionSchema.parse(dataEmployeeAction);
-    const isIncrease = ['BONUS', 'OVERTIME'].includes(data.type);
+    const isIncrease = addition_actions.includes(
+      data.type as (typeof addition_actions)[number]
+    );
     const amount = isIncrease
       ? { increment: data.amount }
       : { decrement: data.amount };
@@ -140,18 +143,29 @@ export async function updateEmployeeAction(
       });
       if (!oldEmployeeAction) throw new Error('ئەم ئەرکە نەدۆزرایەوە');
       if (oldEmployeeAction.amount !== data.amount) {
+        const isIncrease = addition_actions.includes(
+          data.type as (typeof addition_actions)[number]
+        );
+        const incrementAmount = isIncrease
+          ? { increment: data.amount }
+          : { decrement: data.amount };
+
+        const decrementAmount = isIncrease // reverse the action when deleting
+          ? { decrement: data.amount }
+          : { increment: data.amount };
+
         await tx.boxes.update({
           where: { id: 1 },
-          data: { amount: { increment: oldEmployeeAction.amount } },
+          data: { amount: decrementAmount },
         });
         await tx.boxes.update({
           where: { id: 1 },
-          data: { amount: { decrement: data.amount } },
+          data: { amount: incrementAmount },
         });
       }
       const updatedAction = await tx.employeeActions.update({
         where: { id },
-        data: { ...data },
+        data,
       });
       return updatedAction;
     });
@@ -167,9 +181,16 @@ export async function deleteEmployeeAction(id: number) {
         where: { id: data.id },
       });
       if (!employeeAction) throw new Error('ئەم ئەرکە نەدۆزرایەوە');
+      const isIncrease = addition_actions.includes(
+        employeeAction.type as (typeof addition_actions)[number]
+      );
+      const amount = isIncrease // reverse the action when deleting
+        ? { decrement: employeeAction.amount }
+        : { increment: employeeAction.amount };
+
       await tx.boxes.update({
         where: { id: 1 },
-        data: { amount: { increment: employeeAction.amount } },
+        data: { amount },
       });
       return await tx.employeeActions.delete({ where: { id: data.id } });
     });

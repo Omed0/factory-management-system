@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import useSetQuery from '@/hooks/useSetQuery';
-import { cn, formatCurrency, getMonthStartAndEndOfMonth } from '@/lib/utils';
+import { cn, formatCurrency, getMonthStartAndEndOfMonth, parseCurrency } from '@/lib/utils';
 import { OneEmployee, UpdateEmployeeAction } from '@/server/schema/employee';
 import { addition_actions, subtraction_actions, tr_employee_action } from '@/lib/constant';
 import { useDollar } from '@/hooks/useDollar';
@@ -59,19 +59,26 @@ export default function EmployeeInfoActions({ employee }: Props) {
   if (isLoading || !employeeActions) return <div className='p-6'>چاوەڕوانبە ...</div>;
   if (isError) return <div>{error?.message || "هەڵەیەک هەیە"}</div>;
 
-  const totalAmountActions = employeeActions.reduce((a, c) => {
-    if (addition_actions.includes(c.type as typeof addition_actions[number])) {
-      return a + c.amount; // Add salary adjustments
-    }
-    if (subtraction_actions.includes(c.type as typeof subtraction_actions[number])) {
-      return a - c.amount; // Subtract salary adjustments
-    }
-    return a; // No change for unlisted actions
-  }, 0);
+  const totalAddition = employeeActions
+    .filter(action => addition_actions.includes(action.type as typeof addition_actions[number]))
+    .reduce((sum, action) => sum + action.amount, 0);
+
+  const totalSubtracts = employeeActions
+    .filter(action => subtraction_actions.includes(action.type as typeof subtraction_actions[number]))
+    .reduce((sum, action) => sum - action.amount, 0);
+
+  const totalAmountActions = totalAddition + totalSubtracts;
 
   const employeeInfo = [
-    { name: "مووچەی کارمەند", value: formatAmount(employee.monthSalary), isCalculate: totalAmountActions !== 0 },
-    { name: "مووچەکەی دوای لێبڕین", value: formatAmount(employee.monthSalary + totalAmountActions) }
+    {
+      name: "مووچەی کارمەند", value: formatAmount(employee.monthSalary),
+      isCalculate: totalAmountActions !== 0
+    },
+    {
+      name: "مووچەکەی دوای لێبڕین", value: formatAmount(employee.monthSalary + totalAmountActions)
+    },
+    { name: "کۆی زیادکراو", value: formatAmount(totalAddition) },
+    { name: "کۆی لێبڕاو", value: formatAmount(totalSubtracts) },
   ];
 
 
@@ -88,8 +95,8 @@ export default function EmployeeInfoActions({ employee }: Props) {
             <Badge variant="outline"
               className={cn("rounded", {
                 "line-through": info.isCalculate,
-                "border-red-500 text-red-500": totalAmountActions < 0,
-                "border-green-500 text-green-500": !info.isCalculate && totalAmountActions > 0,
+                "border-red-500 text-red-500": parseCurrency(info.value) < 0,
+                "border-green-500 text-green-500": !info.isCalculate && parseCurrency(info.value) > 0,
               })}
             >{info.value}</Badge>
           </div>

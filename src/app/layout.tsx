@@ -25,6 +25,7 @@ export const generateMetadata = (): Metadata => ({
   },
 });
 
+
 const MainLayout = ({ children }: PropsWithChildren) => {
   const id = useId();
   return (

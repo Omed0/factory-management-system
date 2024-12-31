@@ -69,7 +69,6 @@ export async function updateExpense(id: number, dataExpense: UpdateExpense) {
       });
 
       const amountDifference = expense.amount !== oldExpense.amount;
-
       if (amountDifference) {
         await tx.boxes.update({
           where: { id: 1 },
