@@ -46,14 +46,7 @@ export const now = new Date();
 export const currentYear = now.getFullYear();
 export const currentMonth = now.getMonth();
 
-// Helper function to get the last day of the month
-const getLastDayOfMonthUTC = (year: number, month: number): Date => {
-  const date = new Date(Date.UTC(year, month + 1, 0));
-  date.setUTCHours(23, 59, 59, 999);
-  return date;
-};
-
 export const defaultDates = {
-  from: new Date(Date.UTC(currentYear, currentMonth, 1)), // UTC date for the first day of the current month
-  to: getLastDayOfMonthUTC(currentYear, currentMonth), // UTC date for the last day of the current month
+  from: new Date(new Date().setMonth(currentMonth, 1)).toLocaleDateString(),
+  to: new Date(new Date().setMonth(currentMonth + 1, 0)).toLocaleDateString(),
 };

@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { seperateDates } from '@/lib/utils';
+import { changeDateToString, seperateDates } from '@/lib/utils';
 import {
   getCustomersWhoDidntGiveLoanActions, getDashboardInfoActions,
   getDashboardInfoChartActions
@@ -32,8 +32,10 @@ type Props = {
   }
 };
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage({ searchParams }: Props) {
-  const dates = seperateDates(searchParams.date)
+  const dates = changeDateToString(seperateDates(searchParams.date))
 
   const informations = await getDashboardInfoActions(dates)
   const chartInfo = await getDashboardInfoChartActions()
@@ -66,9 +68,9 @@ export default async function DashboardPage({ searchParams }: Props) {
                 <TabsTrigger value="overview">داشبۆرد</TabsTrigger>
               </TabsList>
             </div>
-            <TabsContent value="overview" className="space-y-4">
+            <TabsContent value="overview" className="space-y-6">
               {/* cards header */}
-              <Cards amounts={rest} />
+              <Cards amounts={{ totalSalesCount, ...rest }} />
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">
                   <CardHeader>

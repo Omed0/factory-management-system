@@ -6,7 +6,6 @@ import { DataTableColumnHeader } from './data-table-column-header';
 import { DataTableRowPurchaseActions } from './data-table-row-purchase';
 
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneCompanyPurchase } from '@/server/schema/company';
 import { cn } from '@/lib/utils';
@@ -115,7 +114,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
     ),
     cell: ({ row }) => {
       return (
-        <div className="max-w-96 text-wrap">
+        <div className="max-w-96 text-wrap line-clamp-2">
           <span>{row.original.note}</span>
         </div>
       );

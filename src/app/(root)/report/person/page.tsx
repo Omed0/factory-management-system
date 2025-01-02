@@ -1,4 +1,4 @@
-import { seperateDates } from "@/lib/utils";
+import { changeDateToString, seperateDates } from "@/lib/utils";
 import SupplierSelector from "../_component/supplier-selector";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,11 +14,13 @@ type Props = {
     }
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function PersonReport({ searchParams }: Props) {
     const { date, name, type = "customers" } = searchParams
     const isCompany = type === "companies" ? "کۆمپانیا" : "کڕیار"
 
-    const dates = seperateDates(date)
+    const dates = changeDateToString(seperateDates(date))
 
     const { success, data, message } = await getTradePartnerActions({ type })
 

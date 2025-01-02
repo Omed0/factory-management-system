@@ -1,5 +1,5 @@
 import { getReportByNameActions } from '@/actions/information';
-import { seperateDates } from '@/lib/utils';
+import { changeDateToString, seperateDates } from '@/lib/utils';
 import { DataTable } from '../_component/data-table';
 import { columns } from '../_component/columns';
 import { report_name } from '../_constant';
@@ -14,8 +14,10 @@ type Props = {
     }
 }
 
+export const dynamic = 'force-dynamic'
+
 export default async function Report({ searchParams, params }: Props) {
-    const dates = seperateDates(searchParams.date)
+    const dates = changeDateToString(seperateDates(searchParams.date))
 
     const reports = await getReportByNameActions({ ...dates, name: params?.id as any ?? report_name[0] })
 

@@ -20,34 +20,6 @@ model Users {
   deleted_at DateTime?
 }
 
-model PurchasesInfo {
-  id                Int             @id @default(autoincrement())
-  companyPurchaseId Int
-  amount            Float
-  date              DateTime
-  note              String?
-  companyPurchase   CompanyPurchase @relation(fields: [companyPurchaseId], references: [id], onDelete: Cascade)
-
-  updated_at DateTime @updatedAt
-  created_at DateTime @default(now())
-
-  @@index([companyPurchaseId], name: "purchases_info_company_purchase_id_index")
-}
-
-model PaidLoans {
-  id       Int      @id @default(autoincrement())
-  saleId   Int
-  amount   Float
-  paidDate DateTime
-  note     String?
-  sale     Sales    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-
-  updated_at DateTime @updatedAt
-  created_at DateTime @default(now())
-
-  @@index([saleId], name: "paid_loans_sale_id_index")
-}
-
 model Expenses {
   id         Int      @id @default(autoincrement())
   title      String
@@ -58,6 +30,75 @@ model Expenses {
   created_at DateTime @default(now())
 
   deleted_at DateTime?
+}
+
+model dollar {
+  id         Int      @id @default(autoincrement())
+  price      Float    @default(1500)
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+}
+
+model PurchasesInfo {
+  id                Int              @id @default(autoincrement())
+  companyPurchaseId Int?
+  amount            Float
+  date              DateTime
+  note              String?
+  companyPurchase   CompanyPurchase? @relation(fields: [companyPurchaseId], references: [id], onDelete: SetNull)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([companyPurchaseId], name: "purchases_info_company_purchase_id_index")
+}
+
+model CompanyPurchase {
+  id             Int                 @id @default(autoincrement())
+  name           String
+  companyId      Int?
+  totalAmount    Float
+  totalRemaining Float               @default(0)
+  type           CompanyPurchaseType @default(CASH)
+  note           String?
+  purchaseDate   DateTime
+  dollar         Float
+  company        Companies?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  purchasesInfo  PurchasesInfo[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+
+  @@index([companyId], name: "company_purchase_company_id_index")
+}
+
+model Companies {
+  id        Int               @id @default(autoincrement())
+  name      String
+  phone     String
+  address   String
+  purchases CompanyPurchase[]
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  deleted_at DateTime?
+}
+
+model PaidLoans {
+  id       Int      @id @default(autoincrement())
+  saleId   Int?
+  amount   Float
+  paidDate DateTime
+  note     String?
+  sale     Sales?   @relation(fields: [saleId], references: [id], onDelete: SetNull)
+
+  updated_at DateTime @updatedAt
+  created_at DateTime @default(now())
+
+  @@index([saleId], name: "paid_loans_sale_id_index")
 }
 
 model Employee {
@@ -83,43 +124,13 @@ model EmployeeActions {
   dollar     Float
   note       String?
   dateAction DateTime
-  employeeId Int
-  employee   Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId Int?
+  employee   Employee?          @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())
 
   @@index([employeeId], name: "employee_actions_employee_id_index")
-}
-
-model CompanyPurchase {
-  id             Int                 @id @default(autoincrement())
-  name           String
-  companyId      Int
-  totalAmount    Float
-  totalRemaining Float               @default(0)
-  type           CompanyPurchaseType @default(CASH)
-  note           String?
-  purchaseDate   DateTime
-  dollar         Float
-  company        Companies           @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  purchasesInfo  PurchasesInfo[]
-
-  updated_at DateTime @updatedAt
-  created_at DateTime @default(now())
-
-  deleted_at DateTime?
-
-  @@index([companyId], name: "company_purchase_company_id_index")
-}
-
-model Boxes {
-  id     Int   @id @default(autoincrement())
-  amount Float @default(0)
-  dollar Float @default(1500)
-
-  updated_at DateTime @updatedAt
-  created_at DateTime @default(now())
 }
 
 model Sales {
@@ -161,28 +172,13 @@ model Customers {
   deleted_at DateTime?
 }
 
-model Products {
-  id        Int         @id @default(autoincrement())
-  name      String
-  price     Float
-  dollar    Float
-  image     String?
-  unitType  UnitType    @default(PIECE)
-  saleItems SaleItems[]
-
-  updated_at DateTime @updatedAt
-  created_at DateTime @default(now())
-
-  deleted_at DateTime?
-}
-
 model SaleItems {
   id        Int       @id @default(autoincrement())
-  saleId    Int
+  saleId    Int?
   productId Int?
   price     Float
   quantity  Int
-  sale      Sales     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  sale      Sales?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
   product   Products? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   updated_at DateTime @updatedAt
@@ -192,12 +188,14 @@ model SaleItems {
   @@index([productId], name: "sale_items_product_id_index")
 }
 
-model Companies {
-  id        Int               @id @default(autoincrement())
+model Products {
+  id        Int         @id @default(autoincrement())
   name      String
-  phone     String
-  address   String
-  purchases CompanyPurchase[]
+  price     Float
+  dollar    Float
+  image     String?
+  unitType  UnitType    @default(PIECE)
+  saleItems SaleItems[]
 
   updated_at DateTime @updatedAt
   created_at DateTime @default(now())

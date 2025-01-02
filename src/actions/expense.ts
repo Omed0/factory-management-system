@@ -9,7 +9,6 @@ import {
   forceDeleteExpense,
   forceDeleteManyExpenses,
   getExpensesList,
-  getExpensesListActionsSpecificTime,
   getOneExpense,
   restoreExpense,
   restoreManyExpenses,
@@ -23,20 +22,6 @@ export async function getExpensesListActions({
   isTrash?: boolean;
 }) {
   const expenses = await getExpensesList(isTrash);
-  if ('error' in expenses) {
-    return { success: false, message: expenses.error };
-  }
-  return { success: true, data: expenses };
-}
-
-export async function getExpensesListSpecificTimeActions(
-  startOfMonth: Date,
-  endOfMonth: Date
-) {
-  const expenses = await getExpensesListActionsSpecificTime(
-    startOfMonth,
-    endOfMonth
-  );
   if ('error' in expenses) {
     return { success: false, message: expenses.error };
   }

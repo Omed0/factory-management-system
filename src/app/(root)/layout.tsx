@@ -12,14 +12,14 @@ export const dynamic = 'force-dynamic'
 async function RootLayout({ children }: PropsWithChildren) {
   const session = await getSession();
   const { data, message } = await getDollarActions();
-  if (!data || !data.dollar) throw new Error(message);
+  if (!data || !data.price) throw new Error(message);
 
   return (
     <html>
       <body className="w-full">
         <ProviderReactQuery>
           <Suspense fallback={"چاوەڕوانبە..."}>
-            <CustomLayout session={session} dollar={(data?.dollar || 0)}>
+            <CustomLayout session={session} dollar={(data.price || 0)}>
               {children}
             </CustomLayout>
           </Suspense>

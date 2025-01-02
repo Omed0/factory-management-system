@@ -1,7 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import { getDollar, updateDollar } from '@/server/access-layer/box';
 
 export async function getDollarActions() {
@@ -12,7 +10,7 @@ export async function getDollarActions() {
       message: dollar?.error || 'هەڵەیەک ڕوویدا',
     };
   }
-  return { success: true, data: dollar.dollar };
+  return { success: true, data: dollar };
 }
 
 export async function updateDollarActions(formData: FormData) {
@@ -23,14 +21,14 @@ export async function updateDollarActions(formData: FormData) {
       message: 'بڕی دۆلار دیاریبکە',
     };
 
-  const calc = +amount / 100;
-  const dollar = await updateDollar({ amount: +calc });
+  const calc = Number(amount) / 100;
+  const dollar = await updateDollar(calc);
+
   if (dollar === null || 'error' in dollar) {
     return {
       success: false,
       message: dollar?.error || 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/setting');
   return { success: true, data: dollar, message: 'دۆلار تازەکرایەوە' };
 }

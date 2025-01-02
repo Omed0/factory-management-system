@@ -6,12 +6,12 @@ export async function middleware(request: NextRequest) {
   const user = await getSession();
   const pathname = request.nextUrl.pathname;
 
-  if (pathname !== '/login' && !user) {
+  if (!user && pathname !== '/login') {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (pathname === '/login' && user?.data) {
-    return NextResponse.redirect(new URL('/customer', request.url));
+  if (user?.data && pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   await updateSession(request);

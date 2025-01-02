@@ -61,7 +61,7 @@ export async function getCompaniesList(trashed: boolean = false) {
 
 export async function createCompany(dataCompany: CreateCompany) {
   return tryCatch(async () => {
-    const data = createCompanySchema.parse({ ...dataCompany });
+    const data = createCompanySchema.parse(dataCompany);
     const company = await prisma.companies.create({
       data,
     });
@@ -71,7 +71,7 @@ export async function createCompany(dataCompany: CreateCompany) {
 
 export async function updateCompany(dataCompany: UpdateCompany) {
   return tryCatch(async () => {
-    const data = updateCompanySchema.parse({ ...dataCompany });
+    const data = updateCompanySchema.parse(dataCompany);
     const { id, ...rest } = data;
     const company = await prisma.companies.update({
       where: { id, deleted_at: null },
@@ -117,72 +117,39 @@ export async function forceDeleteCompany(id: number) {
 
 export async function getCompanyOnePurchase(companyId: number) {
   return tryCatch(async () => {
-    const company = await getOneCompany(companyId);
-    if (!company || 'error' in company) throw new Error('کۆمپانیا نەدۆزرایەوە');
-    const companyPurchase = await prisma.companyPurchase.findFirstOrThrow({
-      where: {
-        id: company.id,
-        deleted_at: null,
-        company: { deleted_at: null },
-      },
-      select: {
-        id: true,
-        name: true,
-        companyId: true,
-        totalAmount: true,
-        totalRemaining: true,
-        type: true,
-        note: true,
-        purchaseDate: true,
-        dollar: true,
-        deleted_at: true,
-        created_at: true,
-        updated_at: true,
-        company: {
-          select: {
-            name: true,
-          },
+    const companyPurchase = await prisma.companyPurchase
+      .findFirst({
+        where: {
+          id: companyId,
+          deleted_at: null,
+          company: { deleted_at: null },
         },
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
-    });
+        include: { company: true },
+        orderBy: {
+          created_at: 'desc',
+        },
+      })
+      .catch((e) => {
+        throw new Error(e);
+      });
     return companyPurchase;
   });
 }
 
 export async function getCompanyListPurchase(id: number, trashed: boolean) {
   return tryCatch(async () => {
-    const company = await getOneCompany(id);
-    if (!company || 'error' in company)
-      throw new Error(company?.error || 'کۆمپانیا نەدۆزرایەوە');
-    const companyPurchase = await prisma.companyPurchase.findMany({
-      where: {
-        companyId: company.id,
-        deleted_at: trashed ? { not: null } : null,
-        company: { deleted_at: null },
-      },
-      select: {
-        id: true,
-        name: true,
-        companyId: true,
-        totalAmount: true,
-        totalRemaining: true,
-        type: true,
-        note: true,
-        dollar: true,
-        purchaseDate: true,
-        deleted_at: true,
-        created_at: true,
-        updated_at: true,
-        company: {
-          select: {
-            name: true,
-          },
+    const companyPurchase = await prisma.companyPurchase
+      .findMany({
+        where: {
+          companyId: id,
+          deleted_at: trashed ? { not: null } : null,
+          company: { deleted_at: null },
         },
-      },
-    });
+        include: { company: true },
+      })
+      .catch((e) => {
+        throw new Error(e);
+      });
 
     return companyPurchase;
   });
@@ -208,10 +175,6 @@ export async function createCompanyPurchase(
         amount = data.totalRemaining;
       }
       const newCompanyPurchase = await tx.companyPurchase.create({ data });
-      await tx.boxes.update({
-        where: { id: 1 },
-        data: { amount: { decrement: amount } },
-      });
 
       return newCompanyPurchase;
     });
@@ -234,25 +197,11 @@ export async function updateCompanyPurchase(
       if (oldCompanyPurchase.type !== data.type)
         throw new Error('جۆری پارەدان ناگۆڕدرێت بەردەوامبە لەسەر شێوازی پێشوو');
 
-
       const { id, ...rest } = data;
       const updatedCompanyPurchase = await tx.companyPurchase.update({
         where: { id },
         data: rest,
       });
-      if (
-        data.type === 'LOAN' &&
-        oldCompanyPurchase.totalRemaining !== data.totalRemaining
-      ) {
-        await tx.boxes.update({
-          where: { id: 1 },
-          data: { amount: { increment: oldCompanyPurchase.totalRemaining } },
-        });
-        await tx.boxes.update({
-          where: { id: 1 },
-          data: { amount: { decrement: data.totalRemaining } },
-        });
-      }
       return updatedCompanyPurchase;
     });
     return companyPurchase;
@@ -336,10 +285,7 @@ export async function getOneCompanyPurchaseInfo(
       where: {
         id: data.id,
         companyPurchaseId: data.companyPurchaseId,
-        companyPurchase: {
-          deleted_at: null,
-          company: { deleted_at: null },
-        },
+        companyPurchase: { deleted_at: null },
       },
     });
     return companyPurchaseInfo;
@@ -357,10 +303,7 @@ export async function getListCompanyPurchaseInfo(companyPurchaseId: number) {
     const companyPurchaseInfo = await prisma.purchasesInfo.findMany({
       where: {
         companyPurchaseId: purchase.id,
-        companyPurchase: {
-          deleted_at: null,
-          company: { deleted_at: null },
-        },
+        companyPurchase: { deleted_at: null },
       },
     });
     return { purchaseInfo: companyPurchaseInfo, purchase };
@@ -388,10 +331,6 @@ export async function createCompanyPurchaseInfo(
       await tx.companyPurchase.update({
         where: { id: data.companyPurchaseId },
         data: { totalRemaining: { increment: data.amount } },
-      });
-      await tx.boxes.update({
-        where: { id: 1 },
-        data: { amount: { decrement: data.amount } },
       });
       return purchaseInfo;
     });
@@ -424,10 +363,6 @@ export async function deleteCompanyPurchaseInfo(
     await prisma.companyPurchase.update({
       where: { id: data.companyPurchaseId },
       data: { totalRemaining: { decrement: companyPurchaseInfo.amount } },
-    });
-    await prisma.boxes.update({
-      where: { id: 1 },
-      data: { amount: { increment: companyPurchaseInfo.amount } },
     });
     return companyPurchaseInfo;
   });

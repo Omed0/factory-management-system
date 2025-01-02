@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { type Row } from '@tanstack/react-table';
 import { Edit, Info, MoreHorizontalIcon, Plus, Printer, Receipt, Trash } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,7 +41,7 @@ import { formatCurrency } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
 import { useReactToPrint } from "react-to-print"
 import InvoiceComponent from './invoice';
-import useInvoiceData from '../[id]/useInvoiceData';
+import { useLoanInfo, useInvoiceData } from '../[id]/useInvoiceData';
 import { now } from '@/lib/constant';
 
 
@@ -58,6 +57,7 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
 
   const sale = row.original;
   const { refetch } = useInvoiceData({ sale })
+  const { refetch: fetchLoan } = useLoanInfo({ saleId: sale.id, isTrash });
 
   const isLoan = sale?.saleType === 'LOAN';
   const isShowInvoiceInfo = isLoan && !isTrash;
@@ -121,7 +121,7 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
                 if (!e) {
                   setDropdownOpen(e)
                 } else {
-                  refetch()
+                  fetchLoan()
                 }
               }}
               className="w-full md:max-w-4xl p-6 pt-4"
@@ -214,11 +214,7 @@ export function ModalTablePaidLoanSale({
   const currency = searchParams.get('currency') || 'USD';
 
   const handlePrint = useReactToPrint({ contentRef });
-  const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['customer-paidLoan-sale', saleId],
-    queryFn: async () => await getPaidLoanSaleListActions(saleId),
-    enabled: !isTrash && saleId > 0,
-  });
+  const { data, isLoading, isError, error, refetch } = useLoanInfo({ saleId, isTrash });
 
   const dollarValue = data?.data?.sale.dollar || dollar
   const formatedPrice = (amount: number) => {

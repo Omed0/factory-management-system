@@ -34,6 +34,6 @@ export const deleteManyExpensesSchema = z.object({
 
 export const getExpensesListActionsSpecificTimeSchema = z.object({
   id: z.coerce.number(),
-  startOfMonth: z.date(),
-  endOfMonth: z.date(),
+  startOfMonth: z.string(),
+  endOfMonth: z.string(),
 });

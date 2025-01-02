@@ -23,15 +23,14 @@ export default function CalenderRangMultiSide({ className, setState }: Props) {
   const dates = seperateDates(searchParams.get("date"))
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(dates.from),
-    to: addDays(new Date(dates.to), -1)
+    to: new Date(dates.to)
   });
+
 
   const handleChange: SelectRangeEventHandler = (range, selectedDay, activeModifiers, e) => {
     setDate(range);
     if (range && range.from && range.to) {
-      setQuery('date', `${toIsoString(range.from)}&${toIsoString(addDays(range.to, 1))}`);
-    } else {
-      setQuery('date', '');
+      setQuery('date', `${range.from.toLocaleDateString()}&${range.to.toLocaleDateString()}`);
     }
   };
 

@@ -95,7 +95,7 @@ export function DataTableRowPurchaseActions({
             description="دڵنیای لە هێنانەوەی ئەم کۆمپانیایە"
             restorKey={id}
             classNameButton="w-full h-9"
-            action={(id) => restoreCompanyPurchaseActions(id, companyId)}
+            action={(id) => restoreCompanyPurchaseActions(id, companyId!)}
             title={`${name}`}
           />
         ) : (
@@ -132,8 +132,8 @@ export function DataTableRowPurchaseActions({
           description={`${isTrash ? 'ئەم داتایە بە تەواوی دەسڕێتەوە' : 'دڵنیایی لە ئەرشیفکردنی ئەم داتایە'}`}
           submit={
             isTrash
-              ? (id) => forceDeleteCompanyPurchaseActions(id, companyId)
-              : (id) => deleteCompanyPurchaseActions(id, companyId)
+              ? (id) => forceDeleteCompanyPurchaseActions(id, companyId!)
+              : (id) => deleteCompanyPurchaseActions(id, companyId!)
           }
           classNameButton="bg-red-500 text-white w-full h-9"
           onClose={() => setDropdownOpen(false)}

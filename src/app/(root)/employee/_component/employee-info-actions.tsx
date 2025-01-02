@@ -86,7 +86,7 @@ export default function EmployeeInfoActions({ employee }: Props) {
     <Table className='border mt-4'>
       <TableCaption className='mt-6'>
         {employeeInfo.map((info) => (
-          <div className='inline-flex items-center ms-5 gap-1 text-md' key={info.name}>
+          <div className='inline-flex items-center m-2 gap-1' key={info.name}>
             {info.isCalculate ? (
               <del>{info.name}</del>
             ) : (

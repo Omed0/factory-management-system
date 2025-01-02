@@ -8,13 +8,18 @@ import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useMemo, useRef, useTransition } from 'react';
 
 type Props = {
   dollar: number;
 };
 
 export default function FormDollar({ dollar }: Props) {
-  const formatDollar = Number(dollar * 100);
+  const [isPending, startTransition] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null)
+  const formatDollar = useMemo(() => {
+    return Number(dollar * 100);
+  }, [dollar])
 
   return (
     <CustomDialogWithTrigger
@@ -29,30 +34,36 @@ export default function FormDollar({ dollar }: Props) {
         dir="rtl"
         className="flex flex-col gap-4"
         action={async (formData: FormData) => {
-          const res = await updateDollarActions(formData);
-          if (!res.success) {
-            toast.error(res.message);
-            return;
-          }
-          toast.success(res.message);
+          startTransition(async () => {
+            const { message, success } = await updateDollarActions(formData);
+            if (!success) {
+              toast.error(message);
+              return;
+            }
+            if (inputRef.current) {
+              inputRef.current.value = "";
+            }
+            toast.success(message);
+          })
         }}
       >
         <div className="flex items-center justify-between gap-4 rounded border p-2">
           <p>نرخی دۆلار : </p>
-          <p>{formatDollar.toLocaleString()}</p>
+          <p>{isPending ? "تازەکردنەوە..." : formatDollar.toLocaleString()}</p>
         </div>
         <Label htmlFor="dollar" className="w-full">
           <Input
             name="dollar"
             placeholder="نرخی تازەی دۆلار بنووسە"
             className="w-full"
+            ref={inputRef}
           />
         </Label>
-        <Button className="">
+        <Button disabled={isPending}>
           تازەکردنەوە
           <DollarSign className="size-5" />
         </Button>
       </form>
-    </CustomDialogWithTrigger>
+    </CustomDialogWithTrigger >
   );
 }

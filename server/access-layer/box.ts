@@ -1,68 +1,93 @@
 import 'server-only';
 
-import {
-  CreateBox,
-  createBoxSchema,
-  GetOneBox,
-  getOneBoxSchema,
-  UpdateBox,
-  updateBoxSchema,
-  updateDollarSchema,
-} from '../schema/box';
 import { tryCatch } from '@/lib/helper';
 import { prisma } from '@/lib/client';
+import { addition_actions, subtraction_actions } from '@/lib/constant';
+import { updateDollarSchema } from '../schema/box';
+import { revalidatePath } from 'next/cache';
 
-export async function createBox(box: CreateBox) {
-  tryCatch(async () => {
-    const data = createBoxSchema.parse(box);
-    const createdBox = await prisma.boxes.create({ data });
-    return createdBox;
+// Function to calculate totalAmount
+export async function calculateTotalAmount() {
+  return tryCatch(async () => {
+    const totalAmount = await prisma
+      .$transaction(async (tx) => {
+        const expensesTotal = await tx.expenses.aggregate({
+          _sum: { amount: true },
+          where: { deleted_at: null },
+        });
+
+        const companyPurchaseTotal = await tx.companyPurchase.aggregate({
+          _sum: { totalRemaining: true },
+          where: { deleted_at: null },
+        });
+
+        const employeeActions = await tx.employeeActions.findMany();
+
+        const salesTotal = await tx.sales.aggregate({
+          _sum: { totalRemaining: true },
+          where: { deleted_at: null },
+        });
+
+        const employeeActionsTotal = employeeActions.reduce((acc, curr) => {
+          if (
+            subtraction_actions.includes(
+              curr.type as (typeof subtraction_actions)[number]
+            )
+          ) {
+            acc -= curr.amount;
+          } else if (
+            addition_actions.includes(
+              curr.type as (typeof addition_actions)[number]
+            )
+          ) {
+            acc += curr.amount;
+          }
+          return acc;
+        }, 0);
+
+        // Calculate totalAmount
+        const totalAmount =
+          (employeeActionsTotal || 0) +
+          (salesTotal._sum.totalRemaining || 0) -
+          ((expensesTotal._sum.amount || 0) +
+            (companyPurchaseTotal._sum.totalRemaining || 0));
+
+        return totalAmount;
+      })
+      .catch((err) => {
+        console.error(err);
+        return 0;
+      });
+
+    return totalAmount;
   });
 }
-
-export async function getOneBox(id: GetOneBox['id']) {
-  tryCatch(async () => {
-    const data = getOneBoxSchema.parse({ id });
-    const box = await prisma.boxes.findUnique({
-      where: { id: data.id },
-    });
-    return box;
-  });
-}
-
-export async function updateBox(box: UpdateBox) {
-  tryCatch(async () => {
-    const data = updateBoxSchema.parse({ id: box.id, amount: box.amount });
-    const updatedBox = await prisma.boxes.update({
-      where: { id: data.id },
-      data: { amount: data.amount },
-      select: { amount: true },
-    });
-    return updatedBox;
-  });
-}
-
-//UPDATE DOLLAR
 
 export async function getDollar() {
   return tryCatch(async () => {
-    const dollar = await prisma.boxes.findFirst({
-      where: { id: 1 },
-      select: { dollar: true },
-    });
-    if (!dollar) throw new Error('دۆلار بوونی نییە');
-    return { dollar };
+    const price = await prisma.dollar
+      .findFirst({ where: { id: 1 } })
+      .catch((e) => {
+        throw new Error(e);
+      });
+
+    return price;
   });
 }
 
-export async function updateDollar({ amount }: { amount: number }) {
+export async function updateDollar(amount: number) {
   return tryCatch(async () => {
-    const data = updateDollarSchema.parse({ amount });
-    const updateDollar = await prisma.boxes.update({
-      where: { id: 1 },
-      data: { dollar: data.amount },
-      select: { dollar: true },
-    });
-    return updateDollar;
+    const { amount: price } = updateDollarSchema.parse({ amount });
+    const updatedDollar = await prisma.dollar
+      .update({
+        where: { id: 1 },
+        data: { price },
+      })
+      .catch((e) => {
+        throw new Error(e);
+      });
+
+    revalidatePath('(root)', 'layout');
+    return updatedDollar;
   });
 }

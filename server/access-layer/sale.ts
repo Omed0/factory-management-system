@@ -24,7 +24,6 @@ import {
 import { prisma } from '@/lib/client';
 import { Prisma } from '@prisma/client';
 
-
 async function getCustomerById(id: number, tx: Prisma.TransactionClient) {
   const customer = await tx.customers.findFirst({
     where: { id, deleted_at: null },
@@ -82,7 +81,7 @@ export async function getCustomerListSale({
   return tryCatch(async () => {
     const data = getListSaleSchema.parse({ customerId });
     const { customer, sale } = await prisma.$transaction(async (tx) => {
-      const { customer } = await getCustomerById(data.customerId, tx)
+      const { customer } = await getCustomerById(data.customerId, tx);
       const sales = await prisma.sales.findMany({
         where: {
           customerId: customer.id,
@@ -93,8 +92,8 @@ export async function getCustomerListSale({
 
       if (!sales) throw new Error('ئەم فرۆشتنانە نەدۆزرانەوە');
       return { sale: sales, customer };
-    })
-    return { customer, sale }
+    });
+    return { customer, sale };
   });
 }
 
@@ -105,15 +104,11 @@ export async function createSaleForCustomer({
 }) {
   return tryCatch(async () => {
     const data = createSaleSchema.parse({ ...saleValues });
-    const sale = await prisma.$transaction(async (tx) => {
-      const { customer } = await getCustomerById(data.customerId, tx);
-      const newSale = await tx.sales.create({ data });
-      return newSale;
-    });
+    const newSale = await prisma.sales.create({ data });
 
-    if (!sale) throw new Error('هەڵەیەک ڕوویدا لە دروستکردنی وەصڵ');
+    if (!newSale) throw new Error('هەڵەیەک ڕوویدا لە دروستکردنی وەصڵ');
 
-    return sale;
+    return newSale;
   });
 }
 
@@ -123,7 +118,7 @@ export async function updateSaleForCustomer({
   saleValues: UpdateSale;
 }) {
   return tryCatch(async () => {
-    const { id: saleId, ...rest } = updateSaleSchema.parse({ ...saleValues });
+    const { id: saleId, ...rest } = updateSaleSchema.parse(saleValues);
 
     const sale = await prisma.$transaction(async (tx) => {
       const { customer } = await getCustomerById(rest.customerId, tx);
@@ -261,7 +256,7 @@ export async function finishSaleInvoice({
     if (!currentSale) throw new Error('ئەم وەصڵە نەدۆزرایەوە');
 
     const isCash = currentSale.saleType === 'CASH';
-    const amount = currentSale.totalAmount - currentSale.discount
+    const amount = currentSale.totalAmount - currentSale.discount;
 
     const sale = await prisma.sales.update({
       where: { id: data.saleId },
@@ -270,15 +265,6 @@ export async function finishSaleInvoice({
         totalRemaining: isCash ? amount : undefined,
       },
     });
-    if (isCash) {
-      await prisma.boxes.update({
-        where: { id: 1 },
-        data: {
-          amount: { increment: amount },
-        },
-      });
-    }
-
     return sale;
   });
 }
@@ -308,27 +294,13 @@ export async function getProductSaleList({
     if (!sale) throw new Error('ئەم وەصڵە بوونی نییە یان تەواو بووە');
 
     const productSale = await prisma.saleItems.findMany({
-      where: { saleId: sale.id },
-    });
-
-    const productIds = new Set(
-      productSale
-        .map((item) => item.productId)
-        .filter((id): id is number => id !== null)
-    );
-
-    const allProductsWithSameId = await prisma.saleItems.findMany({
-      where: {
-        productId: { in: Array.from(productIds) },
-        saleId: sale.id,
-      },
+      where: { saleId: sale.id, productId: { not: null } },
       include: { product: true },
     });
 
-    if (!allProductsWithSameId)
-      throw new Error('مەوادەکانی ناو ئەم وەصڵە نەدۆزرانەوە');
+    if (!productSale) throw new Error('مەوادەکانی ناو ئەم وەصڵە نەدۆزرانەوە');
 
-    return { productSale: allProductsWithSameId, sale };
+    return { productSale, sale };
   });
 }
 
@@ -345,20 +317,19 @@ export async function getProductWithSaleWithcustomerForInvoice({
       where: {
         id: data.saleId,
         customerId: data.customerId,
-        //isFinished: true,
         deleted_at: null,
         customer: { deleted_at: null },
       },
       include: {
         customer: true,
         paidLoans: true,
-        saleItems: { include: { product: true } }
-      }
+        saleItems: { include: { product: true } },
+      },
     });
 
     if (!sale) throw new Error('ئەم وەصڵە بوونی نییە یان تەواو نەبووە');
 
-    return sale
+    return sale;
   });
 }
 
@@ -368,7 +339,7 @@ export async function createProductSaleList({
   product: CreateProductSale;
 }) {
   return tryCatch(async () => {
-    const data = createProductSaleSchema.parse({ ...product });
+    const data = createProductSaleSchema.parse(product);
     // Check if the product already exists in the sale
     const newProduct = await prisma.$transaction(async (tx) => {
       const existingProduct = await tx.saleItems.findFirst({
@@ -387,13 +358,17 @@ export async function createProductSaleList({
       } else {
         // If it doesn't exist, create a new product sale
         const saleItem = await tx.saleItems.create({ data });
-        await tx.sales.update({
-          where: { id: saleItem.saleId },
-          data: {
-            totalAmount: { increment: saleItem.price * saleItem.quantity },
-          },
-        });
         if (!saleItem) throw new Error('هەڵەیەک ڕوویدا لە زیادکردنی مەواد');
+        await tx.sales
+          .update({
+            where: { id: saleItem.saleId ?? 0 },
+            data: {
+              totalAmount: { increment: saleItem.price * saleItem.quantity },
+            },
+          })
+          .catch((e) => {
+            throw new Error(e);
+          });
         return saleItem;
       }
     });
@@ -418,7 +393,7 @@ export async function increaseQuantitySaleItem({
         data: { quantity: { increment: data.amount } },
       });
       await tx.sales.update({
-        where: { id: updateItemInSale.saleId },
+        where: { id: updateItemInSale.saleId ?? 0 },
         data: {
           totalAmount: { increment: updateItemInSale.price * data.amount },
         },
@@ -462,7 +437,7 @@ export async function decreaseQuantitySaleItem({
           if (!updatedProduct)
             throw new Error('هەڵەیەک ڕوویدا لە کەمکردنەوەی دانە');
           await tx.sales.update({
-            where: { id: updatedProduct.saleId },
+            where: { id: updatedProduct.saleId! },
             data: {
               totalAmount: { decrement: updatedProduct.price * data.amount },
             },
@@ -485,7 +460,7 @@ export async function deleteProductSaleItem({ id }: { id: number }) {
         where: { id },
       });
       await tx.sales.update({
-        where: { id: saleItemProduct.saleId },
+        where: { id: saleItemProduct.saleId ?? 0 },
         data: {
           totalAmount: {
             decrement: saleItemProduct.price * saleItemProduct.quantity,
@@ -533,25 +508,27 @@ export async function createPaidLoanSaleList({
         where: { id: data.saleId },
       });
 
-      const adjustedTotalAmount = (sale._sum.totalAmount || 0) - (sale._sum.discount || 0);
-      const isLessThanTotalAmount = (sale._sum.totalRemaining || 0) + data.amount
-      if (isLessThanTotalAmount > adjustedTotalAmount) throw new Error("نابێ درانەوەکان لە کۆی گشتی زیاتربێت")
+      const adjustedTotalAmount =
+        (sale._sum.totalAmount || 0) - (sale._sum.discount || 0);
+      const isLessThanTotalAmount =
+        (sale._sum.totalRemaining || 0) + data.amount;
+      if (isLessThanTotalAmount > adjustedTotalAmount)
+        throw new Error('نابێ درانەوەکان لە کۆی گشتی زیاتربێت');
 
-      const updateSale = await tx.sales.update({
-        where: {
-          id: data.saleId,
-          deleted_at: null,
-          totalAmount: { gte: isLessThanTotalAmount },
-        },
-        data: { totalRemaining: { increment: data.amount } },
-      });
-      if (!updateSale) throw new Error("هەڵەیەک هەیە")
-      const createLoan = await tx.paidLoans.create({ data });
-
-      if (!createLoan) throw new Error('هەڵەیەک ڕوویدا');
-      await tx.boxes.update({
-        where: { id: 1 },
-        data: { amount: { increment: createLoan.amount } },
+      await tx.sales
+        .update({
+          where: {
+            id: data.saleId,
+            deleted_at: null,
+            totalAmount: { gte: isLessThanTotalAmount },
+          },
+          data: { totalRemaining: { increment: data.amount } },
+        })
+        .catch((e) => {
+          throw new Error(e);
+        });
+      const createLoan = await tx.paidLoans.create({ data }).catch((e) => {
+        throw new Error(e);
       });
       return createLoan;
     });
@@ -571,26 +548,22 @@ export async function deletePaidLoanSaleList({
 }) {
   return tryCatch(async () => {
     const data = deletePaidLoanSaleSchema.parse({ id, saleId });
-    const loan = await prisma.$transaction(async (tx) => {
-      const deletedLoan = await tx.paidLoans.delete({
-        where: { id: data.id, saleId: data.saleId },
-      });
-      if (!deletedLoan) throw new Error('هەڵەیەک ڕوویدا');
-      await tx.sales.update({
-        where: { id: data.saleId },
-        data: { totalRemaining: { decrement: deletedLoan.amount } },
-      });
-      await tx.boxes.update({
-        where: { id: 1 },
-        data: {
-          amount: { decrement: deletedLoan.amount },
-        },
-      });
-      return deletedLoan;
-    });
+    const loan = await prisma
+      .$transaction(async (tx) => {
+        const deletedLoan = await tx.paidLoans.delete({
+          where: { id: data.id, saleId: data.saleId },
+        });
 
-    if (!loan) throw new Error('هەڵەیەک ڕوویدا لە زیادکردنی قەرز');
+        await tx.sales.update({
+          where: { id: data.saleId, deleted_at: null },
+          data: { totalRemaining: { decrement: deletedLoan.amount } },
+        });
 
+        return deletedLoan;
+      })
+      .catch((e) => {
+        throw new Error(e);
+      });
     return loan;
   });
 }

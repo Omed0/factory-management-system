@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { defaultDates } from './constant';
 import { unlinkImage } from './helper';
+import { addDays } from 'date-fns';
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
@@ -78,11 +79,11 @@ export const formatCurrency = (
   fractionDigit: number = 2
 ) => {
   if (currency === 'IQD') amount = USDtoIQD(amount, dollar);
-  const type = currency === 'USD';
+  const isUsd = currency === 'USD';
   // Determine if we need to show decimal places
-  const showDecimals = amount % 1 !== 0; // Check if amount has a decimal part
+  const showDecimals = amount % 1 !== 0 && isUsd; // Check if amount has a decimal part
 
-  return new Intl.NumberFormat(type ? 'en-US' : 'en-IQ', {
+  return new Intl.NumberFormat(isUsd ? 'en-US' : 'en-IQ', {
     style: 'currency',
     currency: currency,
     maximumFractionDigits: showDecimals ? fractionDigit : 0,
@@ -90,23 +91,40 @@ export const formatCurrency = (
   }).format(amount);
 };
 
-export function toIsoString(date: Date) {
-  //const Time = format(date.getTime(), 'PPP');
+export function toIsoString(date: Date, isStartDate: boolean = true) {
+  if (isStartDate) {
+    date.setUTCHours(0, 0, 0);
+  } else {
+    date.setUTCHours(23, 59, 59);
+  }
   return date.toISOString();
 }
 
 export function seperateDates(date?: string | null) {
   let dates = {
-    from: toIsoString(defaultDates.from),
-    to: toIsoString(defaultDates.to),
+    from: defaultDates.from,
+    to: defaultDates.to,
   };
   if (date?.split('&')) {
     const splitedDate = date?.split('&');
-    dates = { from: splitedDate[0], to: splitedDate[1] };
+    dates = {
+      from: splitedDate[0],
+      to: splitedDate[1],
+    };
   }
-
   return dates;
 }
+
+export const changeDateToString = (dates: { from: string; to: string }) => {
+  const startOfDay = addDays(new Date(dates.from), 1);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  const endOfDay = addDays(new Date(dates.to), 1);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+  return {
+    from: startOfDay.toISOString(),
+    to: endOfDay.toISOString(),
+  };
+};
 
 export function getImageData(event: any) {
   const data = event as FileList | null;

@@ -252,6 +252,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value ?? ''}
                       placeholder="تێبینی"
                       rows={6}
                       className="w-96 resize-none"

@@ -145,6 +145,7 @@ export default function EditEmployeeActions({ id, infoAction }: Props) {
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value || ''}
                       placeholder="تێبینی"
                       rows={6}
                       className="w-96 resize-none"

@@ -19,10 +19,10 @@ async function main() {
     const user = await createUser(constants.user);
     console.log('Created user:', user);
 
-    const existingBox = await prisma.boxes.create({
-      data: { amount: 0, dollar: 1500 }
+    const dollar = await prisma.dollar.create({
+      data: { price: 1500 },
     });
-    console.log('box:', existingBox);
+    console.log('dollar:', dollar);
 
     console.log('Seeding completed.');
   } catch (error) {

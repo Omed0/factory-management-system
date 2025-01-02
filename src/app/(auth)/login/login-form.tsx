@@ -44,10 +44,11 @@ export default function LoginForm() {
       return;
     }
     toast.success('You have successfully logged in!', {
-      description: 'Redirecting to customer...',
+      description: 'Redirecting to dashboard...',
     });
     await sleep(1000);
-    router.replace('/customer');
+    router.replace('/dashboard');
+    return
   }
 
   return (

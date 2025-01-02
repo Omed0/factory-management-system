@@ -137,6 +137,7 @@ export async function createEmployeeActionActions(
 ) {
   const employee = await createEmployeeAction(dataEmployeeAction);
   if ('error' in employee) return { success: false, message: employee.error };
+  revalidatePath('/employee');
   return {
     success: true,
     message: 'سەرکەوتوبوو',

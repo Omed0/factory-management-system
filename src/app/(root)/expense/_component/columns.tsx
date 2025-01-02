@@ -90,7 +90,7 @@ export const columns: ColumnDef<OneExpense>[] = [
     ),
     cell: ({ row }) => {
       return (
-        <div className="max-w-96 text-wrap">
+        <div className="max-w-96 text-wrap line-clamp-3">
           <span>{row.getValue('note')}</span>
         </div>
       );

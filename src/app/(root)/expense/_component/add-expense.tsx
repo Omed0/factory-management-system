@@ -119,7 +119,8 @@ export default function AddExpense({ expense, title, handleClose }: Props) {
             <FormItem className="flex-1 basis-56">
               <FormLabel>تێبینی</FormLabel>
               <FormControl>
-                <Textarea cols={6} className="h-20 resize-none" {...field} />
+                <Textarea cols={6} className="h-20 resize-none" {...field} value={field.value ?? ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

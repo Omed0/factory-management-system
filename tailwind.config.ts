@@ -13,6 +13,7 @@ const config = {
     fontFamily: {
       mono: ['var(--font-mono)'],
       unisirwan: ['var(--font-unisirwan)'],
+      rabar: ['var(--font-rabar)'],
     },
     container: {
       //center: 'true',

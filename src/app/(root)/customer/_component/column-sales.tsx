@@ -143,7 +143,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
     ),
     cell: ({ row }) => {
       return (
-        <div className="max-w-96 text-wrap">
+        <div className="max-w-96 text-wrap line-clamp-2">
           <span>{row.original?.note}</span>
         </div>
       );

@@ -4,9 +4,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { OneSale } from '@/server/schema/sale'
 import { forwardRef } from 'react'
-import useInvoiceData from '../[id]/useInvoiceData'
+import { useInvoiceData } from '../[id]/useInvoiceData'
 import useConvertCurrency from '@/hooks/useConvertCurrency'
-import { useDollar } from '@/hooks/useDollar'
 import useSetQuery from '@/hooks/useSetQuery'
 import { formatCurrency } from '@/lib/utils'
 import Image from 'next/image'
@@ -58,7 +57,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
         <Card ref={ref} className="w-full h-svh max-w-4xl mx-auto bg-white">
             <CardContent className="flex flex-col justify-between h-full w-full p-4">
                 <div>
-                    <div className="text-right" dir="rtl">
+                    <div className="text-right">
                         <div className='flex items-start justify-between'>
                             <div className='flex items-center gap-2'>
                                 <Image
@@ -71,12 +70,12 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
                                 />
                                 <div>
                                     <h1 className="text-2xl font-bold text-primary">زانیار گرووپ</h1>
-                                    <p className='text-card-foreground/80'>دروستکردنی کەوانتەر و دەرگا و پەنجەرەی ئەلەمنیۆم و پلاستیک و شوشە</p>
+                                    <p className='text-card-foreground/80 max-w-md'>دروستکردنی کەوانتەر و دەرگا و پەنجەرەی ئەلەمنیۆم و پلاستیک و شوشە</p>
                                 </div>
                             </div>
                             <div className="flex gap-3 font-semibold border rounded-md bg-violet-100 p-1.5">
                                 <p>خاوەن حساب:</p>
-                                <p className=''>{data.customer?.name}</p>
+                                <p>{data.customer?.name}</p>
                             </div>
                         </div>
                         <div className='w-full flex mt-4'>
@@ -89,7 +88,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
                         </div>
                     </div>
 
-                    <div dir="rtl">
+                    <div>
                         <Table className='border-2 border-indigo-900'>
                             <TableHeader className="border-2 border-indigo-900">
                                 <TableRow>
@@ -116,7 +115,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
                 </div>
 
 
-                <div className="mt-8 text-sm w-full" dir="rtl">
+                <div className="mt-8 text-sm w-full">
                     <Table className=''>
                         <TableHeader>
                             <TableRow>

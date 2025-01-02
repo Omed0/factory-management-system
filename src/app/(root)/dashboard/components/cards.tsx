@@ -10,25 +10,27 @@ type Props = {
         totalIncome: number;
         totalCustomers: number;
         activeLoanCustomersCount: number;
-        salesCreatedCount: number,
-        totalMoneyInBox: number
+        totalMoneyInBox: number;
+        totalSalesCount: number;
+        totalOutgoing: number;
     }
 }
 
 export default function Cards({ amounts }: Props) {
     const { activeLoanCustomersCount, totalCustomers,
-        totalIncome, salesCreatedCount, totalMoneyInBox } = amounts
+        totalIncome, totalSalesCount, totalMoneyInBox, totalOutgoing } = amounts
 
     const cards = [
-        { name: "کۆی داهات", amount: useConvertCurrency(totalIncome), icon: DollarSign },
-        { name: "زیادبوونی کڕیار", amount: totalCustomers, icon: UserRoundPlus },
-        { name: "زیادبوونی وەصڵ", amount: salesCreatedCount, icon: CreditCard },
-        { name: "کڕیاری قەرز ماوە", amount: activeLoanCustomersCount, icon: Contact },
         { name: "کۆی گشتی قاسە", amount: useConvertCurrency(totalMoneyInBox), icon: Vault },
+        { name: "کۆی کڕینەکان", amount: useConvertCurrency(totalOutgoing), icon: DollarSign },
+        { name: "کۆی فرۆشتنەکان", amount: useConvertCurrency(totalIncome), icon: DollarSign },
+        { name: "زیادبوونی کڕیار", amount: totalCustomers, icon: UserRoundPlus },
+        { name: "زیادبوونی وەصڵ", amount: totalSalesCount, icon: CreditCard },
+        { name: "کڕیاری قەرز ماوە", amount: activeLoanCustomersCount, icon: Contact },
     ]
 
     return (
-        <div className="flex-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div dir="rtl" className="w-full grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
             {cards.map((card) => (
                 <Card key={card.name}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

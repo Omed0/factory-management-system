@@ -20,9 +20,13 @@ import { addition_actions } from '@/lib/constant';
 
 export async function getOneEmployee(id: number) {
   return tryCatch(async () => {
-    const employee = await prisma.employee.findUnique({
-      where: { id, deleted_at: null },
-    });
+    const employee = await prisma.employee
+      .findUnique({
+        where: { id, deleted_at: null },
+      })
+      .catch((e) => {
+        throw new Error(e);
+      });
     return employee;
   });
 }
@@ -106,28 +110,12 @@ export async function createEmployeeAction(
 ) {
   return tryCatch(async () => {
     const data = createEmployeeActionSchema.parse(dataEmployeeAction);
-    const isIncrease = addition_actions.includes(
-      data.type as (typeof addition_actions)[number]
-    );
-    const amount = isIncrease
-      ? { increment: data.amount }
-      : { decrement: data.amount };
-
-    const { employeeAction, box } = await prisma.$transaction(async (tx) => {
-      const employeeAction = await tx.employeeActions.create({
-        data: {
-          ...data,
-          dateAction: new Date(),
-        },
+    const employeeAction = await prisma.employeeActions
+      .create({ data })
+      .catch((e) => {
+        throw new Error('دروستنەکرا هەڵەیەک هەیە');
       });
-      const box = await tx.boxes.update({
-        where: { id: 1 },
-        data: { amount },
-        select: { amount: true },
-      });
-      return { employeeAction, box };
-    });
-    return { employeeAction, box };
+    return { employeeAction };
   });
 }
 
@@ -137,64 +125,26 @@ export async function updateEmployeeAction(
 ) {
   return tryCatch(async () => {
     const data = updateEmployeeActionSchema.parse(dataEmployeeAction);
-    const employeeAction = await prisma.$transaction(async (tx) => {
-      const oldEmployeeAction = await tx.employeeActions.findUnique({
-        where: { id },
-      });
-      if (!oldEmployeeAction) throw new Error('ئەم ئەرکە نەدۆزرایەوە');
-      if (oldEmployeeAction.amount !== data.amount) {
-        const isIncrease = addition_actions.includes(
-          data.type as (typeof addition_actions)[number]
-        );
-        const incrementAmount = isIncrease
-          ? { increment: data.amount }
-          : { decrement: data.amount };
-
-        const decrementAmount = isIncrease // reverse the action when deleting
-          ? { decrement: data.amount }
-          : { increment: data.amount };
-
-        await tx.boxes.update({
-          where: { id: 1 },
-          data: { amount: decrementAmount },
-        });
-        await tx.boxes.update({
-          where: { id: 1 },
-          data: { amount: incrementAmount },
-        });
-      }
-      const updatedAction = await tx.employeeActions.update({
+    const updatedAction = await prisma.employeeActions
+      .update({
         where: { id },
         data,
+      })
+      .catch((e) => {
+        throw new Error('ئەم ئەرکە نەدۆزرایەوە');
       });
-      return updatedAction;
-    });
-    return employeeAction;
+    return updatedAction;
   });
 }
 
 export async function deleteEmployeeAction(id: number) {
   return tryCatch(async () => {
     const data = deleteEmployeeActionSchema.parse({ id });
-    const deletedAction = await prisma.$transaction(async (tx) => {
-      const employeeAction = await tx.employeeActions.findUnique({
-        where: { id: data.id },
+    return await prisma.employeeActions
+      .delete({ where: { id: data.id } })
+      .catch((e) => {
+        throw new Error('نەسڕایەوە هەڵەیەک هەیە');
       });
-      if (!employeeAction) throw new Error('ئەم ئەرکە نەدۆزرایەوە');
-      const isIncrease = addition_actions.includes(
-        employeeAction.type as (typeof addition_actions)[number]
-      );
-      const amount = isIncrease // reverse the action when deleting
-        ? { decrement: employeeAction.amount }
-        : { increment: employeeAction.amount };
-
-      await tx.boxes.update({
-        where: { id: 1 },
-        data: { amount },
-      });
-      return await tx.employeeActions.delete({ where: { id: data.id } });
-    });
-    return deletedAction;
   });
 }
 

@@ -1,13 +1,9 @@
-import { PlusCircleIcon } from 'lucide-react';
 import { Users } from 'lucide-react';
 
-import AddCompany from './_component/add-company-form';
 import { columns } from './_component/columns';
 import { DataTable } from './_component/data-table';
 
 import { getCompanyListActions } from '@/actions/company';
-import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
-import { Button } from '@/components/ui/button';
 
 type Props = {
   searchParams: {
