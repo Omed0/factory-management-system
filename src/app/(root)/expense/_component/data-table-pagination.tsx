@@ -1,5 +1,5 @@
 import { Table } from '@tanstack/react-table';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -19,10 +19,6 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   return (
     <div className="flex items-center justify-between px-2">
-      <div className="text-muted-foreground flex-1 text-sm">
-        {table.getFilteredSelectedRowModel().rows.length} لە{' '}
-        {table.getFilteredRowModel().rows.length} ڕیزت دیاریکردووە.
-      </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">ڕیزت هەیە</p>
@@ -55,7 +51,7 @@ export function DataTablePagination<TData>({
             disabled={!table.getCanPreviousPage()}
           >
             <span className="sr-only">بۆ یەکەم پەڕە</span>
-            <ChevronRight className="size-4" />
+            <ChevronsRight className="size-4" />
           </Button>
           <Button
             variant="outline"
@@ -82,7 +78,7 @@ export function DataTablePagination<TData>({
             disabled={!table.getCanNextPage()}
           >
             <span className="sr-only">بۆ کۆتا پەڕە</span>
-            <ChevronLeft className="size-4" />
+            <ChevronsLeft className="size-4" />
           </Button>
         </div>
       </div>

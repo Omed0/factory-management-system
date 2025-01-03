@@ -13,20 +13,26 @@ type Props = {
         totalMoneyInBox: number;
         totalSalesCount: number;
         totalOutgoing: number;
+        addition_employee_actions: number;
+        subtraction_employee_actions: number;
     }
 }
 
 export default function Cards({ amounts }: Props) {
     const { activeLoanCustomersCount, totalCustomers,
-        totalIncome, totalSalesCount, totalMoneyInBox, totalOutgoing } = amounts
+        totalIncome, totalSalesCount, totalMoneyInBox, totalOutgoing,
+        addition_employee_actions,
+        subtraction_employee_actions } = amounts
 
     const cards = [
         { name: "کۆی گشتی قاسە", amount: useConvertCurrency(totalMoneyInBox), icon: Vault },
         { name: "کۆی کڕینەکان", amount: useConvertCurrency(totalOutgoing), icon: DollarSign },
         { name: "کۆی فرۆشتنەکان", amount: useConvertCurrency(totalIncome), icon: DollarSign },
+        { name: "کۆی دەستکەوت لە کارمەند", amount: useConvertCurrency(addition_employee_actions), icon: DollarSign },
+        { name: "کۆی پێدراو بە کارمەند", amount: useConvertCurrency(subtraction_employee_actions), icon: DollarSign },
         { name: "زیادبوونی کڕیار", amount: totalCustomers, icon: UserRoundPlus },
         { name: "زیادبوونی وەصڵ", amount: totalSalesCount, icon: CreditCard },
-        { name: "کڕیاری قەرز ماوە", amount: activeLoanCustomersCount, icon: Contact },
+        { name: "کڕیاری قەرز", amount: activeLoanCustomersCount, icon: Contact },
     ]
 
     return (

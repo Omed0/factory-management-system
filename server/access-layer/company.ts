@@ -166,13 +166,9 @@ export async function createCompanyPurchase(
         where: { id: data.companyId, deleted_at: null },
       });
       if (!company) throw new Error('کۆمپانیا نەدۆزرایەوە');
-      let amount = 0;
 
       if (data.type === 'CASH') {
-        amount = data.totalAmount;
         (data as any).totalRemaining = (data as any).totalAmount;
-      } else {
-        amount = data.totalRemaining;
       }
       const newCompanyPurchase = await tx.companyPurchase.create({ data });
 
@@ -327,11 +323,11 @@ export async function createCompanyPurchaseInfo(
         throw new Error('بڕی پێویست داخڵ بکە نەک زیاتر لە کۆی گشتی');
       }
 
-      const purchaseInfo = await tx.purchasesInfo.create({ data });
       await tx.companyPurchase.update({
-        where: { id: data.companyPurchaseId },
+        where: { id: data.companyPurchaseId, type: 'LOAN' },
         data: { totalRemaining: { increment: data.amount } },
       });
+      const purchaseInfo = await tx.purchasesInfo.create({ data });
       return purchaseInfo;
     });
     return companyPurchaseInfo;

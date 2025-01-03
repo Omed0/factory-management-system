@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    //"target": "es5",
+    "target": "ESNext",
     "lib": [
       "dom",
       "dom.iterable",
@@ -11,8 +12,10 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    //"module": "esnext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    //"moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -40,7 +43,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/app/api/backup/route.ts", "app.js",
+    "src/app/api/backup/route.ts",
+    "app.js",
   ],
   "exclude": [
     "node_modules"

@@ -45,14 +45,15 @@ export async function calculateTotalAmount() {
           return acc;
         }, 0);
 
-        // Calculate totalAmount
-        const totalAmount =
-          (employeeActionsTotal || 0) +
-          (salesTotal._sum.totalRemaining || 0) -
-          ((expensesTotal._sum.amount || 0) +
-            (companyPurchaseTotal._sum.totalRemaining || 0));
+        const assets =
+          (employeeActionsTotal || 0) + (salesTotal._sum.totalRemaining || 0);
+        const liabilities =
+          (expensesTotal._sum.amount || 0) +
+          (companyPurchaseTotal._sum.totalRemaining || 0);
 
-        return totalAmount;
+        const equity = assets - liabilities;
+
+        return equity;
       })
       .catch((err) => {
         console.error(err);

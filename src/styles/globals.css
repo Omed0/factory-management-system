@@ -101,6 +101,12 @@ body {
   display: none;
 }
 
+.show_scrollbar::-webkit-scrollbar {
+  display: block;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--background);
+}
+
 .amount-cell {
   font-variant-numeric: tabular-nums;
 }

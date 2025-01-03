@@ -28,7 +28,7 @@ type Props = {
 
 export default function Products({ product, invoice, currency }: Props) {
   return (
-    <section className="flex h-full flex-[4] flex-wrap gap-4 overflow-scroll rounded-lg border-2 p-4 shadow">
+    <section className="flex h-full flex-[4] flex-wrap gap-4 overflow-scroll rounded-lg border-2 p-4 shadow show_scrollbar">
       {product.map((product) => (
         <Card key={product.id} className="h-fit">
           <CardHeader className="flex-row items-center justify-between p-3">

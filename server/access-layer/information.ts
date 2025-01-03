@@ -23,6 +23,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { addMonths } from 'date-fns';
 import { calculateTotalAmount } from './box';
+import { addition_actions } from '@/lib/constant';
 
 type LoanSummary = {
   _sum: {
@@ -42,36 +43,46 @@ export async function getDashboardInformation(data: DashboardInfoTypes) {
   return tryCatch(async () => {
     const formated = getDashboardInfoSchema.parse(data);
 
-    const [totalPurchasesData, customers, salesData, totalMoneyInBox] =
-      await Promise.all([
-        prisma.companyPurchase.aggregate({
-          _sum: {
-            totalRemaining: true,
-          },
-          where: {
-            purchaseDate: { gte: formated.from, lte: formated.to },
-            deleted_at: null,
-          },
-        }),
-        prisma.customers.findMany({
-          where: {
-            created_at: { gte: formated.from, lte: formated.to },
-            deleted_at: null,
-          },
-          include: { sales: true },
-        }),
-        prisma.sales.findMany({
-          where: {
-            saleDate: { gte: formated.from, lte: formated.to },
-            deleted_at: null,
-            isFinished: true,
-          },
-          include: {
-            customer: true,
-          },
-        }),
-        calculateTotalAmount(),
-      ]);
+    const [
+      totalPurchasesData,
+      customers,
+      salesData,
+      employeeActions,
+      totalMoneyInBox,
+    ] = await Promise.all([
+      prisma.companyPurchase.aggregate({
+        _sum: {
+          totalRemaining: true,
+        },
+        where: {
+          purchaseDate: { gte: formated.from, lte: formated.to },
+          deleted_at: null,
+        },
+      }),
+      prisma.customers.findMany({
+        where: {
+          created_at: { gte: formated.from, lte: formated.to },
+          deleted_at: null,
+        },
+        include: { sales: true },
+      }),
+      prisma.sales.findMany({
+        where: {
+          saleDate: { gte: formated.from, lte: formated.to },
+          deleted_at: null,
+          isFinished: true,
+        },
+        include: {
+          customer: true,
+        },
+      }),
+      prisma.employeeActions.findMany({
+        where: {
+          dateAction: { gte: formated.from, lte: formated.to },
+        },
+      }),
+      calculateTotalAmount(),
+    ]);
 
     const latestSales = salesData.slice(-5).reverse();
     const totalSalesCount = salesData.length;
@@ -88,6 +99,25 @@ export async function getDashboardInformation(data: DashboardInfoTypes) {
       )
     ).length;
 
+    const addition_employee_actions = employeeActions.reduce(
+      (sum, action) =>
+        addition_actions.includes(
+          action.type as (typeof addition_actions)[number]
+        )
+          ? sum + action.amount
+          : sum,
+      0
+    );
+    const subtraction_employee_actions = employeeActions.reduce(
+      (sum, action) =>
+        !addition_actions.includes(
+          action.type as (typeof addition_actions)[number]
+        )
+          ? sum + action.amount
+          : sum,
+      0
+    );
+
     if (typeof totalMoneyInBox === 'object' && 'error' in totalMoneyInBox) {
       throw totalMoneyInBox;
     }
@@ -100,6 +130,8 @@ export async function getDashboardInformation(data: DashboardInfoTypes) {
       activeLoanCustomersCount,
       latestSales,
       totalMoneyInBox,
+      addition_employee_actions,
+      subtraction_employee_actions,
     };
   });
 }

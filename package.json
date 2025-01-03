@@ -15,6 +15,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,mdx}\" --cache",
     "format:write": "prettier --write \"**/*.{ts,tsx,mdx}\" --cache",
     "db:seed": "npx prisma db seed",
+    "db:faker": "npx prisma db seed -- --faker",
     "typecheck": "tsc --noEmit"
   },
   "prisma": {

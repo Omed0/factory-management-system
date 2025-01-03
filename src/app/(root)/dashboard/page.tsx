@@ -6,7 +6,6 @@ import { RecentSales } from './components/recent-sales';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -112,6 +111,9 @@ export default async function DashboardPage({ searchParams }: Props) {
               </section>
             </TabsContent>
           </Tabs>
+          <div>
+
+          </div>
         </div>
       </div>
     </section>

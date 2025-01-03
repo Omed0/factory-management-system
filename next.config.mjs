@@ -22,8 +22,15 @@ const nextConfig = {
         hostname: 'localhost',
         port: '3000',
       },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        //pathname: "/u/97165289",
+      },
     ],
   },
 };
+
+
 
 export default nextConfig;

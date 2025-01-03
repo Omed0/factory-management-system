@@ -386,6 +386,7 @@ export async function increaseQuantitySaleItem({
   amount: number;
 }) {
   return tryCatch(async () => {
+    //in here amount mean qty, i dont know why i named it amount, but i will keep it for now because i am lazy
     const data = changeProductQuantitySchema.parse({ id, amount });
     const updatedProduct = await prisma.$transaction(async (tx) => {
       const updateItemInSale = await tx.saleItems.update({
@@ -505,7 +506,7 @@ export async function createPaidLoanSaleList({
     const loan = await prisma.$transaction(async (tx) => {
       const sale = await tx.sales.aggregate({
         _sum: { totalRemaining: true, discount: true, totalAmount: true },
-        where: { id: data.saleId },
+        where: { id: data.saleId, deleted_at: null, saleType: 'LOAN' },
       });
 
       const adjustedTotalAmount =
