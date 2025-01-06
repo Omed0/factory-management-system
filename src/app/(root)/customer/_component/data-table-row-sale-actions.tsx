@@ -327,7 +327,7 @@ export function ModalTablePaidLoanSale({
               <TableHead className='text-center border-x w-24'>بڕ</TableHead>
               <TableHead className='text-center border-x w-24'>بەروار</TableHead>
               <TableHead className="text-center border-x">تێبینی</TableHead>
-              <TableHead className="text-end border-x w-16">سڕینەوە</TableHead>
+              <TableHead className="text-end border-x w-16 hide-on-print">سڕینەوە</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -341,7 +341,7 @@ export function ModalTablePaidLoanSale({
                 <TableCell className="max-w-96 text-wrap text-center">
                   {item.note}
                 </TableCell>
-                <TableCell className="text-end">
+                <TableCell className="text-end hide-on-print">
                   <form
                     id="deletePurchaseInfo"
                     action={async () => {

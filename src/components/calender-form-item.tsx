@@ -1,5 +1,5 @@
 import { FieldValues, Path, UseFormReturn } from 'react-hook-form';
-import { format } from 'date-fns';
+import { format, getMonth } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function CalendarFormItem<T extends FieldValues>({
   form,
@@ -29,6 +30,8 @@ export default function CalendarFormItem<T extends FieldValues>({
   name: Path<T>;
   className?: string;
 }) {
+  const [month, setMonth] = useState<Date>(form.getValues(name) || new Date());
+
   return (
     <FormField
       control={form.control}
@@ -63,7 +66,8 @@ export default function CalendarFormItem<T extends FieldValues>({
                 selected={field.value}
                 onSelect={field.onChange}
                 disabled={isEdit}
-                month={field.value || undefined}
+                onMonthChange={(date) => setMonth(date)}
+                month={month}
               />
             </PopoverContent>
           </Popover>

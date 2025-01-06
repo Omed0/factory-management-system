@@ -10,7 +10,7 @@ import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 
 import useSetQuery from '@/hooks/useSetQuery';
-import { cn, seperateDates, toIsoString } from '@/lib/utils';
+import { cn, seperateDates } from '@/lib/utils';
 
 
 type Props = {
@@ -29,6 +29,7 @@ export default function CalenderRangMultiSide({ className, setState }: Props) {
 
   const handleChange: SelectRangeEventHandler = (range, selectedDay, activeModifiers, e) => {
     setDate(range);
+    setState && setState(range);
     if (range && range.from && range.to) {
       setQuery('date', `${range.from.toLocaleDateString()}&${range.to.toLocaleDateString()}`);
     }

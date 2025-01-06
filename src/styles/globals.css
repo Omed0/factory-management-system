@@ -97,14 +97,9 @@ body {
   letter-spacing: 0.08em;
 }
 
+/* Optional: Hide the scrollbar but allow scrolling */
 ::-webkit-scrollbar {
-  display: none;
-}
-
-.show_scrollbar::-webkit-scrollbar {
-  display: block;
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) var(--background);
+  display: none; /* Hides the scrollbar in WebKit browsers */
 }
 
 .amount-cell {
@@ -120,5 +115,9 @@ body {
   * {
     font-family: system-ui;
     letter-spacing: 0.04em;
+  }
+
+  .hide-on-print {
+    display: none;
   }
 }

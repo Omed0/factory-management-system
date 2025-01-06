@@ -342,11 +342,16 @@ export async function createProductSaleList({
     const data = createProductSaleSchema.parse(product);
     // Check if the product already exists in the sale
     const newProduct = await prisma.$transaction(async (tx) => {
+      const isProductExists = await tx.products.findFirst({
+        where: { id: data.productId },
+      });
+      if (!isProductExists) throw new Error('مەوادەکە نەدۆزرایەوە');
       const existingProduct = await tx.saleItems.findFirst({
         where: {
           saleId: data.saleId,
           productId: data.productId,
           sale: { deleted_at: null },
+          product: { name: data.name, price: data.price },
         },
       });
       if (existingProduct) {
@@ -388,22 +393,23 @@ export async function increaseQuantitySaleItem({
   return tryCatch(async () => {
     //in here amount mean qty, i dont know why i named it amount, but i will keep it for now because i am lazy
     const data = changeProductQuantitySchema.parse({ id, amount });
-    const updatedProduct = await prisma.$transaction(async (tx) => {
-      const updateItemInSale = await tx.saleItems.update({
-        where: { id: data.id },
-        data: { quantity: { increment: data.amount } },
+    const updatedProduct = await prisma
+      .$transaction(async (tx) => {
+        const updateItemInSale = await tx.saleItems.update({
+          where: { id: data.id },
+          data: { quantity: { increment: data.amount } },
+        });
+        await tx.sales.update({
+          where: { id: updateItemInSale.saleId ?? 0 },
+          data: {
+            totalAmount: { increment: updateItemInSale.price * data.amount },
+          },
+        });
+        return updateItemInSale; // Ensure it returns the updated item
+      })
+      .catch((e) => {
+        throw new Error(e || 'هەڵەیەک ڕوویدا لە زیادکردنی مەواد');
       });
-      await tx.sales.update({
-        where: { id: updateItemInSale.saleId ?? 0 },
-        data: {
-          totalAmount: { increment: updateItemInSale.price * data.amount },
-        },
-      });
-
-      if (!updateItemInSale)
-        throw new Error('هەڵەیەک ڕوویدا لە زیادکردنی مەواد');
-      return updateItemInSale; // Ensure it returns the updated item
-    });
 
     return updatedProduct || {}; // Ensure it returns an object
   });

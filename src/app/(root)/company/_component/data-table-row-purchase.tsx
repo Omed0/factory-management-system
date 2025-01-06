@@ -251,7 +251,7 @@ export function ModalTablePurchaseInfo<T extends number>({
               <TableHead className='border-x text-center px-2 h-9 w-24'>بڕ</TableHead>
               <TableHead className='border-x text-center px-2 h-9 w-24'>بەروار</TableHead>
               <TableHead className="border-x text-center px-2 h-9">تێبینی</TableHead>
-              <TableHead className="border-x text-center px-2 h-9 w-20">سڕینەوە</TableHead>
+              <TableHead className="border-x text-center px-2 h-9 w-20 hide-on-print">سڕینەوە</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -267,7 +267,7 @@ export function ModalTablePurchaseInfo<T extends number>({
                 <TableCell className="p-2 max-w-96 text-wrap text-center">
                   {item.note}
                 </TableCell>
-                <TableCell className="p-2 text-center">
+                <TableCell className="p-2 text-center hide-on-print">
                   <form
                     id="deletePurchaseInfo"
                     action={async () => {

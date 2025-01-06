@@ -1,10 +1,9 @@
 'use server';
 
-import { unlink } from 'fs';
+import fs, { unlink } from 'fs';
 import path from 'path';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { ZodError } from 'zod';
-
 
 export const tryCatch = async <T>(
   fn: () => Promise<T>
@@ -54,5 +53,58 @@ export async function unlinkImage(
           ? error.message
           : 'سڕینەوەی وێنە سەرکەوتوو نەبوو',
     };
+  }
+}
+
+/**
+ * Add "import 'server-only'" at the top of the file.
+ * @param filePath - The file path to modify.
+ */
+function addServerOnlyImport(filePath: string) {
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  const importLine = "import 'server-only';";
+  const lines = fileContent.split('\n');
+
+  if (lines[0] !== importLine) {
+    lines.unshift(importLine);
+    fs.writeFileSync(filePath, lines.join('\n'), 'utf-8');
+    console.log(`Added "import 'server-only';" to ${filePath}`);
+  }
+}
+
+/**
+ * Remove "import 'server-only'" from the top of the file.
+ * @param filePath - The file path to modify.
+ */
+function removeServerOnlyImport(filePath: string) {
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  const importLine = "import 'server-only';";
+  const lines = fileContent.split('\n');
+
+  if (lines[0] === importLine) {
+    lines.shift();
+    fs.writeFileSync(filePath, lines.join('\n'), 'utf-8');
+    console.log(`Removed "import 'server-only';" from ${filePath}`);
+  }
+}
+
+/**
+ * Wrapper function to handle removing and adding the import dynamically.
+ * @param filePaths - Array of file paths to process.
+ * @param callback - The main function logic to execute.
+ */
+export async function processFilesWithImport(
+  filePaths: string[],
+  callback: () => void
+) {
+  try {
+    // Remove the import line from all files
+    filePaths.forEach(removeServerOnlyImport);
+
+    // Execute the main function logic
+    await callback();
+  } finally {
+    // Add the import line back to all files
+    filePaths.forEach(addServerOnlyImport);
   }
 }

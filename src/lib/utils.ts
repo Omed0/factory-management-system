@@ -91,15 +91,6 @@ export const formatCurrency = (
   }).format(amount);
 };
 
-export function toIsoString(date: Date, isStartDate: boolean = true) {
-  if (isStartDate) {
-    date.setUTCHours(0, 0, 0);
-  } else {
-    date.setUTCHours(23, 59, 59);
-  }
-  return date.toISOString();
-}
-
 export function seperateDates(date?: string | null) {
   let dates = {
     from: defaultDates.from,

@@ -46,7 +46,7 @@ export const createSaleSchema = z
     saleType: z.nativeEnum(SaleType),
     note: z.string().nullable().optional(),
     saleDate: z.date(),
-    dollar: z.coerce.number().positive()
+    dollar: z.coerce.number().positive(),
   })
   .and(
     z.discriminatedUnion('saleType', [
@@ -57,7 +57,6 @@ export const createSaleSchema = z
       }),
     ])
   );
-
 
 export const updateSaleSchema = createSaleSchema.and(
   z.object({
@@ -94,6 +93,7 @@ export const createProductSaleSchema = z.object({
   productId: z.number().int().positive(),
   price: z.coerce.number().positive(),
   quantity: z.coerce.number().positive(),
+  name: z.string().min(1).max(255),
 });
 
 export const changeProductQuantitySchema = z.object({

@@ -1,9 +1,11 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { MoveUp, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 
+import AddCustomProduct from '@/app/(root)/customer/_component/add-custom-product';
 import { createProductSaleListActions } from '@/actions/sale';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,58 +29,85 @@ type Props = {
 };
 
 export default function Products({ product, invoice, currency }: Props) {
+  const [isPending, startTransition] = useTransition();
+  const [selectProduct, setSelectProduct] = useState<OneProduct | null>(null);
+
   return (
-    <section className="flex h-full flex-[4] flex-wrap gap-4 overflow-scroll rounded-lg border-2 p-4 shadow show_scrollbar">
-      {product.map((product) => (
-        <Card key={product.id} className="h-fit">
-          <CardHeader className="flex-row items-center justify-between p-3">
-            <CardTitle className='font-medium'>{product.name}</CardTitle>
-            <CardDescription className="font-medium">
-              <Badge variant="outline">
-                {product.unitType === 'PIECE' ? 'دانە' : 'مەتر'}
-              </Badge>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-3">
-            <Image
-              width={300}
-              height={300}
-              className="aspect-video max-w-48 object-contain"
-              alt={product.name}
-              src={product.image ? `/${product.image}` : FALLBACK_IMAGE}
-              onError={(event) => {
-                event.currentTarget.id = FALLBACK_IMAGE;
-                event.currentTarget.srcset = FALLBACK_IMAGE;
-              }}
-            />
-          </CardContent>
-          <CardFooter className="justify-between p-2 px-3">
-            <p>{formatCurrency(product.price, product.dollar, currency)}</p>
-            <form
-              className="[all:unset]"
-              action={async () => {
-                const formated = {
-                  productId: product.id,
-                  price: product.price,
-                  saleId: invoice.id,
-                  quantity: 1,
-                };
-                const { success, message } =
-                  await createProductSaleListActions(formated);
-                if (!success) toast.error(message);
-              }}
-            >
-              <Button
-                className="max-h-8 rounded-lg p-2"
-                size="sm"
-                variant="secondary"
-              >
-                <Plus className="size-4" />
-              </Button>
-            </form>
-          </CardFooter>
-        </Card>
-      ))}
+    <section className="space-y-5 h-full flex-[4] overflow-scroll rounded-lg border-2 shadow">
+      <div className="border-b-2 w-full p-2 sticky top-0 inset-x-0 bg-background">
+        <AddCustomProduct
+          invoice={invoice}
+          product={selectProduct}
+          resetSelectProduct={setSelectProduct}
+        />
+      </div>
+      <div className='flex flex-wrap gap-4 px-3'>
+        {product.map((pr) => (
+          <Card key={pr.id} className="h-fit basis-44 flex-grow max-w-48">
+            <CardHeader className="flex-row items-center justify-between p-3">
+              <CardTitle className='font-medium'>{pr.name}</CardTitle>
+              <CardDescription className="font-medium">
+                <Badge variant="outline">
+                  {pr.unitType === 'PIECE' ? 'دانە' : 'مەتر'}
+                </Badge>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-3">
+              <Image
+                width={300}
+                height={300}
+                className="aspect-video max-w-40 object-contain"
+                alt={pr.name}
+                src={pr.image ? `/${pr.image}` : FALLBACK_IMAGE}
+                onError={(event) => {
+                  event.currentTarget.id = FALLBACK_IMAGE;
+                  event.currentTarget.srcset = FALLBACK_IMAGE;
+                }}
+              />
+            </CardContent>
+            <CardFooter className="justify-between p-2.5">
+              <p>{formatCurrency(pr.price, pr.dollar, currency)}</p>
+              <div className='flex gap-3'>
+                <Button
+                  size="sm"
+                  variant='secondary'
+                  type='button'
+                  className='max-h-8 rounded-lg p-2'
+                  onClick={() => setSelectProduct(pr)}
+                >
+                  <MoveUp className='size-4' />
+                </Button>
+                <form
+                  className="[all:unset]"
+                  action={async () => {
+                    const formated = {
+                      productId: pr.id,
+                      price: pr.price,
+                      saleId: invoice.id,
+                      name: pr.name,
+                      quantity: 1,
+                    };
+                    startTransition(async () => {
+                      const { message, success } =
+                        await createProductSaleListActions(formated);
+                      if (!success) toast.error(message);
+                    });
+                  }}
+                >
+                  <Button
+                    className="max-h-8 rounded-lg p-2"
+                    disabled={isPending}
+                    type='submit'
+                    size="sm"
+                  >
+                    <Plus className="size-4" />
+                  </Button>
+                </form>
+              </div>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
     </section>
   );
 }

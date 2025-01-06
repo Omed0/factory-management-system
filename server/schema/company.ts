@@ -63,10 +63,7 @@ export const createCompanyPurchaseSchema = z
   .object({
     name: z.string().min(3, 'ناوەکەت زۆر کورتە').max(100, 'ناوەکەت زۆر درێژە'),
     companyId: z.number().int().positive(),
-    totalAmount: z.coerce
-      .number()
-      .min(0, 'بڕی پارەکەت با لە سفر کەمترنەبێ')
-      .positive(),
+    totalAmount: z.coerce.number().positive(),
     type: z.nativeEnum(CompanyPurchaseType),
     note: z.string().nullable().optional(),
     dollar: z.coerce.number().positive(),
@@ -77,10 +74,7 @@ export const createCompanyPurchaseSchema = z
       z.object({ type: z.literal('CASH') }),
       z.object({
         type: z.literal('LOAN'),
-        totalRemaining: z.coerce
-          .number()
-          .min(0, 'بڕی پارەی پێشەکی نابێت کەمتر بێت لە سفر')
-          .positive(),
+        totalRemaining: z.coerce.number().nonnegative(),
       }),
     ])
   )

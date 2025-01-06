@@ -10,21 +10,6 @@ import { cn } from '@/lib/utils';
 import { ckb } from "date-fns/locale"
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-//const MONTHS = [
-//  "مانگی یەک",
-//  "مانگی دوو",
-//  "مانگی سێ",
-//  "مانگی چوار",
-//  "مانگی پێنج",
-//  "مانگی شەش",
-//  "مانگی حەوت",
-//  "مانگی هەشت",
-//  "مانگی نۆ",
-//  "مانگی دە",
-//  "مانگی یانزە",
-//  "مانگی دوانزە",
-//]
-
 
 function Calendar({
   className,
@@ -35,7 +20,6 @@ function Calendar({
 
   return (
     <DayPicker
-      lang='ckb'
       showOutsideDays={showOutsideDays}
       className={cn('p-3', className)}
       classNames={{

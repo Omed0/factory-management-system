@@ -177,6 +177,7 @@ model SaleItems {
   saleId    Int?
   productId Int?
   price     Float
+  name      String
   quantity  Int
   sale      Sales?    @relation(fields: [saleId], references: [id], onDelete: SetNull)
   product   Products? @relation(fields: [productId], references: [id], onDelete: SetNull)

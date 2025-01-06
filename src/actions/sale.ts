@@ -169,7 +169,10 @@ export async function getProductWithSaleWithcustomerForInvoiceActions(
   saleId: number,
   customerId: number
 ) {
-  const sale = await getProductWithSaleWithcustomerForInvoice({ saleId, customerId });
+  const sale = await getProductWithSaleWithcustomerForInvoice({
+    saleId,
+    customerId,
+  });
   if (sale === null || 'error' in sale) {
     return {
       success: false,

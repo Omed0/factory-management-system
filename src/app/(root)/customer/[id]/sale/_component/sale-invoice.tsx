@@ -165,9 +165,9 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
             className="h-fit border-0 border-b last:border-0"
           >
             <CardHeader className="flex-row items-center justify-between p-2 px-3">
-              <CardTitle>{order.product?.name}</CardTitle>
+              <CardTitle>{order.name}</CardTitle>
               <CardDescription className="font-semibold">
-                {formatCurrency(order.price, order.product?.dollar || sale.dollar, currency)}
+                {formatCurrency(order.price, sale.dollar, currency)}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-between p-2 px-3">
