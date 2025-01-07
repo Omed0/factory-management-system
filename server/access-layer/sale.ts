@@ -294,7 +294,7 @@ export async function getProductSaleList({
     if (!sale) throw new Error('ئەم وەصڵە بوونی نییە یان تەواو بووە');
 
     const productSale = await prisma.saleItems.findMany({
-      where: { saleId: sale.id, productId: { not: null } },
+      where: { saleId: sale.id },
       include: { product: true },
     });
 
