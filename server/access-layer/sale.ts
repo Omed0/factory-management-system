@@ -323,7 +323,7 @@ export async function getProductWithSaleWithcustomerForInvoice({
       include: {
         customer: true,
         paidLoans: true,
-        saleItems: { include: { product: true } },
+        saleItems: true,
       },
     });
 
