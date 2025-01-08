@@ -253,6 +253,8 @@ export async function finishSaleInvoice({
       where: { id: data.saleId, deleted_at: null, isFinished: false },
     });
 
+    if (currentSale?.totalAmount === 0)
+      throw new Error('ناتوانیت وەصڵێک تەواو بکەیت بە بێ مەواد و پارە');
     if (!currentSale) throw new Error('ئەم وەصڵە نەدۆزرایەوە');
 
     const isCash = currentSale.saleType === 'CASH';

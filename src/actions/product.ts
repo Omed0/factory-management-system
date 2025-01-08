@@ -36,12 +36,15 @@ export async function getListProductActions({
   return { success: true, data: products };
 }
 
-export async function createProductActions(data: CreateProduct) {
+export async function createProductActions(
+  data: CreateProduct,
+  path: string = '/product'
+) {
   const product = await createProduct(data);
   if ('error' in product) {
     return { success: false, message: product.error };
   }
-  revalidatePath('/product');
+  revalidatePath(path, 'page');
   return { success: true, message: 'مەواد زیادکرا بەسەرکەوتووی' };
 }
 

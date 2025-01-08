@@ -42,13 +42,11 @@ type Props = {
   product?: Partial<OneProduct>;
   title: string;
   handleClose?: () => void;
+  path?: string;
 };
 
-type FormType<T extends boolean> = T extends true
-  ? UpdateProduct
-  : CreateProduct;
 
-export default function AddProduct({ product, title, handleClose }: Props) {
+export default function AddProduct({ product, title, handleClose, path }: Props) {
   const isEdit = !!product;
   const { data } = useDollar()
   const { searchParams } = useSetQuery()
@@ -83,11 +81,11 @@ export default function AddProduct({ product, title, handleClose }: Props) {
     } else {
       values.image = undefined
     }
-    
+
     if (isEdit && product?.id) {
       productValues = await updateProductActions(product.id, values as UpdateProduct);
     } else {
-      productValues = await createProductActions(values as CreateProduct);
+      productValues = await createProductActions(values as CreateProduct, path);
     }
 
     if (!productValues.success) {
@@ -103,6 +101,7 @@ export default function AddProduct({ product, title, handleClose }: Props) {
     <Form {...form}>
       <h2 className="text-md pt-1 text-center font-medium">{title}</h2>
       <form
+        id='create-product'
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-wrap items-center gap-5 p-6"
       >
@@ -199,7 +198,11 @@ export default function AddProduct({ product, title, handleClose }: Props) {
           />
         )}
         <div className="mt-5 flex w-full flex-wrap gap-5">
-          <Button type="submit" className="flex-1 basis-60" disabled={!form.formState.isDirty}>
+          <Button
+            type="submit"
+            form='create-product'
+            className="flex-1 basis-60"
+            disabled={!form.formState.isDirty}>
             {isEdit ? 'نوێکردنەوە' : 'زیادکردن'}
           </Button>
           <DialogClose className="flex-1 basis-60" onClick={handleClose}>

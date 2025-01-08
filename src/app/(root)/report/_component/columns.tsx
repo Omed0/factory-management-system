@@ -95,9 +95,7 @@ export const columns: ColumnDef<any>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.date).toLocaleDateString(
-        'en-GB'
-      );
+      const date = new Date(row.original.date).toLocaleDateString('en-GB');
       return (
         <div className="flex w-[100px] items-center">
           <span>{date}</span>

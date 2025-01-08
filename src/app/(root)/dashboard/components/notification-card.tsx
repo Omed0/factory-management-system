@@ -3,28 +3,23 @@
 import { getCustomersWhoDidntGiveLoanActions } from "@/actions/information";
 import { Card, CardTitle, CardHeader, CardContent, CardDescription } from "@/components/ui/card";
 import useConvertCurrency from "@/hooks/useConvertCurrency";
-import { useDollar } from "@/hooks/useDollar";
-import { formatCurrency } from "@/lib/utils";
-import { Customers, Sales } from "@prisma/client";
 import { format } from "date-fns";
 import Link from "next/link";
 
 type Props = {
-    customer: Exclude<Awaited<ReturnType<typeof getCustomersWhoDidntGiveLoanActions>>['data'], undefined>['oneMonthAgoCustomers'][0],
+    sale: Exclude<Awaited<ReturnType<typeof getCustomersWhoDidntGiveLoanActions>>['data'], undefined>['oneMonthAgoCustomers'][0],
 }
 
-export default function NotificationCard({ customer }: Props) {
-    const sale = customer.sales[0]
-
+export default function NotificationCard({ sale }: Props) {
     const invocieName = sale.saleNumber
-    const totalAmount = useConvertCurrency(sale.totalAmount)
-    const totalRemainig = useConvertCurrency(sale.totalRemaining)
+    const totalAmount = useConvertCurrency(sale.totalAmount, sale.dollar)
+    const totalRemainig = useConvertCurrency(sale.totalRemaining, sale.dollar)
     const discount = sale.discount
-    const totalAmountAfterDiscount = useConvertCurrency(sale.totalAmount - discount || 0)
+    const totalAmountAfterDiscount = useConvertCurrency(sale.totalAmount - discount || 0, sale.dollar)
 
     const precentage = (sale.totalRemaining / sale.totalAmount) * 100
-    const lastPaid = sale.paidLoans[sale.paidLoans.length - 1].paidDate
-    const formatDateLastPaid = format(lastPaid, "dd-MM-yyy")
+    const lastPaid = sale.paidLoans.length ? sale.paidLoans[sale.paidLoans.length - 1].paidDate : sale.saleDate
+    const formatDateLastPaid = lastPaid.toLocaleDateString("en-GB")
 
     return (
         <Card>
@@ -33,9 +28,9 @@ export default function NotificationCard({ customer }: Props) {
                     <p><strong>وەصڵ:</strong> {invocieName}</p>
                 </CardTitle>
                 <CardDescription>
-                    <Link href={`/customer/${customer.id}`}
+                    <Link href={`/customer/${sale.customerId}`}
                         className="text-blue-500 hover:underline"
-                    >{customer.name}</Link>
+                    >{sale.customer?.name}</Link>
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -47,11 +42,11 @@ export default function NotificationCard({ customer }: Props) {
                             <p>{totalAmountAfterDiscount}</p>
                         </>
                     ) : (
-                        <p>{totalAmount}</p>
+                        <p className="inline ms-2">{totalAmount}</p>
                     )}
                 </div>
-                <p>
-                    <strong className="me-6">کۆی دراو:</strong>
+                <p className="flex">
+                    <strong className="me-7">کۆی دراو:</strong>
                     {totalRemainig}
                 </p>
                 <p>

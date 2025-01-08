@@ -336,7 +336,7 @@ export function ModalTablePaidLoanSale({
                 <TableCell className="w-20 text-center">{item.id}</TableCell>
                 <TableCell className="amount-cell text-center">{formatCurrency(item.amount, dollarValue, currency)}</TableCell>
                 <TableCell className='text-center'>
-                  {new Date(item.paidDate).toLocaleDateString('en-US')}
+                  {new Date(item.paidDate).toLocaleDateString('en-GB')}
                 </TableCell>
                 <TableCell className="max-w-96 text-wrap text-center">
                   {item.note}

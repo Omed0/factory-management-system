@@ -193,52 +193,50 @@ export async function getDashboardChartInformation() {
 
 export async function getCustomersWhoDidntGiveLoan() {
   return tryCatch(async () => {
-    const now = new Date();
+    const now = new Date(new Date().setUTCHours(23, 59, 59, 999));
     const oneMonthAgo = addMonths(now, -1);
-    const twoMonthAgo = addMonths(now, -2);
+    const twoMonthsAgo = addMonths(now, -2);
 
-    // Helper function for query
-    const getCustomersByDateRange = async (startDate: Date, endDate?: Date) => {
-      const customers = await prisma.customers.findMany({
+    // Helper function to fetch customers by date range
+    const getCustomersByDateRange = async (
+      firstMonth: Date,
+      secondMonth?: Date
+    ) => {
+      const sales = await prisma.sales.findMany({
         where: {
-          sales: {
-            some: {
-              paidLoans: {
-                some: {
-                  paidDate: endDate
-                    ? { gt: startDate, lt: endDate }
-                    : { lt: startDate },
-                },
-              },
-              saleType: 'LOAN',
-              deleted_at: null,
-              isFinished: false,
-            },
-          },
+          saleType: 'LOAN',
+          deleted_at: null,
         },
-        include: {
-          sales: { include: { paidLoans: true } },
-        },
+        include: { paidLoans: true, customer: true },
       });
 
-      // Filter customers based on totalRemaining condition
-      const filteredCustomers = customers.filter((customer) =>
-        customer.sales.some(
-          (sale) => sale.totalRemaining !== sale.totalAmount - sale.discount
-        )
-      );
+      const filteredSales = sales.filter((sale) => {
+        const lastPaymentDate = sale.paidLoans.length
+          ? sale.paidLoans[sale.paidLoans.length - 1].paidDate
+          : sale.saleDate;
 
-      return filteredCustomers;
+        const isFinishPaid =
+          sale.totalRemaining !== sale.totalAmount - (sale.discount || 0);
+
+        return (
+          isFinishPaid &&
+          (secondMonth
+            ? lastPaymentDate < secondMonth && lastPaymentDate > firstMonth
+            : lastPaymentDate < firstMonth)
+        );
+      });
+
+      return filteredSales;
     };
 
-    // Query 2: Customers who did not pay last month but paid before that
+    // Query 1: Customers who didn't pay last month but paid before that
     const oneMonthAgoCustomers = await getCustomersByDateRange(
-      twoMonthAgo,
+      twoMonthsAgo,
       oneMonthAgo
     );
 
-    // Query 3: Customers who did not pay for more than one month
-    const twoMonthsAgoCustomers = await getCustomersByDateRange(twoMonthAgo);
+    // Query 2: Customers who didn't pay for more than two months
+    const twoMonthsAgoCustomers = await getCustomersByDateRange(twoMonthsAgo);
 
     return {
       oneMonthAgoCustomers,

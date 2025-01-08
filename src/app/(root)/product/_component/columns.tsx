@@ -99,9 +99,7 @@ export const columns: ColumnDef<OneProduct>[] = [
       <DataTableColumnHeader column={column} title="بەروار تۆمارکردن" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.created_at).toLocaleDateString(
-        'en-GB'
-      );
+      const date = new Date(row.original.created_at).toLocaleDateString('en-GB');
       return (
         <div className="w-[100px]">
           <span>{date}</span>

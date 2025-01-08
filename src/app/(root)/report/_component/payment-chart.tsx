@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { now } from "@/lib/constant"
 import { TrendingDown, TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
@@ -31,7 +32,6 @@ const chartConfig = {
 
 export default function PaymentChart({ type, data }: Props) {
   const isCompany = type === "companies" ? "کڕدراو" : "فرۆشراو"
-  const now = new Date().toLocaleDateString()
 
   return (
     <Card>
@@ -42,7 +42,7 @@ export default function PaymentChart({ type, data }: Props) {
             شیکاری چوار مانگی ڕابردوو
           </CardDescription>
         </div>
-        <p>{now}</p>
+        <p>{now.toLocaleDateString("en-GB")}</p>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

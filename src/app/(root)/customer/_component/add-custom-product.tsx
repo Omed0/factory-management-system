@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react'
 import { createProductSaleListActions } from '@/actions/sale';
 import { CurrencyInput } from '@/components/custom-currency-input';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { useDollar } from '@/hooks/useDollar';
 import { OneProduct } from '@/server/schema/product';
 import { CreateProductSale, createProductSaleSchema, OneSale } from '@/server/schema/sale';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useCallback, useEffect, useMemo } from 'react'
+import { ListRestart, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ type Props = {
 
 export default function AddCustomProduct({ product, resetSelectProduct, invoice }: Props) {
 
+    const [open, setOpen] = useState(false);
     const { data: { dollar } } = useDollar()
     const form = useForm<CreateProductSale>({
         mode: 'onSubmit',
@@ -54,11 +56,11 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice 
         return () => reset()
     }, [product])
 
-    console.log(form.formState.errors);
 
     return (
         <Form {...form}>
             <form
+                id='add-custom-product'
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="flex items-end flex-wrap gap-4"
             >
@@ -66,7 +68,7 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice 
                     control={form.control}
                     name="name"
                     render={({ field }) => (
-                        <FormItem className="flex-1 basis-44">
+                        <FormItem className="flex-1 basis-40">
                             <FormLabel>ناو</FormLabel>
                             <FormControl>
                                 <Input {...field} />
@@ -95,23 +97,26 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice 
                         </FormItem>
                     )}
                 />
-                <div className="flex gap-2">
-                    <Button type="submit" className="" disabled={!form.formState.isValid}>
-                        زیادکردن
+                <div className='flex gap-2'>
+                    <Button
+                        type="submit"
+                        form='add-custom-product'
+                        disabled={!form.formState.isValid}
+                    >
+                        <Plus className='size-5' />
                     </Button>
                     <Button
                         type="reset"
-                        className=""
-                        variant="outline"
+                        variant="destructive"
                         onClick={() => {
                             resetSelectProduct(null);
                             reset()
                         }}
                     >
-                        سڕینەوە
+                        <ListRestart className='size-5' />
                     </Button>
                 </div>
             </form>
-        </Form>
+        </Form >
     )
 }

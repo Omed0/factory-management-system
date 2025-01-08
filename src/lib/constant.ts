@@ -1,13 +1,4 @@
-//import { env } from '@/env.mjs';
 import { EmployeeActionType } from '@prisma/client';
-import { addDays } from 'date-fns';
-
-//export const siteConfig = {
-//  title: 'zanyar group',
-//  description: 'zanyar group',
-//  keywords: () => [],
-//  url: () => env.APP_URL,
-//};
 
 export const FALLBACK_IMAGE = '/placeholder.jpg';
 

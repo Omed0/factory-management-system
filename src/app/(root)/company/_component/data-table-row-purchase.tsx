@@ -262,7 +262,7 @@ export function ModalTablePurchaseInfo<T extends number>({
                 </TableCell>
                 <TableCell className='p-2 text-center'>{formatAmount(item.amount)}</TableCell>
                 <TableCell className='p-2 text-center'>
-                  {new Date(item.date).toLocaleDateString('en-US')}
+                  {new Date(item.date).toLocaleDateString('en-GB')}
                 </TableCell>
                 <TableCell className="p-2 max-w-96 text-wrap text-center">
                   {item.note}

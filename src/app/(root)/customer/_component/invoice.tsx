@@ -31,14 +31,11 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
     const header = [
         { name: "ژ.وەصڵ", value: data?.id },
         { name: "جۆری وەصڵ", value: data?.saleType === "CASH" ? "نەقد" : "قەرز" },
-        { name: "ڕۆژ", value: data?.saleDate.toLocaleDateString() },
+        { name: "ڕۆژ", value: data?.saleDate.toLocaleDateString('en-GB') },
         { name: "داشکاندن", value: useConvertCurrency(data?.discount || 0, sale.dollar) },
         { name: "کۆی گشتی", value: useConvertCurrency(data?.totalAmount || 0, sale.dollar) },
         { name: "بڕی دراو", value: useConvertCurrency(data?.totalRemaining || 0, sale.dollar) },
-        {
-            name: "قەرز",
-            value: useConvertCurrency(loan, sale.dollar)
-        },
+        { name: "قەرز", value: useConvertCurrency(loan, sale.dollar) },
     ]
 
     if (isError || !data) {

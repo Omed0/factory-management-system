@@ -36,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
 import { debounce, formatCurrency } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
@@ -106,9 +105,11 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
               <SelectGroup>
                 <SelectLabel>وەصڵەکان</SelectLabel>
                 {sales?.sale.filter((e) => !e.isFinished).map((sale) => {
+                  const type = sale.saleType === 'CASH' ? 'نەقد' : 'قیست';
                   return (
-                    <SelectItem key={sale.id} value={sale.id.toString()}>
-                      <p className="me-3 inline">{sale.saleNumber}</p>
+                    <SelectItem className='justify-between' key={sale.id} value={sale.id.toString()}>
+                      <p className="me-10 inline">{sale.saleNumber}</p>
+                      <Badge variant={type === "قیست" ? "outline" : "default"}>{type}</Badge>
                     </SelectItem>
                   );
                 })}

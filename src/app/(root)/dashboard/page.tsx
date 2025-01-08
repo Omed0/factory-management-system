@@ -91,20 +91,20 @@ export default async function DashboardPage({ searchParams }: Props) {
             </TabsContent>
             <TabsContent dir='rtl' value="notifications" className="space-y-4 container mx-auto p-4">
               <h1 className="text-2xl font-bold mb-5">ئاگادارکردنەوەکان</h1>
-              <section className="w-full flex ">
+              <section className="w-full flex">
                 <div className='space-y-3 w-[70%]'>
                   <h2>ئەوانەی مانگێکە قەرزارن</h2>
-                  <div className='grid gap-4 grid-cols-2'>
-                    {notificationLoan.data.oneMonthAgoCustomers.map((customer) => (
-                      <NotificationCard key={customer.id} customer={customer} />
+                  <div className='grid gap-4 grid-cols-2 overflow-scroll'>
+                    {notificationLoan.data.oneMonthAgoCustomers.map((sale) => (
+                      <NotificationCard key={sale.id} sale={sale} />
                     ))}
                   </div>
                 </div>
                 <div className='space-y-3 w-[30%] border-s ps-3'>
                   <h2>ئەوانەی لە دوومانگ زیاترە قەرزارن</h2>
-                  <div className='grid gap-4 grid-cols-1'>
-                    {notificationLoan.data.twoMonthsAgoCustomers.map((customer) => (
-                      <NotificationCard key={customer.id} customer={customer} />
+                  <div className='grid gap-4 grid-cols-1 overflow-scroll'>
+                    {notificationLoan.data.twoMonthsAgoCustomers.map((sale) => (
+                      <NotificationCard key={sale.id} sale={sale} />
                     ))}
                   </div>
                 </div>

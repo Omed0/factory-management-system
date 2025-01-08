@@ -125,7 +125,7 @@ export default function EmployeeInfoActions({ employee }: Props) {
                 {formatCurrency(action.amount, action.dollar, currency)}
               </TableCell>
               <TableCell className='p-2 text-center'>
-                {new Date(action.dateAction).toLocaleDateString()}
+                {new Date(action.dateAction).toLocaleDateString("en-GB")}
               </TableCell>
               <TableCell className="max-w-96 text-wrap p-2 text-center">
                 {action.note}

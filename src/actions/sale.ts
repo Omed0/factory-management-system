@@ -145,7 +145,7 @@ export async function finishSaleActions(id: any, isFinished: boolean) {
       message: sale?.error || 'هەڵەیەک هەیە',
     };
   }
-  //revalidatePath("/customer/[id]/sale", "page")
+  //revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ تەواو کرا' };
 }
 

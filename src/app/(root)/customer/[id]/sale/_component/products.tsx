@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { MoveUp, Plus } from 'lucide-react';
+import { MoveUp, PackagePlus, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 
@@ -21,6 +21,8 @@ import { OneProduct } from '@/server/schema/product';
 import { OneSale } from '@/server/schema/sale';
 import { Badge } from '@/components/ui/badge';
 import { FALLBACK_IMAGE } from '@/lib/constant';
+import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
+import AddProduct from '@/app/(root)/product/_component/add-product';
 
 type Props = {
   product: OneProduct[];
@@ -30,11 +32,27 @@ type Props = {
 
 export default function Products({ product, invoice, currency }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
   const [selectProduct, setSelectProduct] = useState<OneProduct | null>(null);
 
   return (
     <section className="space-y-5 h-full flex-[4] overflow-scroll rounded-lg border-2 shadow">
-      <div className="border-b-2 w-full p-2 sticky top-0 inset-x-0 bg-background">
+      <div className="border-b-2 w-full p-2 space-y-3 sticky top-0 inset-x-0 bg-background">
+        <CustomDialogWithTrigger
+          open={open}
+          onOpenChange={setOpen}
+          button={<Button variant="outline" className='absolute top-1.5 end-2'>
+            <PackagePlus />
+          </Button>}
+        >
+          <section className="w-full p-4">
+            <AddProduct
+              path={`/customer/[id]/sale`}
+              title="زیادکردنی مەواد"
+              handleClose={() => setOpen(false)}
+            />
+          </section>
+        </CustomDialogWithTrigger>
         <AddCustomProduct
           invoice={invoice}
           product={selectProduct}

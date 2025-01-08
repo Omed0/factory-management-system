@@ -7,14 +7,10 @@ import { DataTableColumnHeader } from './data-table-column-header';
 import { DataTableRowSaleActions } from './data-table-row-sale-actions';
 
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { cn } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
+import CustomToolTip from '@/components/custom-tool-tip';
 
 
 export const column_sale: ColumnDef<OneSale>[] = [
@@ -36,6 +32,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
       const sale = row.original;
       const isTrash = Boolean(sale.deleted_at);
       const status = sale.isFinished || isTrash;
+      const showAmount = useConvertCurrency(sale.monthlyPaid, sale.dollar);
 
       return (
         <div className="flex items-center gap-2">
@@ -46,13 +43,12 @@ export const column_sale: ColumnDef<OneSale>[] = [
               'text-foreground/70 cursor-default line-through': status,
             })}
           >
-            <TooltipMonthlyPaid
+            <CustomToolTip
               isShow={sale.saleType === 'LOAN'}
-              amount={sale.monthlyPaid}
-              dollar={sale.dollar}
+              trigger={<p>{sale.saleNumber}</p>}
             >
-              <p>{sale.saleNumber}</p>
-            </TooltipMonthlyPaid>
+              <p>پارەدانی مانگانە : {showAmount}</p>
+            </CustomToolTip>
           </Link>
         </div>
       );
@@ -157,29 +153,3 @@ export const column_sale: ColumnDef<OneSale>[] = [
     cell: ({ row }) => <DataTableRowSaleActions row={row} />,
   },
 ];
-
-const TooltipMonthlyPaid = ({
-  children,
-  amount,
-  isShow,
-  dollar,
-}: {
-  children: React.ReactNode;
-  amount: number;
-  isShow: boolean;
-  dollar?: number
-}) => {
-  const showAmount = useConvertCurrency(amount, dollar);
-  return (
-    <Tooltip>
-      <TooltipTrigger className="text-inherit decoration-inherit [cursor:inherit] [text-decoration:inherit]">
-        {children}
-      </TooltipTrigger>
-      {isShow && (
-        <TooltipContent>
-          <p>پارەدانی مانگانە : {showAmount}</p>
-        </TooltipContent>
-      )}
-    </Tooltip>
-  );
-};

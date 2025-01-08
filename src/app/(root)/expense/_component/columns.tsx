@@ -70,9 +70,7 @@ export const columns: ColumnDef<OneExpense>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.created_at).toLocaleDateString(
-        'en-GB'
-      );
+      const date = new Date(row.original.created_at).toLocaleDateString('en-GB');
       return (
         <div className="flex w-[100px] items-center">
           <span>{date}</span>
