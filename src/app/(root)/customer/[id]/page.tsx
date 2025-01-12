@@ -42,13 +42,16 @@ export default async function SpecificCustomerSales({
     );
   }
 
+  const customerName = sales?.data?.customer?.name || "دیارینەکراو"
+
+
   return (
     <section className="w-full space-y-4 p-2">
       <div className="flex justify-between">
         <div className="flex items-center gap-2">
           <UsersRound className="size-5" />
           <h1 className="text-lg font-medium">
-            {isTrash ? 'وەصڵە ئەرشیفکراوەکان' : 'وەصڵە بەردەستەکان'}
+            {isTrash ? `وەصڵە ئەرشیفکراوەکانی ${customerName}` : `وەصڵە بەردەستەکانی ${customerName}`}
           </h1>
         </div>
       </div>

@@ -78,9 +78,6 @@ export function DataTableToolbar<TData extends CustomerData>({
             <ShieldCheck className="size-4" />
           </Link>
         </Button>
-        {isSale && (
-          <p>{customer?.name}</p>
-        )}
       </div>
       <CustomDialogWithTrigger
         open={open}

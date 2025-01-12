@@ -37,12 +37,14 @@ export default async function SpecificCompany({ searchParams, params }: Props) {
     );
   }
 
+  const companyName = companyPurchase.data?.[0]?.company?.name || "دیارینەکراو"
+
   return (
     <section className="w-full space-y-4 p-2">
       <div className="flex items-center gap-2">
         <Users className="size-5" />
         <h1 className="text-lg font-medium">
-          {isTrash ? 'کڕدراوە ئەرشیفکراوەکان' : 'کڕدراوە بەردەستەکان'}
+          {isTrash ? `کڕدراوە ئەرشیفکراوەکانی ${companyName}` : `کڕدراوە بەردەستەکانی ${companyName}`}
         </h1>
       </div>
       <DataTable

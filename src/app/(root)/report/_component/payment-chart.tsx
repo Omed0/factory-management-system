@@ -2,7 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { useDollar } from "@/hooks/useDollar"
+import useSetQuery from "@/hooks/useSetQuery"
 import { now } from "@/lib/constant"
+import { formatCurrency } from "@/lib/utils"
 import { TrendingDown, TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
@@ -32,6 +35,10 @@ const chartConfig = {
 
 export default function PaymentChart({ type, data }: Props) {
   const isCompany = type === "companies" ? "کڕدراو" : "فرۆشراو"
+  const { searchParams } = useSetQuery()
+  const { data: { dollar } } = useDollar()
+  const currency = searchParams.get("currency") || "USD"
+
 
   return (
     <Card>
@@ -50,8 +57,8 @@ export default function PaymentChart({ type, data }: Props) {
             accessibilityLayer
             data={data.chartData}
             margin={{
-              left: 20,
-              right: 20,
+              left: 10,
+              right: 10,
             }}
           >
             <CartesianGrid vertical={false} />
@@ -64,7 +71,8 @@ export default function PaymentChart({ type, data }: Props) {
             />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent indicator="dot" />}
+              formatter={(value) => formatCurrency(+value, dollar, currency)}
+              content={<ChartTooltipContent hideLabel indicator="dot" />}
             />
             <Area
               dataKey="now"
