@@ -49,7 +49,7 @@ sitemap-*.xml
 /playwright/.cache/
 
 # prisma
-prisma/migrations
+/prisma/migrations
 
 # public images
 /public/images/
