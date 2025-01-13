@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
 import { Dispatch, SetStateAction, useState } from 'react';
 import { DateRange, SelectRangeEventHandler } from 'react-day-picker';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 import { Button } from './ui/button';
@@ -12,20 +12,25 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import useSetQuery from '@/hooks/useSetQuery';
 import { cn, seperateDates } from '@/lib/utils';
 
-
 type Props = {
   className?: string;
   setState?: Dispatch<SetStateAction<DateRange | undefined>>;
+  noDefault?: boolean;
 };
 
-export default function CalenderRangMultiSide({ className, setState }: Props) {
+export default function CalenderRangMultiSide({ className, setState, noDefault = false }: Props) {
   const { setQuery, searchParams } = useSetQuery(30);
-  const dates = seperateDates(searchParams.get("date"))
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: new Date(dates.from),
-    to: new Date(dates.to)
-  });
+  const dates = seperateDates(searchParams.get("date"));
 
+  // Initialize date state based on noDefault
+  const [date, setDate] = useState<DateRange | undefined>(
+    noDefault
+      ? undefined // If noDefault is true, do not set default dates
+      : {
+        from: dates.from ? new Date(dates.from) : undefined,
+        to: dates.to ? new Date(dates.to) : undefined,
+      }
+  );
 
   const handleChange: SelectRangeEventHandler = (range, selectedDay, activeModifiers, e) => {
     setDate(range);

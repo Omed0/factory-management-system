@@ -24,7 +24,6 @@ export const getReportPersonByDateSchema = z.object({
   to: z.string(),
 });
 
-
 export const getTradePartnerSchema = z.object({
   type: z.enum(['companies', 'customers']),
 });
@@ -43,6 +42,11 @@ export const getReportChartPartnerSchema = z.object({
   id: z.string(),
 });
 
+export const getInfoAboutBoxSchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+});
+
 export type DashboardInfoTypes = z.infer<typeof getDashboardInfoSchema>;
 export type ReportDateTypes = z.infer<typeof getReportByDateSchema>;
 export type ReportPersonTypes = z.infer<typeof getReportPersonByDateSchema>;
@@ -53,5 +57,6 @@ export type ReportTradePartnerTypes = z.infer<
 export type getReportChartPartnerTypes = z.infer<
   typeof getReportChartPartnerSchema
 >;
+export type InfoAboutBoxTypes = z.infer<typeof getInfoAboutBoxSchema>;
 
 export type TradePartner = Companies | Customers;

@@ -5,118 +5,102 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from './data-table-column-header';
 
 import useConvertCurrency from '@/hooks/useConvertCurrency';
-import { report_link, report_name } from '../_constant';
 import Link from 'next/link';
+import { CombinedData } from '@/server/access-layer/information';
+import { redirect_to_page_name, tr_define_name_type_table, tr_type_calculated } from '@/lib/constant';
 import { cn } from '@/lib/utils';
-import { useParams } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 
-export const columns: ColumnDef<any>[] = [
-  //{
-  //  accessorKey: 'id',
-  //  header: ({ column }) => (
-  //    <DataTableColumnHeader column={column} title="زنجیرە" />
-  //  ),
-  //  cell: ({ row }) => {
-  //    const id = row.original?.id?.toString()
-  //    return (
-  //      <span className="w-[100px]">{id}</span>
-  //    );
-  //  },
-  //},
+export const columns: ColumnDef<CombinedData>[] = [
   {
-    accessorKey: 'name',
+    accessorKey: 'id',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ناو" />
+      <DataTableColumnHeader column={column} title="زنجیرە" />
     ),
     cell: ({ row }) => {
-      const params = useParams()
-
-      const id = row.original?.redirectId?.toString()
-      const report = params.id || report_name[0]
-      const currentLink = report_link.find((v) => v.name === report)?.value(id)
-
-      const isTotalAmountRow = row.original.id == 0
-
+      const { id, type } = row.original;
+      const url = redirect_to_page_name.find((item) => item.name === type)?.value(id || 0);
       return (
         <Link
-          href={isTotalAmountRow ? "#" : currentLink || "#"}
-          className={cn("flex w-[100px] items-center cursor-auto", {
-            "text-blue-500 hover:underline cursor-pointer": currentLink && !isTotalAmountRow
+          className={cn("min-w-20", {
+            "text-blue-500 underline": row.index !== 0
           })}
+          href={typeof url === 'string' ? url : row.index !== 0 ? "/employee" : "#"}
         >
-          {row.original.name}
+          {row.index}
         </Link>
-      );
+      )
     },
   },
   {
-    accessorKey: 'amount',
+    accessorKey: 'createdAt',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="کۆی دراوە لە وەصڵ" />
-    ),
-    cell: function CellComponent({ row }) {
-      const { amount, dollar } = row.original
-      const formatPrice = useConvertCurrency(amount, dollar);
-      return (
-        <div className="flex w-[100px] items-center">
-          <span>{formatPrice}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: 'type',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="جۆری وەصڵ" />
+      <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const isLoan = row.original?.type === "LOAN"
-      const isTotal = row.original?.id === 0
+      const { createdAt } = row.original
+      const date = createdAt ? new Date(createdAt).toLocaleDateString('en-GB') : '';
+
+      return (<span>{date}</span>)
+    },
+  },
+  {
+    accessorKey: 'partner',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="وەسف" />
+    ),
+    cell: ({ row }) => {
+      const { type, partner } = row.original
       return (
-        <div className="flex w-[100px] items-center">
-          {isTotal ? (
-            <span></span>
+        <div className='flex items-center gap-2'>
+          {type ? (
+            <>
+              <span>{tr_type_calculated.get(type)}</span>
+              {partner && (<span className='font-semibold'> | {partner}</span>)}
+              <span>| {tr_define_name_type_table.get(type)}</span>
+            </>
           ) : (
-            <Badge variant={isLoan ? "secondary" : "outline"} className='min-w-24 justify-center'>
-              {isLoan ? "قەرز" : "نەقد"}
-            </Badge>
+            <span>{partner}</span>
           )}
         </div>
       );
     },
   },
   {
-    accessorKey: 'date',
+    accessorKey: 'subtraction',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="بەروار" />
+      <DataTableColumnHeader column={column} title="پارەدان" />
     ),
-    cell: ({ row }) => {
-      const date = new Date(row.original.date).toLocaleDateString('en-GB');
-      return (
-        <div className="flex w-[100px] items-center">
-          <span>{date}</span>
-        </div>
-      );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
+    cell: function CellComponent({ row }) {
+      const { subtraction, dollar, type } = row.original
+      const formatedAmount = useConvertCurrency(subtraction || 0, dollar || undefined);
+      const isShow = type === "expense" || type === "companyPurchase" || type === null;
+
+      return (<span>{isShow ? formatedAmount : ""}</span>);
     },
   },
   {
-    accessorKey: 'note',
+    accessorKey: 'addition',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="تێبینی" />
+      <DataTableColumnHeader column={column} title="پارەوەرگرتن" />
     ),
-    cell: ({ row }) => {
-      return (
-        <div className="max-w-96 text-wrap">
-          <span>{row.getValue('note')}</span>
-        </div>
-      );
+    cell: function CellComponent({ row }) {
+      const { dollar, addition, type } = row.original
+      const formatedAmount = useConvertCurrency(addition || 0, dollar || undefined);
+      const isShow = type === "expense" || type === "companyPurchase";
+
+      return (<span>{!isShow ? formatedAmount : ""}</span>);
+    },
+  },
+  {
+    accessorKey: 'balance',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="باڵانس" />
+    ),
+    cell: function CellComponent({ row }) {
+      const { dollar, balance } = row.original
+      const formatedAmount = useConvertCurrency(balance || 0, dollar || undefined);
+
+      return (<span>{formatedAmount}</span>);
     },
   },
 ];

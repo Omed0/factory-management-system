@@ -5,11 +5,13 @@ import { tryCatch } from '@/lib/helper';
 import {
   DashboardInfoTypes,
   getDashboardInfoSchema,
+  getInfoAboutBoxSchema,
   getReportByDateSchema,
   getReportChartPartnerSchema,
   getReportChartPartnerTypes,
   getReportTradePartnerSchema,
   getTradePartnerSchema,
+  InfoAboutBoxTypes,
   ReportDateTypes,
   ReportTradePartnerTypes,
   TradePartner,
@@ -20,10 +22,10 @@ import {
   keyPurchase,
   keySale,
 } from '@/app/(root)/report/_constant';
-import { Prisma } from '@prisma/client';
 import { addMonths } from 'date-fns';
 import { calculateTotalAmount } from './box';
-import { addition_actions } from '@/lib/constant';
+import { addition_actions, subtraction_actions } from '@/lib/constant';
+import { EmployeeActionType, Prisma } from '@prisma/client';
 
 type LoanSummary = {
   _sum: {
@@ -110,8 +112,8 @@ export async function getDashboardInformation(data: DashboardInfoTypes) {
     );
     const subtraction_employee_actions = employeeActions.reduce(
       (sum, action) =>
-        !addition_actions.includes(
-          action.type as (typeof addition_actions)[number]
+        subtraction_actions.includes(
+          action.type as (typeof subtraction_actions)[number]
         )
           ? sum + action.amount
           : sum,
@@ -484,6 +486,122 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
       totalDiscount: loanSummary._sum?.discount || 0,
       totalAvailableLoan,
     };
+  });
+}
+
+export type CombinedData = {
+  id: number | null;
+  name: string | null;
+  createdAt: Date | null;
+  dollar: number | null;
+  note: string | null;
+  partner: string | null;
+  type: 'expense' | 'sale' | 'companyPurchase' | EmployeeActionType | null;
+  addition: number;
+  subtraction: number;
+  balance: number;
+};
+
+export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
+  return tryCatch(async () => {
+    const parsedDate = date ? getInfoAboutBoxSchema.parse(date) : null;
+    const from = parsedDate?.from || null;
+    const to = parsedDate?.to || null;
+
+    const combinedData: CombinedData[] = await prisma.$queryRaw`
+    WITH CombinedData AS (
+      SELECT 
+        e.id, 
+        e.title AS name, 
+        e.created_at AS createdAt, 
+        e.dollar, 
+        NULL AS partner, 
+        'expense' AS type,
+        0 AS addition, -- Expenses do not add to balance
+        e.amount AS subtraction -- Expenses decrease the balance
+      FROM Expenses e
+      WHERE (${from} IS NULL OR ${to} IS NULL OR e.created_at BETWEEN ${from} AND ${to})
+      
+      UNION ALL
+
+      SELECT 
+          cp.id, 
+          cp.name, 
+          cp.purchaseDate AS createdAt, 
+          cp.dollar, 
+          com.name AS partner, 
+          'companyPurchase' AS type,
+          0 AS addition, -- Purchases do not add to balance
+          cp.totalRemaining AS subtraction -- Purchases decrease the balance
+        FROM CompanyPurchase cp
+        LEFT JOIN Companies com ON cp.companyId = com.id
+        WHERE (${from} IS NULL OR ${to} IS NULL OR cp.purchaseDate BETWEEN ${from} AND ${to})
+        
+      UNION ALL
+      
+      SELECT 
+        s.id, 
+        s.saleNumber AS name, 
+        s.saleDate AS createdAt, 
+        s.dollar, 
+        c.name AS partner, 
+        'sale' AS type,
+        s.totalRemaining AS addition, -- Sales increase the balance
+        0 AS subtraction -- Sales do not decrease the balance
+      FROM Sales s
+      LEFT JOIN Customers c ON s.customerId = c.id
+      WHERE (${from} IS NULL OR ${to} IS NULL OR s.saleDate BETWEEN ${from} AND ${to})
+      
+      UNION ALL
+      
+      SELECT 
+        ea.id, 
+        ea.type AS name, 
+        ea.dateAction AS createdAt, 
+        ea.dollar, 
+        emp.name AS partner, 
+        ea.type AS type,
+        CASE WHEN ea.type IN ('PUNISHMENT', 'ABSENT') THEN ea.amount ELSE 0 END AS addition, -- Additions are calculated based on the type
+        CASE WHEN ea.type IN ('OVERTIME', 'BONUS') THEN ea.amount ELSE 0 END AS subtraction -- Subtractions are calculated based on the type
+      FROM EmployeeActions ea
+      LEFT JOIN Employee emp ON ea.employeeId = emp.id
+      WHERE (${from} IS NULL OR ${to} IS NULL OR ea.dateAction BETWEEN ${from} AND ${to})
+    )
+    SELECT 
+      *,
+      @running_balance := @running_balance + (addition - subtraction) AS balance
+    FROM CombinedData, (SELECT @running_balance := 0) AS vars
+    ORDER BY createdAt;
+  `;
+
+    // Calculate totals for additions and subtractions
+    const totalAdditions = combinedData.reduce(
+      (sum, data) => sum + data.addition,
+      0
+    );
+    const totalSubtractions = combinedData.reduce(
+      (sum, data) => sum + data.subtraction,
+      0
+    );
+
+    // Calculate final balance
+    const finalBalance = totalAdditions - totalSubtractions;
+
+    // Add summary row
+    combinedData.push({
+      id: null,
+      name: null,
+      createdAt: null,
+      dollar: null,
+      note: null,
+      partner: 'کۆی گشتی',
+      type: null,
+      addition: totalAdditions,
+      subtraction: totalSubtractions,
+      balance: finalBalance,
+    });
+
+    return combinedData;
   });
 }
 

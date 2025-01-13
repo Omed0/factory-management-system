@@ -3,6 +3,7 @@ import { changeDateToString, seperateDates } from '@/lib/utils';
 import { DataTable } from '../_component/data-table';
 import { columns } from '../_component/columns';
 import { report_name } from '../_constant';
+import { columns_product } from '../_component/columns-product';
 
 
 type Props = {
@@ -31,7 +32,7 @@ export default async function Report({ searchParams, params }: Props) {
 
     return (
         <section className="w-full space-y-4 p-2 pt-5">
-            <DataTable columns={columns} data={reports.data} />
+            <DataTable columns={columns_product} data={reports.data} />
         </section>
     );
 }
