@@ -46,7 +46,7 @@ export default function LoginForm() {
     toast.success('You have successfully logged in!', {
       description: 'Redirecting to dashboard...',
     });
-    await sleep(1000);
+    await sleep(600);
     router.replace('/dashboard');
     return
   }

@@ -1,6 +1,6 @@
 import '@/styles/globals.css';
 
-import { PropsWithChildren, Suspense } from 'react';
+import { PropsWithChildren } from 'react';
 
 import { getDollarActions } from '@/actions/boxes';
 import CustomLayout from '@/components/layout/customLayout';
@@ -18,11 +18,9 @@ async function RootLayout({ children }: PropsWithChildren) {
     <html>
       <body className="w-full">
         <ProviderReactQuery>
-          <Suspense fallback={"چاوەڕوانبە..."}>
-            <CustomLayout session={session} dollar={(data.price || 0)}>
-              {children}
-            </CustomLayout>
-          </Suspense>
+          <CustomLayout session={session} dollar={(data.price || 0)}>
+            {children}
+          </CustomLayout>
         </ProviderReactQuery>
       </body>
     </html>
@@ -30,3 +28,4 @@ async function RootLayout({ children }: PropsWithChildren) {
 }
 
 export default RootLayout;
+

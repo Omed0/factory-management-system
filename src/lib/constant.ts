@@ -24,11 +24,40 @@ export const tr_employee_action = new Map<EmployeeActionType, string>([
   [EmployeeActionType.PUNISHMENT, 'سزادان'],
 ]);
 
-export const subtraction_actions = [
+export const tr_define_name_type_table = new Map<string, string>([
+  ['expense', 'خەرجی'],
+  ['companyPurchase', 'کڕین'],
+  ['sale', 'فرۆشتن'],
+  ['BONUS', 'پاداشت'],
+  ['PUNISHMENT', 'سزادان'],
+  ['ABSENT', 'مۆڵەت'],
+  ['OVERTIME', 'کارکردنی زیادە'],
+]);
+
+export const tr_type_calculated = new Map<string, string>([
+  ['expense', 'پارەدان'],
+  ['companyPurchase', 'پارەدان'],
+  ['sale', 'پارەوەرگرتن'],
+  ['BONUS', 'پارەدان'],
+  ['PUNISHMENT', 'پارەوەرگرتن'],
+  ['ABSENT', 'پارەوەرگرتن'],
+  ['OVERTIME', 'پارەدان'],
+]);
+
+export const redirect_to_page_name = [
+  { name: 'expense', value: (v: number) => '/expense' },
+  { name: 'companyPurchase', value: (id: number) => `/company/${id}` },
+  { name: 'sale', value: (id: number) => `/customer/${id}` },
+];
+
+export const addition_actions = [
+  // those addition money to box
   EmployeeActionType.ABSENT,
   EmployeeActionType.PUNISHMENT,
 ] as const;
-export const addition_actions = [
+
+export const subtraction_actions = [
+  // those subtraction money from box
   EmployeeActionType.OVERTIME,
   EmployeeActionType.BONUS,
 ] as const;
@@ -38,6 +67,6 @@ export const currentYear = now.getFullYear();
 export const currentMonth = now.getMonth();
 
 export const defaultDates = {
-  from: new Date(new Date().setMonth(currentMonth, 1)).toLocaleDateString(),
-  to: new Date(new Date().setMonth(currentMonth + 1, 0)).toLocaleDateString(),
+  from: new Date(new Date().setMonth(currentMonth, 1)).toLocaleDateString(), // First day of the month
+  to: new Date(new Date().setMonth(currentMonth + 1, 0)).toLocaleDateString(), // Last day of the month
 };

@@ -76,6 +76,10 @@ const data = {
           title: 'بەپێی کەس',
           url: '/report/person',
         },
+        {
+          title: 'کەشف حساب قاسە',
+          url: '/report/each-action',
+        },
       ],
     },
   ],

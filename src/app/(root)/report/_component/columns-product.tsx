@@ -17,13 +17,7 @@ export const columns_product: ColumnDef<any>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ناو" />
     ),
-    cell: ({ row }) => {
-      return (
-        <div className={"flex w-[100px]"}>
-          {row.original.name}
-        </div >
-      );
-    },
+    cell: ({ row }) => (<span>{row.original.name}</span>),
   },
   {
     accessorKey: 'amount',
@@ -33,13 +27,10 @@ export const columns_product: ColumnDef<any>[] = [
     cell: function CellComponent({ row }) {
       const formatPrice = useConvertCurrency(row.getValue('amount'));
       return (
-        <div className="flex w-[100px]">
+        <div className="flex min-w-24">
           <span>{formatPrice}</span>
         </div>
       );
-    },
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
     },
   },
   {
@@ -64,7 +55,7 @@ export const columns_product: ColumnDef<any>[] = [
     cell: ({ row }) => {
       const date = new Date(row.original.date).toLocaleDateString('en-GB');
       return (
-        <div className="flex w-[100px]">
+        <div className="flex min-w-20">
           <span>{date}</span>
         </div>
       );
@@ -74,14 +65,14 @@ export const columns_product: ColumnDef<any>[] = [
     },
   },
   {
-    accessorKey: 'quantity',
+    accessorKey: 'note',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="عەدەد" />
+      <DataTableColumnHeader column={column} title="تێبینی" />
     ),
     cell: ({ row }) => {
       return (
-        <div className="flex w-[100px]">
-          <span>{row.getValue('quantity')}</span>
+        <div className="flex text-wrap min-w-32">
+          <span>{row.getValue('note')}</span>
         </div>
       );
     },

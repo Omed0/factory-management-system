@@ -5,6 +5,7 @@ import {
   getCustomersWhoDidntGiveLoan,
   getDashboardChartInformation,
   getDashboardInformation,
+  getDetailActionBox,
   getExpensesListSpecificTime,
   getLoanSummary,
   getPurchasesListSpecificTime,
@@ -15,6 +16,7 @@ import {
 import {
   DashboardInfoTypes,
   getReportChartPartnerTypes,
+  InfoAboutBoxTypes,
   ReportDateTypes,
   ReportTradePartnerTypes,
   TradePartnerTypes,
@@ -100,6 +102,17 @@ export async function getDashboardInfoChartActions() {
 
 export async function getCustomersWhoDidntGiveLoanActions() {
   const res = await getCustomersWhoDidntGiveLoan();
+  if (!res || 'error' in res) {
+    return {
+      success: false,
+      message: res?.error ?? 'هەڵەیەک هەیە',
+    };
+  }
+  return { success: true, data: res };
+}
+
+export async function getDetailActionBoxActions(date?: InfoAboutBoxTypes) {
+  const res = await getDetailActionBox(date);
   if (!res || 'error' in res) {
     return {
       success: false,
