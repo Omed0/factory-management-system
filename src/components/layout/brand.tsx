@@ -18,9 +18,9 @@ export function Brand() {
           <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
             <Image
               src='/images/logo.jpg'
-              width={300} height={300}
+              width={500} height={500}
               quality={100} alt='logo'
-              className='size-full'
+              className='size-full object-cover'
             />
           </div>
           <div className="grid flex-1 text-start text-sm leading-tight">

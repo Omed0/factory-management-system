@@ -78,6 +78,7 @@ export function DataTableToolbar<TData extends CustomerData>({
             <ShieldCheck className="size-4" />
           </Link>
         </Button>
+
       </div>
       <CustomDialogWithTrigger
         open={open}
