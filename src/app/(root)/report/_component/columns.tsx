@@ -40,7 +40,7 @@ export const columns: ColumnDef<CombinedData>[] = [
       const { createdAt } = row.original
       const date = createdAt ? new Date(createdAt).toLocaleDateString('en-GB') : '';
 
-      return (<span>{date}</span>)
+      return (<div>{date}</div>)
     },
   },
   {
@@ -75,7 +75,7 @@ export const columns: ColumnDef<CombinedData>[] = [
       const formatedAmount = useConvertCurrency(subtraction || 0, dollar || undefined);
       const isShow = type === "expense" || type === "companyPurchase" || type === null;
 
-      return (<span>{isShow ? formatedAmount : ""}</span>);
+      return (<div>{isShow ? formatedAmount : ""}</div>);
     },
   },
   {
@@ -88,7 +88,7 @@ export const columns: ColumnDef<CombinedData>[] = [
       const formatedAmount = useConvertCurrency(addition || 0, dollar || undefined);
       const isShow = type === "expense" || type === "companyPurchase";
 
-      return (<span>{!isShow ? formatedAmount : ""}</span>);
+      return (<div>{!isShow ? formatedAmount : ""}</div>);
     },
   },
   {
@@ -100,7 +100,7 @@ export const columns: ColumnDef<CombinedData>[] = [
       const { dollar, balance } = row.original
       const formatedAmount = useConvertCurrency(balance || 0, dollar || undefined);
 
-      return (<span>{formatedAmount}</span>);
+      return (<div>{formatedAmount}</div>);
     },
   },
 ];
