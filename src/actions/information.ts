@@ -80,7 +80,7 @@ export async function getReportPartnerSpecificTimeActions(
   return { success: true, data: res };
 }
 
-export async function getDashboardInfoActions(data: DashboardInfoTypes) {
+export async function getDashboardInfoActions(data?: DashboardInfoTypes) {
   const res = await getDashboardInformation(data);
   if (!res || 'error' in res) {
     return {

@@ -8,8 +8,8 @@ enum reports {
 }
 
 export const getDashboardInfoSchema = z.object({
-  from: z.string(),
-  to: z.string(),
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 
 export const getReportByDateSchema = z.object({

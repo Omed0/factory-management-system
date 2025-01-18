@@ -36,7 +36,7 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage({ searchParams }: Props) {
   const dates = changeDateToString(seperateDates(searchParams.date))
 
-  const informations = await getDashboardInfoActions(dates)
+  const informations = await getDashboardInfoActions(searchParams.date ? dates : undefined)
   const chartInfo = await getDashboardInfoChartActions()
   const notificationLoan = await getCustomersWhoDidntGiveLoanActions()
 
@@ -60,7 +60,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <BackupButton />
-                <CalenderRangMultiSide />
+                <CalenderRangMultiSide noDefault className='justify-end gap-5' />
               </div>
               <TabsList>
                 <TabsTrigger value="notifications">ئاگادارکردنەوە</TabsTrigger>

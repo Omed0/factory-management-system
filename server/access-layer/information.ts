@@ -43,9 +43,9 @@ type PartnerChartSummary = {
   };
 };
 
-export async function getDashboardInformation(data: DashboardInfoTypes) {
+export async function getDashboardInformation(data?: DashboardInfoTypes) {
   return tryCatch(async () => {
-    const formated = getDashboardInfoSchema.parse(data);
+    const formated = getDashboardInfoSchema.parse({ ...data });
 
     const [
       totalPurchasesData,
