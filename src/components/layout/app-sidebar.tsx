@@ -61,6 +61,10 @@ const data = {
       icon: SquareKanban,
       items: [
         {
+          title: 'قەرز',
+          url: '/report/loan',
+        },
+        {
           title: 'کڕین',
           url: '/report/purchase',
         },

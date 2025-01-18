@@ -6,18 +6,25 @@ import { DataTableColumnHeader } from './data-table-column-header';
 
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import useSetQuery from '@/hooks/useSetQuery';
-import { report_link, report_name } from '../_constant';
+import { columns_report, report_link, report_name } from '../_constant';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useParams } from 'next/navigation';
 
-export const columns_product: ColumnDef<any>[] = [
+export const columns_reports: ColumnDef<columns_report>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="ناو" />
     ),
-    cell: ({ row }) => (<span>{row.original.name}</span>),
+    cell: ({ row }) => {
+      const { name, redirectId } = row.original;
+      const param = useParams()
+      const path = report_link.find((item) => item.name === param.id)?.value(name, redirectId);
+      return (
+        <Link href={path ?? "#"}>{name}</Link>
+      )
+    },
   },
   {
     accessorKey: 'amount',

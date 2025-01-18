@@ -36,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneEmployee } from '@/server/schema/employee';
+import useInputSetQuery from '@/hooks/use-input-set-query';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -48,6 +49,7 @@ export function DataTableToolbar<TData>({
   const isSelected =
     table.getIsSomeRowsSelected() || table.getIsAllPageRowsSelected();
   const isTrash = searchParams.get('status') === 'trash';
+  useInputSetQuery("name", "name", table);
 
   return (
     <div className="flex items-center justify-between">

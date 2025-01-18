@@ -1,7 +1,7 @@
 import { getDetailActionBoxActions } from '@/actions/information';
-import { changeDateToString, seperateDates, sleep } from '@/lib/utils';
+import { changeDateToString, seperateDates } from '@/lib/utils';
 import { DataTable } from '../_component/data-table';
-import { columns } from '../_component/columns';
+import { columns_detail_box_action } from '../_component/columns_detail_box_action.tsx';
 
 
 type Props = {
@@ -27,7 +27,7 @@ export default async function Report({ searchParams }: Props) {
 
     return (
         <section className="w-full space-y-4 p-2 pt-5">
-            <DataTable columns={columns} data={detailBox.data.reverse()} />
+            <DataTable columns={columns_detail_box_action} data={detailBox.data.reverse()} />
         </section>
     );
 }

@@ -1,9 +1,8 @@
 import { getReportByNameActions } from '@/actions/information';
 import { changeDateToString, seperateDates } from '@/lib/utils';
 import { DataTable } from '../_component/data-table';
-import { columns } from '../_component/columns';
-import { report_name } from '../_constant';
-import { columns_product } from '../_component/columns-product';
+import { columns_report, report_name } from '../_constant';
+import { columns_reports } from '../_component/columns_reports';
 
 
 type Props = {
@@ -17,7 +16,7 @@ type Props = {
 
 export const dynamic = 'force-dynamic'
 
-export default async function Report({ searchParams, params }: Props) {
+export default async function Reports({ searchParams, params }: Props) {
     const dates = changeDateToString(seperateDates(searchParams.date))
 
     const reports = await getReportByNameActions({ ...dates, name: params?.id as any ?? report_name[0] })
@@ -32,7 +31,7 @@ export default async function Report({ searchParams, params }: Props) {
 
     return (
         <section className="w-full space-y-4 p-2 pt-5">
-            <DataTable columns={columns_product} data={reports.data} />
+            <DataTable columns={columns_reports} data={reports.data as columns_report[]} />
         </section>
     );
 }

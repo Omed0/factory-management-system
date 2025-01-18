@@ -5,7 +5,7 @@ import useSetQuery from './useSetQuery';
 
 import { formatCurrency } from '@/lib/utils';
 
-export default function useConvertCurrency(amount: number, updateDollar?: number) {
+export default function useConvertCurrency(amount: number, updateDollar?: number | null) {
   const {
     data: { dollar },
   } = useDollar();

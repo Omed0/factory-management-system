@@ -35,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneExpense } from '@/server/schema/expense';
 import { useState } from 'react';
+import useInputSetQuery from '@/hooks/use-input-set-query';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -45,9 +46,12 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const { searchParams } = useSetQuery();
   const [open, setOpen] = useState(false)
+  const isTrash = searchParams.get('status') === 'trash';
+
   const isSelected =
     table.getIsSomeRowsSelected() || table.getIsAllPageRowsSelected();
-  const isTrash = searchParams.get('status') === 'trash';
+
+  useInputSetQuery("name", "title", table);
 
   return (
     <div className="flex items-center justify-between">

@@ -8,6 +8,7 @@ import {
   getDetailActionBox,
   getExpensesListSpecificTime,
   getLoanSummary,
+  getPartnersLoan,
   getPurchasesListSpecificTime,
   getReportPartnerFromChart,
   getSalesListSpecificTime,
@@ -17,6 +18,7 @@ import {
   DashboardInfoTypes,
   getReportChartPartnerTypes,
   InfoAboutBoxTypes,
+  PartnersLoanTypes,
   ReportDateTypes,
   ReportTradePartnerTypes,
   TradePartnerTypes,
@@ -113,6 +115,17 @@ export async function getCustomersWhoDidntGiveLoanActions() {
 
 export async function getDetailActionBoxActions(date?: InfoAboutBoxTypes) {
   const res = await getDetailActionBox(date);
+  if (!res || 'error' in res) {
+    return {
+      success: false,
+      message: res?.error ?? 'هەڵەیەک هەیە',
+    };
+  }
+  return { success: true, data: res };
+}
+
+export async function getPartnersLoanActions(type: PartnersLoanTypes) {
+  const res = await getPartnersLoan(type);
   if (!res || 'error' in res) {
     return {
       success: false,
