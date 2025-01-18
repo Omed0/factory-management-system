@@ -11,13 +11,14 @@ export const keyExpense = {
 
 export const keySale = {
   id: 'id',
-  type: 'type',
+  saleType: 'type',
   saleNumber: 'name',
   totalRemaining: 'amount',
   customerId: 'redirectId',
   saleDate: 'date',
   note: 'note',
   dollar: 'dollar',
+  customer: 'owner',
 };
 
 export const keyPurchase = {
@@ -29,17 +30,22 @@ export const keyPurchase = {
   purchaseDate: 'date',
   note: 'note',
   dollar: 'dollar',
+  company: 'owner',
 };
 
 export type columns_report = {
   id: string;
   name: string;
-  type: string;
+  type: string | null;
   amount: number;
   redirectId: string;
   date: string;
   note: string;
   dollar: number;
+  owner: {
+    id: string;
+    name: string;
+  };
 };
 
 export const report_name = ['expense', 'sale', 'purchase'] as const;

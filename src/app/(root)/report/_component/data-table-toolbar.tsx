@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import useSetQuery from '@/hooks/useSetQuery';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getPartnersLoanSchema } from '@/server/schema/information';
+import ButtonClearQuery from '@/components/button-clear-query';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -75,11 +76,7 @@ export function DataTableToolbar<TData>({
       ) : (
         <>
           <CalenderRangMultiSide className="h-8" noDefault />
-          <Button
-            onClick={() => setQuery("date", "")}
-            variant="secondary" size="sm" className='h-8 ms-4'>
-            <CalendarX2 className='size-5' />
-          </Button>
+          <ButtonClearQuery query='date' variant="default" />
         </>
       )}
     </div>

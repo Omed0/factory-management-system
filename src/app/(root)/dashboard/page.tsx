@@ -19,6 +19,7 @@ import Cards from './components/cards';
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import NotificationCard from './components/notification-card';
 import BackupButton from '@/components/layout/button-backup';
+import ButtonClearQuery from '@/components/button-clear-query';
 
 
 export const metadata: Metadata = {
@@ -58,9 +59,12 @@ export default async function DashboardPage({ searchParams }: Props) {
         <div className="flex-1 pt-4">
           <Tabs defaultValue="overview" className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-6">
                 <BackupButton />
-                <CalenderRangMultiSide noDefault className='justify-end gap-5' />
+                <div className='space-x-2'>
+                  <ButtonClearQuery query='date' className='h-10' variant="default" />
+                  <CalenderRangMultiSide noDefault className='justify-end gap-5' />
+                </div>
               </div>
               <TabsList>
                 <TabsTrigger value="notifications">ئاگادارکردنەوە</TabsTrigger>

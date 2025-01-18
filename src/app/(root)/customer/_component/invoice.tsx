@@ -51,7 +51,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
     }
 
     return (
-        <Card ref={ref} className="w-full h-svh max-w-4xl mx-auto bg-white">
+        <Card ref={ref} className="w-full h-svh max-w-4xl mx-auto bg-white text-black">
             <CardContent className="flex flex-col justify-between h-full w-full p-4">
                 <div>
                     <div className="text-right">

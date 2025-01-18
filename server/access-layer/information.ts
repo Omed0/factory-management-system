@@ -74,7 +74,6 @@ export async function getDashboardInformation(data?: DashboardInfoTypes) {
         where: {
           saleDate: { gte: formated.from, lte: formated.to },
           deleted_at: null,
-          isFinished: true,
         },
         include: {
           customer: true,
@@ -288,6 +287,9 @@ export async function getSalesListSpecificTime(data: ReportDateTypes) {
         saleDate: { gte: formated.from, lte: formated.to },
         deleted_at: null,
       },
+      include: {
+        customer: true,
+      },
     });
     const totalSales = sales.reduce(
       (sum, sale) => sum + sale.totalRemaining,
@@ -314,6 +316,9 @@ export async function getPurchasesListSpecificTime(data: ReportDateTypes) {
       where: {
         purchaseDate: { gte: formated.from, lte: formated.to },
         deleted_at: null,
+      },
+      include: {
+        company: true,
       },
     });
 
@@ -517,7 +522,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         e.title AS name, 
         e.created_at AS createdAt, 
         e.dollar, 
-        NULL AS partner, 
+        e.title AS partner, 
         'expense' AS type,
         'expense' AS pathname,
         0 AS addition, -- Expenses do not add to balance
@@ -642,7 +647,7 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
       JOIN Sales s ON c.id = s.customerId
       WHERE s.saleType = 'LOAN' 
         AND s.totalRemaining != s.totalAmount - s.discount
-        AND s.deleted_at IS NULL AND c.deleted_at IS NULL
+        AND s.deleted_at IS NULL
     `;
 
     // Base query for companies
@@ -660,7 +665,7 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
       JOIN CompanyPurchase cp ON com.id = cp.companyId
       WHERE cp.type = 'LOAN'
         AND cp.totalRemaining != cp.totalAmount
-        AND cp.deleted_at IS NULL AND com.deleted_at IS NULL
+        AND cp.deleted_at IS NULL
     `;
 
     // Use query based on the type

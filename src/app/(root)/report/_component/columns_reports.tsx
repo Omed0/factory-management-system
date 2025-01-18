@@ -4,25 +4,52 @@ import { ColumnDef } from '@tanstack/react-table';
 
 import { DataTableColumnHeader } from './data-table-column-header';
 
-import useConvertCurrency from '@/hooks/useConvertCurrency';
-import useSetQuery from '@/hooks/useSetQuery';
-import { columns_report, report_link, report_name } from '../_constant';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { useParams } from 'next/navigation';
+import useConvertCurrency from '@/hooks/useConvertCurrency';
+import { columns_report, report_link, report_name } from '../_constant';
 
 export const columns_reports: ColumnDef<columns_report>[] = [
   {
+    accessorKey: 'id',
+    header: ({ column }) => {
+      const right = isNotExpense();
+      return (
+        <DataTableColumnHeader column={column} title={right ? "خاوەن" : "زنجیرە"} />
+      )
+    },
+    cell: ({ row }) => {
+      const { owner, id } = row.original;
+      const isHidden = isNotExpense();
+      return (
+        isHidden ? (
+          <span>{owner?.name}</span>
+        ) : +id !== 0 && (
+          <span>{id}</span>
+        )
+      )
+    },
+  },
+  {
     accessorKey: 'name',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="ناو" />
+      <DataTableColumnHeader column={column} title="وەصڵ" />
     ),
     cell: ({ row }) => {
-      const { name, redirectId } = row.original;
+      const { name, redirectId, id } = row.original;
       const param = useParams()
       const path = report_link.find((item) => item.name === param.id)?.value(name, redirectId);
+      const notRedirect = +id === 0;
       return (
-        <Link href={path ?? "#"}>{name}</Link>
+        <div className="flex min-w-24">
+          {notRedirect ? (
+            <span>{name}</span>
+          ) : (
+            <Link className="text-blue-500 hover:underline" href={path || '#'}>
+              {name}
+            </Link>
+          )}
+        </div>
       )
     },
   },
@@ -42,12 +69,15 @@ export const columns_reports: ColumnDef<columns_report>[] = [
   },
   {
     accessorKey: 'type',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="جۆری وەصڵ" />
-    ),
+    header: ({ column }) => {
+      const isHidden = isNotExpense();
+      return (isHidden && <DataTableColumnHeader column={column} title="جۆری وەصڵ" />)
+    },
     cell: ({ row }) => {
-      const tr_type = row.original?.type === "CASH" ? "نەقد" : "قەرز"
-      return (
+      const { type, id } = row.original;
+      const isHidden = isNotExpense() && +id !== 0;
+      const tr_type = type === "CASH" ? "نەقد" : "قەرز"
+      return (isHidden &&
         <div className="flex w-[100px]">
           <span>{tr_type}</span>
         </div>
@@ -85,3 +115,10 @@ export const columns_reports: ColumnDef<columns_report>[] = [
     },
   },
 ];
+
+
+function isNotExpense() {
+  const params = useParams();
+  const isExpense = params.id === report_name[0];
+  return !isExpense;
+}
