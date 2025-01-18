@@ -6,12 +6,14 @@ import {
   DashboardInfoTypes,
   getDashboardInfoSchema,
   getInfoAboutBoxSchema,
+  getPartnersLoanSchema,
   getReportByDateSchema,
   getReportChartPartnerSchema,
   getReportChartPartnerTypes,
   getReportTradePartnerSchema,
   getTradePartnerSchema,
   InfoAboutBoxTypes,
+  PartnersLoanTypes,
   ReportDateTypes,
   ReportTradePartnerTypes,
   TradePartner,
@@ -41,9 +43,9 @@ type PartnerChartSummary = {
   };
 };
 
-export async function getDashboardInformation(data: DashboardInfoTypes) {
+export async function getDashboardInformation(data?: DashboardInfoTypes) {
   return tryCatch(async () => {
-    const formated = getDashboardInfoSchema.parse(data);
+    const formated = getDashboardInfoSchema.parse({ ...data });
 
     const [
       totalPurchasesData,
@@ -72,7 +74,6 @@ export async function getDashboardInformation(data: DashboardInfoTypes) {
         where: {
           saleDate: { gte: formated.from, lte: formated.to },
           deleted_at: null,
-          isFinished: true,
         },
         include: {
           customer: true,
@@ -285,7 +286,9 @@ export async function getSalesListSpecificTime(data: ReportDateTypes) {
       where: {
         saleDate: { gte: formated.from, lte: formated.to },
         deleted_at: null,
-        isFinished: true,
+      },
+      include: {
+        customer: true,
       },
     });
     const totalSales = sales.reduce(
@@ -313,6 +316,9 @@ export async function getPurchasesListSpecificTime(data: ReportDateTypes) {
       where: {
         purchaseDate: { gte: formated.from, lte: formated.to },
         deleted_at: null,
+      },
+      include: {
+        company: true,
       },
     });
 
@@ -497,6 +503,7 @@ export type CombinedData = {
   note: string | null;
   partner: string | null;
   type: 'expense' | 'sale' | 'companyPurchase' | EmployeeActionType | null;
+  pathname: string | null;
   addition: number;
   subtraction: number;
   balance: number;
@@ -515,8 +522,9 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         e.title AS name, 
         e.created_at AS createdAt, 
         e.dollar, 
-        NULL AS partner, 
+        e.title AS partner, 
         'expense' AS type,
+        'expense' AS pathname,
         0 AS addition, -- Expenses do not add to balance
         e.amount AS subtraction -- Expenses decrease the balance
       FROM Expenses e
@@ -531,6 +539,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
           cp.dollar, 
           com.name AS partner, 
           'companyPurchase' AS type,
+          'company' AS pathname,
           0 AS addition, -- Purchases do not add to balance
           cp.totalRemaining AS subtraction -- Purchases decrease the balance
         FROM CompanyPurchase cp
@@ -546,6 +555,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         s.dollar, 
         c.name AS partner, 
         'sale' AS type,
+        'customer' AS pathname,
         s.totalRemaining AS addition, -- Sales increase the balance
         0 AS subtraction -- Sales do not decrease the balance
       FROM Sales s
@@ -556,11 +566,12 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
       
       SELECT 
         ea.id, 
-        ea.type AS name, 
+        emp.name AS name, 
         ea.dateAction AS createdAt, 
         ea.dollar, 
         emp.name AS partner, 
         ea.type AS type,
+        'employee' AS pathname,
         CASE WHEN ea.type IN ('PUNISHMENT', 'ABSENT') THEN ea.amount ELSE 0 END AS addition, -- Additions are calculated based on the type
         CASE WHEN ea.type IN ('OVERTIME', 'BONUS') THEN ea.amount ELSE 0 END AS subtraction -- Subtractions are calculated based on the type
       FROM EmployeeActions ea
@@ -596,12 +607,79 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
       note: null,
       partner: 'کۆی گشتی',
       type: null,
+      pathname: null,
       addition: totalAdditions,
       subtraction: totalSubtractions,
       balance: finalBalance,
     });
 
     return combinedData;
+  });
+}
+
+export type PartnersLoan = {
+  id: number;
+  name: string;
+  invoice: string;
+  date: Date;
+  totalAmount: number;
+  discount: number;
+  totalRemaining: number;
+  dollar: number;
+};
+
+export async function getPartnersLoan(t: PartnersLoanTypes) {
+  return tryCatch(async () => {
+    // Parse the input type using the schema
+    const { type } = getPartnersLoanSchema.parse({ ...t });
+    // Base query for customers
+    const customersQuery = `
+      SELECT 
+        c.id, 
+        c.name, 
+        s.saleNumber AS invoice, 
+        s.saleDate AS date, 
+        s.totalAmount AS totalAmount, 
+        s.discount AS discount, 
+        s.totalRemaining AS totalRemaining,
+        s.dollar AS dollar
+      FROM Customers c
+      JOIN Sales s ON c.id = s.customerId
+      WHERE s.saleType = 'LOAN' 
+        AND s.totalRemaining != s.totalAmount - s.discount
+        AND s.deleted_at IS NULL
+    `;
+
+    // Base query for companies
+    const companiesQuery = `
+      SELECT 
+        com.id, 
+        com.name, 
+        cp.name AS invoice, 
+        cp.purchaseDate AS date, 
+        cp.totalAmount AS totalAmount, 
+        cp.totalRemaining AS totalRemaining,
+        0 AS discount,
+        cp.dollar AS dollar
+      FROM Companies com
+      JOIN CompanyPurchase cp ON com.id = cp.companyId
+      WHERE cp.type = 'LOAN'
+        AND cp.totalRemaining != cp.totalAmount
+        AND cp.deleted_at IS NULL
+    `;
+
+    // Use query based on the type
+    let partnersLoan: PartnersLoan[] | null = null;
+    if (type === 'customer') {
+      partnersLoan = (await prisma.$queryRawUnsafe(
+        customersQuery
+      )) as PartnersLoan[];
+    } else {
+      partnersLoan = (await prisma.$queryRawUnsafe(
+        companiesQuery
+      )) as PartnersLoan[];
+    }
+    return partnersLoan;
   });
 }
 

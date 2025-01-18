@@ -26,7 +26,7 @@ export function RecentSales({ data }: Props) {
   return (
     <div dir='rtl' className="space-y-8">
       {latestSales.map((sale: any) => {
-        const isGivingAllMoney = (sale.totalAmount - sale.discount) === sale.totalRemaining
+        const isGivingAllMoney = (sale.totalAmount - sale.discount) === sale.totalRemaining && sale.totalRemaining !== 0
         return (
           <div key={sale.id} className="flex items-center">
             <Avatar className="size-9">
@@ -36,7 +36,7 @@ export function RecentSales({ data }: Props) {
             <div className="ms-4 space-y-1">
               <Link
                 className='underline text-blue-400 leading-none'
-                href={`/customer/${sale.customerId}`}>
+                href={`/customer/${sale.customerId}?invoice=${sale.saleNumber}`}>
                 {sale.customer?.name}</Link>
               <p className="text-muted-foreground text-sm">
                 {sale.customer?.phone}
@@ -48,7 +48,7 @@ export function RecentSales({ data }: Props) {
                   "line-through": isGivingAllMoney
                 })}>{sale.saleNumber}</p>}
               >
-                <p>{isGivingAllMoney ? "تەواو بووە" : "ماویەتی"}</p>
+                <p>{isGivingAllMoney ? "پارەدانی تەواوکردووە" : "ماویەتی لە پارەدان"}</p>
               </CustomToolTip>
 
               {!!sale.discount ? (

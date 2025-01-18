@@ -11,8 +11,9 @@ import useSetQuery from '@/hooks/useSetQuery';
 import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
 import AddPurchase from './add-purchase-form';
 import AddCompany from './add-company-form';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BackButton from '@/components/layout/back-button';
+import useInputSetQuery from '@/hooks/use-input-set-query';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -27,13 +28,14 @@ export function DataTableToolbar<TData>({
   const isTrash = searchParams.get('status') === 'trash';
 
   const title = pathname.includes(pathname.split('/')[2])
+  useInputSetQuery("invoice", "name", table);
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center gap-4">
         <Input
           placeholder={`بگەڕێ بۆ ${title ? "کڕدراوەکان" : "کۆمپانیاکان"}...`}
-          value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
+          value={table.getColumn("name")?.getFilterValue() as string ?? ""}
           onChange={(event) =>
             table.getColumn('name')?.setFilterValue(event.target.value)
           }

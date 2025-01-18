@@ -12,8 +12,9 @@ import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
 import FormSaleForCustomer from './add-sale-form';
 import AddCustomer from './add-customer-form';
 import { OneCustomer } from '@/server/schema/customer';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BackButton from '@/components/layout/back-button';
+import useInputSetQuery from '@/hooks/use-input-set-query';
 
 interface CustomerData {
   customer: {
@@ -37,20 +38,17 @@ export function DataTableToolbar<TData extends CustomerData>({
   const [open, setOpen] = useState(false)
 
   const isTrash = searchParams.get('status') === 'trash';
-
   const isSale = pathname.includes(pathname.split('/')[2]);
   const title = isSale ? 'وەصڵەکان' : 'کڕیارەکان';
+
+  useInputSetQuery("invoice", "saleNumber", table);
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center gap-4">
         <Input
           placeholder={`بگەڕێ بۆ ${title}...`}
-          value={
-            (table
-              .getColumn(isSale ? 'saleNumber' : 'name')
-              ?.getFilterValue() as string) ?? ''
-          }
+          value={table.getColumn(isSale ? "saleNumber" : "name")?.getFilterValue() as string ?? ''}
           onChange={(event) =>
             table
               .getColumn(isSale ? 'saleNumber' : 'name')

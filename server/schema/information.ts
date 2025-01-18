@@ -8,8 +8,8 @@ enum reports {
 }
 
 export const getDashboardInfoSchema = z.object({
-  from: z.string(),
-  to: z.string(),
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 
 export const getReportByDateSchema = z.object({
@@ -47,6 +47,10 @@ export const getInfoAboutBoxSchema = z.object({
   to: z.string().optional(),
 });
 
+export const getPartnersLoanSchema = z.object({
+  type: z.enum(['customer', 'company']),
+});
+
 export type DashboardInfoTypes = z.infer<typeof getDashboardInfoSchema>;
 export type ReportDateTypes = z.infer<typeof getReportByDateSchema>;
 export type ReportPersonTypes = z.infer<typeof getReportPersonByDateSchema>;
@@ -58,5 +62,6 @@ export type getReportChartPartnerTypes = z.infer<
   typeof getReportChartPartnerSchema
 >;
 export type InfoAboutBoxTypes = z.infer<typeof getInfoAboutBoxSchema>;
+export type PartnersLoanTypes = z.infer<typeof getPartnersLoanSchema>;
 
 export type TradePartner = Companies | Customers;

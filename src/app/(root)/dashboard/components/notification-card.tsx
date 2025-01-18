@@ -28,7 +28,7 @@ export default function NotificationCard({ sale }: Props) {
                     <p><strong>وەصڵ:</strong> {invocieName}</p>
                 </CardTitle>
                 <CardDescription>
-                    <Link href={`/customer/${sale.customerId}`}
+                    <Link href={`/customer/${sale.customerId}?invoice=${sale.saleNumber}`}
                         className="text-blue-500 hover:underline"
                     >{sale.customer?.name}</Link>
                 </CardDescription>

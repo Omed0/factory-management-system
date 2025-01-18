@@ -45,9 +45,22 @@ export const tr_type_calculated = new Map<string, string>([
 ]);
 
 export const redirect_to_page_name = [
-  { name: 'expense', value: (v: number) => '/expense' },
-  { name: 'companyPurchase', value: (id: number) => `/company/${id}` },
-  { name: 'sale', value: (id: number) => `/customer/${id}` },
+  {
+    name: 'expense',
+    value: (q: string) => `/expense?name=${q}`,
+  },
+  {
+    name: 'company',
+    value: (q: string, id: number) => `/company/${id}?=invoice=${q}`,
+  },
+  {
+    name: 'customer',
+    value: (q: string, id: number) => `/customer/${id}?invoice=${q}`,
+  },
+  {
+    name: 'employee',
+    value: (q: string) => `/employee?name=${q}`,
+  },
 ];
 
 export const addition_actions = [
