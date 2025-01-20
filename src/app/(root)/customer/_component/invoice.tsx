@@ -7,7 +7,7 @@ import { forwardRef } from 'react'
 import { useInvoiceData } from '../[id]/useInvoiceData'
 import useConvertCurrency from '@/hooks/useConvertCurrency'
 import useSetQuery from '@/hooks/useSetQuery'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, parseDate } from '@/lib/utils'
 import Image from 'next/image'
 
 interface InvoiceProps {
@@ -31,7 +31,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
     const header = [
         { name: "ژ.وەصڵ", value: data?.id },
         { name: "جۆری وەصڵ", value: data?.saleType === "CASH" ? "نەقد" : "قەرز" },
-        { name: "ڕۆژ", value: data?.saleDate.toLocaleDateString('en-GB') },
+        { name: "ڕۆژ", value: parseDate(data?.saleDate) },
         { name: "داشکاندن", value: useConvertCurrency(data?.discount || 0, sale.dollar) },
         { name: "کۆی گشتی", value: useConvertCurrency(data?.totalAmount || 0, sale.dollar) },
         { name: "بڕی دراو", value: useConvertCurrency(data?.totalRemaining || 0, sale.dollar) },

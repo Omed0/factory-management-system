@@ -3,6 +3,7 @@
 import { getCustomersWhoDidntGiveLoanActions } from "@/actions/information";
 import { Card, CardTitle, CardHeader, CardContent, CardDescription } from "@/components/ui/card";
 import useConvertCurrency from "@/hooks/useConvertCurrency";
+import { parseDate } from "@/lib/utils";
 import { format } from "date-fns";
 import Link from "next/link";
 
@@ -19,7 +20,7 @@ export default function NotificationCard({ sale }: Props) {
 
     const precentage = (sale.totalRemaining / sale.totalAmount) * 100
     const lastPaid = sale.paidLoans.length ? sale.paidLoans[sale.paidLoans.length - 1].paidDate : sale.saleDate
-    const formatDateLastPaid = lastPaid.toLocaleDateString("en-GB")
+    const formatDateLastPaid = parseDate(lastPaid)
 
     return (
         <Card>

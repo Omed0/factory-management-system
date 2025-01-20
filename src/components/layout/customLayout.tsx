@@ -14,6 +14,7 @@ import FullscreenComponent from '@/hooks/use-fullscreen';
 import { useDollar } from '@/hooks/useDollar';
 import { useAuthUser } from '@/hooks/useSession';
 import { LoginUserType } from '@/server/access-layer/user';
+import ModalDatabasePurpose from '../modal-database-purpose';
 
 export default function CustomLayout({
   children,
@@ -46,6 +47,7 @@ export default function CustomLayout({
               <ThemeSwitcher className="fixed bottom-5 end-5 z-20" />
               <ChangeCurrency />
               <FullscreenComponent />
+              <ModalDatabasePurpose />
               <FormDollar dollar={dollar} />
             </div>
           </div>

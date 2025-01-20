@@ -6,6 +6,7 @@ import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { PartnersLoan } from '@/server/access-layer/information';
 import Link from 'next/link';
 import useSetQuery from '@/hooks/useSetQuery';
+import { parseDate } from '@/lib/utils';
 
 export const columns_loan: ColumnDef<PartnersLoan>[] = [
     {
@@ -89,10 +90,9 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
             <DataTableColumnHeader column={column} title="بەروار" />
         ),
         cell: ({ row }) => {
-            const date = new Date(row.original.date).toLocaleDateString('en-GB');
             return (
                 <div className="flex min-w-20">
-                    <span>{date}</span>
+                    <span>{parseDate(row.original.date)}</span>
                 </div>
             );
         },

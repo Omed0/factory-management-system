@@ -5,7 +5,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "
 import { useDollar } from "@/hooks/useDollar"
 import useSetQuery from "@/hooks/useSetQuery"
 import { now } from "@/lib/constant"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, parseDate } from "@/lib/utils"
 import { TrendingDown, TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
@@ -49,7 +49,7 @@ export default function PaymentChart({ type, data }: Props) {
             شیکاری چوار مانگی ڕابردوو
           </CardDescription>
         </div>
-        <p>{now.toLocaleDateString("en-GB")}</p>
+        <p>{parseDate(now)}</p>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>

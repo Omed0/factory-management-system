@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import useSetQuery from '@/hooks/useSetQuery';
-import { cn, formatCurrency, getMonthStartAndEndOfMonth, parseCurrency } from '@/lib/utils';
+import { cn, formatCurrency, getMonthStartAndEndOfMonth, parseCurrency, parseDate } from '@/lib/utils';
 import { OneEmployee, UpdateEmployeeAction } from '@/server/schema/employee';
 import { addition_actions, subtraction_actions, tr_employee_action } from '@/lib/constant';
 import { useDollar } from '@/hooks/useDollar';
@@ -125,7 +125,7 @@ export default function EmployeeInfoActions({ employee }: Props) {
                 {formatCurrency(action.amount, action.dollar, currency)}
               </TableCell>
               <TableCell className='p-2 text-center'>
-                {new Date(action.dateAction).toLocaleDateString("en-GB")}
+                {parseDate(action.dateAction)}
               </TableCell>
               <TableCell className="max-w-96 text-wrap p-2 text-center">
                 {action.note}

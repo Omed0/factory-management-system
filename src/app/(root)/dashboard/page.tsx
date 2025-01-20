@@ -18,7 +18,6 @@ import {
 import Cards from './components/cards';
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import NotificationCard from './components/notification-card';
-import BackupButton from '@/components/layout/button-backup';
 import ButtonClearQuery from '@/components/button-clear-query';
 
 
@@ -60,7 +59,6 @@ export default async function DashboardPage({ searchParams }: Props) {
           <Tabs defaultValue="overview" className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-6">
-                <BackupButton />
                 <div className='space-x-2'>
                   <ButtonClearQuery query='date' className='h-10' variant="default" />
                   <CalenderRangMultiSide noDefault className='justify-end gap-5' />

@@ -11,7 +11,11 @@ const ways_backup = [
     { name: "لۆکاڵ", value: "local" as const, icon: HardDriveDownload }
 ]
 
-export default function BackupButton() {
+type Props = {
+    onClose?: () => void;
+}
+
+export default function BackupButton({ onClose }: Props) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
 
@@ -30,6 +34,7 @@ export default function BackupButton() {
             });
             const data = await response.json();
             toast.info(data.message, { description: data?.description, duration: 4000 })
+            onClose && onClose();
         } catch (error) {
             console.error('Error:', error);
             toast.error('هەڵەیەک ڕوویدا، باکئەپ نەکرا')
@@ -41,7 +46,7 @@ export default function BackupButton() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className='gap-3'>
+                <Button variant="default" className='gap-3'>
                     <ArrowDown className='size-5' />
                     Backup
                     {loading ? (

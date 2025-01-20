@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { columns_report, report_link, report_name } from '../_constant';
+import { parseDate } from '@/lib/utils';
 
 export const columns_reports: ColumnDef<columns_report>[] = [
   {
@@ -90,10 +91,9 @@ export const columns_reports: ColumnDef<columns_report>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.date).toLocaleDateString('en-GB');
       return (
         <div className="flex min-w-20">
-          <span>{date}</span>
+          <span>{parseDate(row.original.date)}</span>
         </div>
       );
     },

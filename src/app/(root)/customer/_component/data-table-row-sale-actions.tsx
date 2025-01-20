@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/table';
 import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, parseDate } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
 import { useReactToPrint } from "react-to-print"
 import InvoiceComponent from './invoice';
@@ -336,7 +336,7 @@ export function ModalTablePaidLoanSale({
                 <TableCell className="w-20 text-center">{item.id}</TableCell>
                 <TableCell className="amount-cell text-center">{formatCurrency(item.amount, dollarValue, currency)}</TableCell>
                 <TableCell className='text-center'>
-                  {new Date(item.paidDate).toLocaleDateString('en-GB')}
+                  {parseDate(item.paidDate)}
                 </TableCell>
                 <TableCell className="max-w-96 text-wrap text-center">
                   {item.note}

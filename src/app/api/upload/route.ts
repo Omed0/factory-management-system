@@ -44,11 +44,15 @@ export async function POST(req: NextRequest) {
     const filePath = `${relativeUploadDir}/${filename}`;
 
     return NextResponse.json({ filePath });
-  } catch (e) {
+  } catch (e: any) {
     console.error('هەڵەیەک ڕوویدا\n', e);
-    return NextResponse.json(
-      { error: 'Something went wrong.' },
-      { status: 500 }
-    );
+    if (e.response.statusCode === 429) {
+      return NextResponse.json({ message: 'دووبارەی کەوە ڕیستۆرکردنەکە' });
+    }
+    return NextResponse.json({
+      description: e.message,
+      message: 'هەڵەیەک ڕوویدا',
+      status: e.response.statusCode,
+    });
   }
 }

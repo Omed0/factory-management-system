@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { CombinedData } from '@/server/access-layer/information';
 import { redirect_to_page_name, tr_define_name_type_table, tr_type_calculated } from '@/lib/constant';
 import { isShowValue } from '../_constant';
+import { parseDate } from '@/lib/utils';
 
 export const columns_detail_box_action: ColumnDef<CombinedData>[] = [
   {
@@ -38,10 +39,7 @@ export const columns_detail_box_action: ColumnDef<CombinedData>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const { createdAt } = row.original
-      const date = createdAt ? new Date(createdAt).toLocaleDateString('en-GB') : '';
-
-      return (<div>{date}</div>)
+      return (<div>{parseDate(row.original.createdAt)}</div>)
     },
   },
   {
