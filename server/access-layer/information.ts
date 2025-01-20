@@ -612,7 +612,6 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
       subtraction: totalSubtractions,
       balance: finalBalance,
     });
-
     return combinedData;
   });
 }

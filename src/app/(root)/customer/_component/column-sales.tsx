@@ -8,7 +8,7 @@ import { DataTableRowSaleActions } from './data-table-row-sale-actions';
 
 import { Badge } from '@/components/ui/badge';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
 import CustomToolTip from '@/components/custom-tool-tip';
 
@@ -128,8 +128,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original?.saleDate).toLocaleDateString('en-GB');
-      return <div>{date}</div>;
+      return <div>{parseDate(row.original?.saleDate)}</div>;
     },
   },
   {

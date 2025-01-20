@@ -10,6 +10,7 @@ import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneProduct } from '@/server/schema/product';
 import Image from 'next/image';
 import { FALLBACK_IMAGE } from '@/lib/constant';
+import { parseDate } from '@/lib/utils';
 
 export const columns: ColumnDef<OneProduct>[] = [
   {
@@ -99,10 +100,9 @@ export const columns: ColumnDef<OneProduct>[] = [
       <DataTableColumnHeader column={column} title="بەروار تۆمارکردن" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.created_at).toLocaleDateString('en-GB');
       return (
         <div className="w-[100px]">
-          <span>{date}</span>
+          <span>{parseDate(row.original.created_at)}</span>
         </div>
       );
     },

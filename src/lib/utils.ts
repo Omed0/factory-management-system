@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { defaultDates } from './constant';
 import { unlinkImage } from './helper';
-import { addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
@@ -166,4 +166,9 @@ export async function uploadImageUsingHandler(
 
 export const parseCurrency = (formatted: string): number => {
   return parseFloat(formatted.replace(/[^0-9.-]+/g, ''));
+};
+
+export const parseDate = (date?: Date | string | null): string => {
+  if (!date) return '';
+  return format(new Date(date).toISOString().split('T')[0], 'dd/MM/yyyy');
 };

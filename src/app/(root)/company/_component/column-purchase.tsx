@@ -8,7 +8,7 @@ import { DataTableRowPurchaseActions } from './data-table-row-purchase';
 import { Badge } from '@/components/ui/badge';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneCompanyPurchase } from '@/server/schema/company';
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 
 export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
   {
@@ -97,12 +97,9 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(
-        row.original.purchaseDate ?? new Date()
-      ).toLocaleDateString('en-GB');
       return (
         <div className="w-[100px]">
-          <span>{date}</span>
+          <span>{parseDate(row.original?.purchaseDate)}</span>
         </div>
       );
     },

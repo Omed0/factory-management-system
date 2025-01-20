@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import { OneExpense } from '@/server/schema/expense';
 import useSetQuery from '@/hooks/useSetQuery';
+import { parseDate } from '@/lib/utils';
 
 export const columns: ColumnDef<OneExpense>[] = [
   {
@@ -70,10 +71,9 @@ export const columns: ColumnDef<OneExpense>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.created_at).toLocaleDateString('en-GB');
       return (
         <div className="flex w-[100px] items-center">
-          <span>{date}</span>
+          <span>{parseDate(row.original.created_at)}</span>
         </div>
       );
     },

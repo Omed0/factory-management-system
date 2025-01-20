@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { DataTableColumnHeader } from './data-table-column-header';
 import { DataTableRowActions } from './data-table-row-actions';
 
-import { cn } from '@/lib/utils';
+import { cn, parseDate } from '@/lib/utils';
 import { OneCompany } from '@/server/schema/company';
 
 export const columns: ColumnDef<OneCompany>[] = [
@@ -62,10 +62,9 @@ export const columns: ColumnDef<OneCompany>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
-      const date = new Date(row.original.created_at).toLocaleDateString('en-GB');
       return (
         <div className="flex w-[100px] items-center">
-          <span>{date}</span>
+          <span>{parseDate(row.original?.created_at)}</span>
         </div>
       );
     },
