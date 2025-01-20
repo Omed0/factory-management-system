@@ -71,7 +71,7 @@ export default function RestoreButton({ onClose }: Props) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-3">
+                <Button disabled={true} variant="outline" className="gap-3">
                     <ArrowUp className="size-5" />
                     Restore
                     {loadingRestore ? (

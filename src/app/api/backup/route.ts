@@ -127,10 +127,10 @@ export async function POST(req: Request) {
     // Step 1: Generate the MySQL dump
     await mysqldump({
       connection: {
-        host: 'localhost',
-        user: 'root',
-        password: '', // MySQL password
-        database: 'system-managment',
+        host: env.DB_HOST,
+        user: env.DB_USER,
+        password: env.DB_PASSWORD,
+        database: env.DB_NAME,
       },
       dumpToFile: dumpFilePath,
     });
