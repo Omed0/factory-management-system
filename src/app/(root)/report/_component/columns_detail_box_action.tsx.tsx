@@ -54,7 +54,7 @@ export const columns_detail_box_action: ColumnDef<CombinedData>[] = [
           {type ? (
             <>
               <span>{tr_type_calculated.get(type)}</span>
-              {partner && (<span className='font-semibold'> | {partner}</span>)}
+              (<span className='font-semibold'>{partner ? `| ${partner}` : "سڕاوەتەوە"}</span>)
               <span>| {tr_define_name_type_table.get(type)}</span>
             </>
           ) : (

@@ -617,6 +617,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
 }
 
 export type PartnersLoan = {
+  partnerId: number;
   id: number;
   name: string;
   invoice: string;
@@ -631,37 +632,40 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
   return tryCatch(async () => {
     // Parse the input type using the schema
     const { type } = getPartnersLoanSchema.parse({ ...t });
-    // Base query for customers
+
+    // Base query for sales (with customer)
     const customersQuery = `
       SELECT 
-        c.id, 
-        c.name, 
+        s.id AS id,
         s.saleNumber AS invoice, 
         s.saleDate AS date, 
         s.totalAmount AS totalAmount, 
         s.discount AS discount, 
         s.totalRemaining AS totalRemaining,
-        s.dollar AS dollar
-      FROM Customers c
-      JOIN Sales s ON c.id = s.customerId
+        s.dollar AS dollar,
+        c.id AS partnerId, 
+        c.name AS name
+      FROM Sales s
+      LEFT JOIN Customers c ON c.id = s.customerId
       WHERE s.saleType = 'LOAN' 
         AND s.totalRemaining != s.totalAmount - s.discount
         AND s.deleted_at IS NULL
     `;
 
-    // Base query for companies
+    // Base query for company purchases (with company)
     const companiesQuery = `
       SELECT 
-        com.id, 
-        com.name, 
-        cp.name AS invoice, 
+        cp.id AS id, 
+        cp.name AS invoice,
         cp.purchaseDate AS date, 
         cp.totalAmount AS totalAmount, 
         cp.totalRemaining AS totalRemaining,
         0 AS discount,
-        cp.dollar AS dollar
-      FROM Companies com
-      JOIN CompanyPurchase cp ON com.id = cp.companyId
+        cp.dollar AS dollar,
+        com.id AS partnerId, 
+        com.name AS name
+      FROM CompanyPurchase cp
+      LEFT JOIN Companies com ON com.id = cp.companyId
       WHERE cp.type = 'LOAN'
         AND cp.totalRemaining != cp.totalAmount
         AND cp.deleted_at IS NULL
