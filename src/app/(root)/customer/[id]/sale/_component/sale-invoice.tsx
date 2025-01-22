@@ -59,7 +59,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
     return sales?.sale.find(
       (inv) => inv.id === +(searchParams.get('invoice') ?? 0)
     );
-  }, [searchParams, sales?.sale]);
+  }, [sales?.sale, sale]);
 
   const handleDiscount = useCallback(
     debounce(async (v: string) => {
@@ -86,7 +86,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
         amount: formatedPrices(sale.totalAmount - sale.discount),
       },
     ];
-  }, [sale])
+  }, [sale, currentInvoice, currency]);
 
   return (
     <aside className="flex h-full flex-[2] flex-col justify-between gap-4 rounded-lg border p-4 shadow">
