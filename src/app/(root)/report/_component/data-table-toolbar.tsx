@@ -6,12 +6,8 @@ import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { usePathname } from 'next/navigation';
-import { CalendarX2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import useSetQuery from '@/hooks/useSetQuery';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getPartnersLoanSchema } from '@/server/schema/information';
-import ButtonClearQuery from '@/components/button-clear-query';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -75,8 +71,7 @@ export function DataTableToolbar<TData>({
         </Select>
       ) : (
         <>
-          <CalenderRangMultiSide className="h-8" noDefault />
-          <ButtonClearQuery query='date' variant="default" />
+          <CalenderRangMultiSide className="h-8" noDefault isShowResetButton />
         </>
       )}
     </div>

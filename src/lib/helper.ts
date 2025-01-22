@@ -56,6 +56,14 @@ export async function unlinkImage(
   }
 }
 
+// Function to ensure a directory exists
+export const ensureDirectoryExists = (dirPath: string) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+    console.log(`Directory created: ${dirPath}`);
+  }
+};
+
 /**
  * Add "import 'server-only'" at the top of the file.
  * @param filePath - The file path to modify.

@@ -17,14 +17,18 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         cell: ({ row }) => {
             const { searchParams } = useSetQuery()
             const partnerLoanType = searchParams.get('loanPartner') || "customer";
-            const { id, invoice } = row.original;
+            const { id, invoice, partnerId = null } = row.original;
             return (
-                <Link
-                    className='cursor-pointer underline text-blue-400'
-                    href={`${partnerLoanType === "customer" ? "/customer" : "/company"}/${id}?invoice=${invoice}`}
-                    passHref>
-                    <span>{row.original.id}</span>
-                </Link>
+                partnerId ? (
+                    <Link
+                        className='cursor-pointer underline text-blue-400'
+                        href={`${partnerLoanType === "customer" ? "/customer" : "/company"}/${partnerId}?invoice=${invoice}`}
+                        passHref>
+                        <span>{id}</span>
+                    </Link>
+                ) : (
+                    <span>{id}</span>
+                )
             )
         }
     },
@@ -33,7 +37,7 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="ناو" />
         ),
-        cell: ({ row }) => (<span>{row.original.name}</span>),
+        cell: ({ row }) => (<span>{row.original?.name ?? "سڕاوەتەوە"}</span>),
     },
     {
         accessorKey: 'invocie',
