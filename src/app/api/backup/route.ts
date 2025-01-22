@@ -1,27 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import TelegramBot from 'node-telegram-bot-api';
 import mysqldump from 'mysqldump';
 import archiver from 'archiver';
 import { env } from '@/env.mjs';
 import { NextResponse } from 'next/server';
+import { ensureDirectoryExists } from '@/lib/helper';
+import { getOrUpdateTelegramTokenAndChatId } from '@/server/access-layer/telegram';
+import { sendFilesToTelegram } from '@/lib/telegramUtils';
 
-function createConnectionTelegram() {
-  // Initialize Telegram bot
-  const token = env.TOKEN_TELEGRAM;
-  const chatId = env.CHAT_ID; // Telegram chat ID for sending backups
-  const bot = new TelegramBot(token, { polling: false });
-  return { bot, chatId };
-}
-
-// Utility function to ensure a directory exists
-const ensureDirectoryExists = (dirPath: string) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-    console.log(`Directory created: ${dirPath}`);
-  }
-};
+const MAX_FILE_SIZE = 49 * 1024 * 1024; // 49 MB (to stay under Telegram's 50 MB limit)
 
 // Function to create a ZIP file
 const createZip = (
@@ -50,79 +38,60 @@ const createZip = (
 // Function to split a large file into smaller chunks
 const splitFile = (
   filePath: string,
-  maxSize = 49 * 1024 * 1024
+  maxSize: number = MAX_FILE_SIZE
 ): Promise<string[]> => {
   return new Promise((resolve, reject) => {
     const fileStats = fs.statSync(filePath);
-    if (fileStats.size <= maxSize) return resolve([filePath]); // No splitting needed
+    if (fileStats.size <= maxSize) {
+      return resolve([filePath]); // No splitting needed
+    }
+
+    // Get the current date in the format YYYY-MM-DD
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
 
     const chunks: string[] = [];
-    const readStream = fs.createReadStream(filePath);
-    let currentChunk = Buffer.alloc(0);
+    const readStream = fs.createReadStream(filePath, {
+      highWaterMark: maxSize,
+    });
     let chunkIndex = 1;
 
     readStream.on('data', (chunk) => {
-      currentChunk = Buffer.concat([
-        currentChunk,
-        Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
-      ]);
-
-      if (currentChunk.length >= maxSize) {
-        const chunkFilePath = path.join(
-          os.tmpdir(),
-          `backup_part${chunkIndex}.zip`
-        );
-        fs.writeFileSync(chunkFilePath, currentChunk);
-        chunks.push(chunkFilePath);
-        currentChunk = Buffer.alloc(0);
-        chunkIndex++;
-      }
+      const chunkFilePath = path.join(
+        os.tmpdir(),
+        `backup_part${chunkIndex}_${dateString}.zip` // Include date in the filename
+      );
+      fs.writeFileSync(chunkFilePath, chunk);
+      chunks.push(chunkFilePath);
+      chunkIndex++;
     });
 
     readStream.on('end', () => {
-      if (currentChunk.length > 0) {
-        const chunkFilePath = path.join(
-          os.tmpdir(),
-          `backup_part${chunkIndex}.zip`
-        );
-        fs.writeFileSync(chunkFilePath, currentChunk);
-        chunks.push(chunkFilePath);
-      }
+      console.log(`File split into ${chunks.length} parts.`);
       resolve(chunks);
     });
 
-    readStream.on('error', (err) =>
-      reject(`Error reading file: ${err.message}`)
-    );
+    readStream.on('error', (err) => {
+      reject(`Error reading file: ${err.message}`);
+    });
   });
-};
-
-// Function to send files as a group to Telegram
-const sendFilesToTelegram = async (filePaths: string[]) => {
-  for (const filePath of filePaths) {
-    try {
-      const { bot, chatId } = createConnectionTelegram();
-      const fileStream = fs.createReadStream(filePath);
-      await bot.sendDocument(chatId, fileStream, {
-        caption: `Part: ${path.basename(filePath)}`,
-        disable_notification: true,
-      });
-      console.log(`Backup part sent: ${filePath}`);
-    } catch (error: any) {
-      console.error('Error sending file to Telegram:', error.message);
-      throw new Error(`Error sending file: ${error.message}`);
-    }
-  }
 };
 
 // API handler to perform database dump, zip, split, and send operations
 export async function POST(req: Request) {
+  let dumpFilePath: string | null = null;
+  let zipFilePath: string | null = null;
+  let chunks: string[] = [];
+
   try {
     const formData = await req.formData(); // Get upload option from request
     const isUploadToDrive = formData.get('uploadToDrive') === 'local';
 
-    const dumpFilePath = path.join(os.tmpdir(), 'backup.sql');
-    const zipFilePath = path.join(os.tmpdir(), 'backup.zip');
+    dumpFilePath = path.join(os.tmpdir(), 'backup.sql');
+    zipFilePath = path.join(os.tmpdir(), 'backup.zip');
 
     // Step 1: Generate the MySQL dump
     await mysqldump({
@@ -141,29 +110,24 @@ export async function POST(req: Request) {
 
     if (isUploadToDrive) {
       // Save to local directory
-      const destinationPath = path.resolve('D:/Backups', 'backup.zip');
+      const destinationPath = path.join('D:/Backups', 'backup.zip');
       ensureDirectoryExists(path.dirname(destinationPath));
       fs.copyFileSync(zipFilePath, destinationPath);
       console.log(`Backup saved to: ${destinationPath}`);
     } else {
-      // Send the ZIP file to Telegram
-      const { bot } = createConnectionTelegram(); // Initialize Telegram bot
-      // Step 3: Split the ZIP file if necessary
-      const chunks = await splitFile(zipFilePath);
+      // Step 3: Get the token and chatId (from database or .env)
+      const { token, chatId } = await getOrUpdateTelegramTokenAndChatId();
 
-      // Step 4: Send each chunk to Telegram
-      await sendFilesToTelegram(chunks);
+      // Step 4: Split the ZIP file if necessary
+      chunks = await splitFile(zipFilePath);
+
+      // Step 5: Send each chunk to Telegram
+      await sendFilesToTelegram(chunks, token, chatId);
 
       // Clean up chunk files
       for (const chunk of chunks) {
         fs.unlinkSync(chunk);
       }
-
-      // Ensure the bot stops properly
-      if (bot.isPolling()) {
-        await bot.stopPolling();
-      }
-      await bot.close();
     }
 
     // Clean up the main dump and ZIP files
@@ -175,19 +139,15 @@ export async function POST(req: Request) {
     }
 
     const message = isUploadToDrive
-      ? 'بەسەرکەوتووی باکئەپ کرا بۆ کۆمپیوتەرەکە'
-      : 'بەسەرکەوتووی باکئەپ کرا بۆ تێلەگرام';
+      ? 'باکئەپ کرا بۆ کۆمپیتەرەکە'
+      : 'باکئەپ بۆ تێلیگرام ناردرا';
 
-    return NextResponse.json({ message: 'سەرکەوتووبوو', description: message });
+    return NextResponse.json({ message: 'Success', description: message });
   } catch (error: any) {
     console.error('Error:', error.message);
-    // Return the error response
-    if (error.response.statusCode === 429) {
-      return NextResponse.json({ message: 'ئەپڵۆدکرا باکئەپەکە' });
-    }
     return NextResponse.json({
       description: error.message,
-      message: 'هەڵەیەک ڕوویدا',
+      message: 'هەڵەیەک ڕویدا',
     });
   }
 }

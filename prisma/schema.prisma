@@ -39,6 +39,14 @@ model dollar {
   created_at DateTime @default(now())
 }
 
+model telegramToken {
+  id        Int      @id @default(autoincrement())
+  value     String   @unique
+  chatId    String // Add this field
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model PurchasesInfo {
   id                Int              @id @default(autoincrement())
   companyPurchaseId Int?

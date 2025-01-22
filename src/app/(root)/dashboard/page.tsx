@@ -18,7 +18,6 @@ import {
 import Cards from './components/cards';
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import NotificationCard from './components/notification-card';
-import ButtonClearQuery from '@/components/button-clear-query';
 
 
 export const metadata: Metadata = {
@@ -60,8 +59,9 @@ export default async function DashboardPage({ searchParams }: Props) {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-6">
                 <div className='space-x-2'>
-                  <ButtonClearQuery query='date' className='h-10' variant="default" />
-                  <CalenderRangMultiSide noDefault className='justify-end gap-5' />
+                  <CalenderRangMultiSide
+                    btnClassName='h-9'
+                    noDefault isShowResetButton />
                 </div>
               </div>
               <TabsList>

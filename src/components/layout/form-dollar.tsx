@@ -64,6 +64,6 @@ export default function FormDollar({ dollar }: Props) {
           <DollarSign className="size-5" />
         </Button>
       </form>
-    </CustomDialogWithTrigger >
+    </CustomDialogWithTrigger>
   );
 }
