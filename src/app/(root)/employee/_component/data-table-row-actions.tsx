@@ -112,13 +112,14 @@ export function DataTableRowActions({ row }: { row: Row<OneEmployee> }) {
               </Badge>
               <MonthSelector />
             </div>
-            <EmployeeInfoActions employee={rowData} />
+            <EmployeeInfoActions employee={rowData} isOpen={dropdownOpen} />
           </section>
         </CustomDialogWithTrigger>
         <DropdownMenuSeparator />
         <DeleteModal
           description={`${isTrash ? 'ئەم کارمەندە بە تەواوی دەسڕێتەوە' : 'دڵنیایی لە ئەرشیفکردنی ئەم کارمەندە'}`}
           submit={isTrash ? forceDeleteEmployeeActions : deleteEmployeeActions}
+          onClose={() => setDropdownOpen(false)}
           classNameButton="bg-red-500 text-white w-full h-9"
           title={`${rowData.name}`}
           deleteKey={rowData.id}

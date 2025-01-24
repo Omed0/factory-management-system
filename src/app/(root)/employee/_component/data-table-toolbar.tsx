@@ -136,7 +136,8 @@ function DropdownMenuMoreAction<TData>({
             disabled={!isSelected}
           >
             <DynamicForm
-              id_form="archive-all"
+              key={"restore-all"}
+              id_form="restore-all"
               ids={ids}
               action={restoreManyEmployeeActions}
             >
@@ -149,7 +150,8 @@ function DropdownMenuMoreAction<TData>({
         <DropdownMenuItem disabled={!isSelected} className="text-red-500">
           {isTrash ? (
             <DynamicForm
-              id_form="archive-all"
+              id_form="force-delete-all"
+              key={"force-delete-all"}
               ids={ids}
               action={forceDeleteManyEmployeeActions}
             >
@@ -159,6 +161,7 @@ function DropdownMenuMoreAction<TData>({
           ) : (
             <DynamicForm
               id_form="archive-all"
+              key={"archive-all"}
               ids={ids}
               action={deleteManyEmployeeActions}
             >

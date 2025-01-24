@@ -64,7 +64,7 @@ export async function createSaleForCustomerActions(data: CreateSale) {
       message: sale?.error ?? 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ دروستکرا' };
 }
 
@@ -76,7 +76,7 @@ export async function updateSaleForCustomerActions(data: UpdateSale) {
       message: sale?.error ?? 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'گۆڕانکاری سەرکەوتبوو' };
 }
 
@@ -91,7 +91,7 @@ export async function deleteSaleForCustomerActions(
       message: sale?.error ?? 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ ئەرشیفکرا' };
 }
 
@@ -106,7 +106,7 @@ export async function restoreSaleForCustomerActions(
       message: sale?.error,
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ گەڕێندرایەوە' };
 }
 
@@ -121,7 +121,7 @@ export async function forceDeleteSaleForCustomerActions(
       message: sale?.error,
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ بەتەواوی سڕایەوە' };
 }
 
@@ -145,7 +145,8 @@ export async function finishSaleActions(id: any, isFinished: boolean) {
       message: sale?.error || 'هەڵەیەک هەیە',
     };
   }
-  //revalidatePath('/customer/[id]', 'page');
+  //revalidatePath('/customer/[id]', 'page'); // instead this use dynamic varibale in page invoices customer
+  //this is why not using this have a some function use both in inoivces and sales page if revalidate it will be a problem
   return { success: true, message: 'وەصڵ تەواو کرا' };
 }
 

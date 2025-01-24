@@ -77,16 +77,16 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
     return [
       {
         name: 'کۆی گشتی',
-        amount: formatedPrices(sale.totalAmount),
+        amount: formatedPrices(currentInvoice?.totalAmount || 0),
         del: !!sale.discount,
       },
-      { name: 'داشکاندن', amount: sale.discount },
+      { name: 'داشکاندن', amount: currentInvoice?.discount ?? '0' },
       {
         name: 'کۆی گشتی دوای داشکاندن',
-        amount: formatedPrices(sale.totalAmount - sale.discount),
+        amount: formatedPrices((currentInvoice?.totalAmount || 0) - (currentInvoice?.discount || 0)),
       },
     ];
-  }, [sale, currentInvoice, currency]);
+  }, [sale.id, currentInvoice, currency]);
 
   return (
     <aside className="flex h-full flex-[2] flex-col justify-between gap-4 rounded-lg border p-4 shadow">

@@ -157,15 +157,12 @@ export async function getEmployeeActionsSpecificTime(
       id: empId,
     });
 
-    const startOfThisMonth = new Date(data.startOfMonth).toISOString();
-    const endOfThisMonth = new Date(data.endOfMonth).toISOString();
-
     const actions = await prisma.employeeActions.findMany({
       where: {
         employeeId: data.id,
         dateAction: {
-          gte: startOfThisMonth,
-          lte: endOfThisMonth,
+          gte: data.startOfMonth,
+          lte: data.endOfMonth,
         },
         employee: { deleted_at: null },
       },

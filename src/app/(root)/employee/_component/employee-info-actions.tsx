@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Trash } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,24 +21,24 @@ import {
 import useSetQuery from '@/hooks/useSetQuery';
 import { cn, formatCurrency, getMonthStartAndEndOfMonth, parseCurrency, parseDate } from '@/lib/utils';
 import { OneEmployee, UpdateEmployeeAction } from '@/server/schema/employee';
-import { addition_actions, subtraction_actions, tr_employee_action } from '@/lib/constant';
+import { addition_actions, now, subtraction_actions, tr_employee_action } from '@/lib/constant';
 import { useDollar } from '@/hooks/useDollar';
 import { Badge } from '@/components/ui/badge';
 
 type Props = {
   employee: OneEmployee;
+  isOpen: boolean;
 };
 
-export default function EmployeeInfoActions({ employee }: Props) {
+export default function EmployeeInfoActions({ employee, isOpen }: Props) {
   const { searchParams } = useSetQuery();
   const { data: { dollar } } = useDollar()
-  const month = searchParams.get('month');
+  const month = searchParams.get('month') ?? now.getMonth() + 1;
   const currency = searchParams.get('currency') || 'USD';
-  const now = new Date();
 
-  const dateQuery = month
-    ? getMonthStartAndEndOfMonth(new Date(now.setMonth(+month - 1)))
-    : getMonthStartAndEndOfMonth(now);
+  const dateQuery = useMemo(() => {
+    return getMonthStartAndEndOfMonth(+month)
+  }, [month, isOpen]);
 
   const formatAmount = (amount: number) => {
     return formatCurrency(amount, dollar, currency)
@@ -59,15 +59,17 @@ export default function EmployeeInfoActions({ employee }: Props) {
   if (isLoading || !employeeActions) return <div className='p-6'>چاوەڕوانبە ...</div>;
   if (isError) return <div>{error?.message || "هەڵەیەک هەیە"}</div>;
 
-  const totalAddition = employeeActions
-    .filter(action => addition_actions.includes(action.type as typeof addition_actions[number]))
+  const totalAdditionSalary = employeeActions
+    //subtraction actions for box but in employee reverse it
+    .filter(action => subtraction_actions.includes(action.type as typeof subtraction_actions[number]))
     .reduce((sum, action) => sum + action.amount, 0);
 
-  const totalSubtracts = employeeActions
-    .filter(action => subtraction_actions.includes(action.type as typeof subtraction_actions[number]))
+  const totalSubtractSalary = employeeActions
+    //addition actions for box but in employee reverse it
+    .filter(action => addition_actions.includes(action.type as typeof addition_actions[number]))
     .reduce((sum, action) => sum - action.amount, 0);
 
-  const totalAmountActions = totalAddition + totalSubtracts;
+  const totalAmountActions = totalAdditionSalary + totalSubtractSalary;
 
   const employeeInfo = [
     {
@@ -77,8 +79,8 @@ export default function EmployeeInfoActions({ employee }: Props) {
     {
       name: "مووچەکەی دوای لێبڕین", value: formatAmount(employee.monthSalary + totalAmountActions)
     },
-    { name: "کۆی زیادکراو", value: formatAmount(totalAddition) },
-    { name: "کۆی لێبڕاو", value: formatAmount(totalSubtracts) },
+    { name: "کۆی زیادکراو", value: formatAmount(totalAdditionSalary) },
+    { name: "کۆی لێبڕاو", value: formatAmount(totalSubtractSalary) },
   ];
 
 
