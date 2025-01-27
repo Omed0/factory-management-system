@@ -20,3 +20,4 @@ if exist "..\system-management" (
     echo Error: Failed to move and rename the .next folder.
     exit /b 1
 )
+
