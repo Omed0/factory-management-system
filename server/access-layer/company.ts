@@ -163,7 +163,7 @@ export async function createCompanyPurchase(
 
     const companyPurchase = await prisma.$transaction(async (tx) => {
       const company = await tx.companies.findFirst({
-        where: { id: data.companyId, deleted_at: null },
+        where: { id: data.companyId!, deleted_at: null },
       });
       if (!company) throw new Error('کۆمپانیا نەدۆزرایەوە');
 
@@ -186,7 +186,7 @@ export async function updateCompanyPurchase(
 
     const companyPurchase = await prisma.$transaction(async (tx) => {
       const oldCompanyPurchase = await tx.companyPurchase.findFirst({
-        where: { id: data.id, company: { deleted_at: null } },
+        where: { id: data.id, deleted_at: null },
       });
 
       if (!oldCompanyPurchase) throw new Error('وەصڵەکە نەدۆزرایەوە');
@@ -196,7 +196,14 @@ export async function updateCompanyPurchase(
       const { id, ...rest } = data;
       const updatedCompanyPurchase = await tx.companyPurchase.update({
         where: { id },
-        data: rest,
+        data: {
+          ...rest,
+          //if type is cash then total remaining is total amount
+          totalRemaining:
+            data.type === 'CASH'
+              ? data.totalAmount
+              : oldCompanyPurchase.totalRemaining,
+        },
       });
       return updatedCompanyPurchase;
     });
@@ -204,15 +211,14 @@ export async function updateCompanyPurchase(
   });
 }
 
-export async function deleteCompanyPurchase(id: number, companyId: number) {
+export async function deleteCompanyPurchase(id: number) {
   return tryCatch(async () => {
-    const data = deleteCompanyPurchaseSchema.parse({ id, companyId });
+    const data = deleteCompanyPurchaseSchema.parse({ id });
     const companyPurchase = await prisma.$transaction(async (tx) => {
       const oldCompanyPurchase = await tx.companyPurchase.findFirst({
         where: {
           id: data.id,
-          companyId: data.companyId,
-          company: { deleted_at: null },
+          deleted_at: null,
         },
       });
       if (!oldCompanyPurchase) throw new Error('وەسڵ نەدۆزرایەوە');
@@ -228,12 +234,12 @@ export async function deleteCompanyPurchase(id: number, companyId: number) {
   });
 }
 
-export async function restoreCompanyPurchase(id: number, companyId: number) {
+export async function restoreCompanyPurchase(id: number) {
   return tryCatch(async () => {
-    const data = deleteCompanyPurchaseSchema.parse({ id, companyId });
+    const data = deleteCompanyPurchaseSchema.parse({ id });
     const companyPurchase = await prisma.$transaction(async (tx) => {
       const oldCompanyPurchase = await tx.companyPurchase.findUnique({
-        where: { id: data.id, company: { deleted_at: null } },
+        where: { id: data.id, deleted_at: { not: null } },
       });
       if (!oldCompanyPurchase) throw new Error('وەسڵ نەدۆزرایەوە');
 
@@ -248,17 +254,12 @@ export async function restoreCompanyPurchase(id: number, companyId: number) {
   });
 }
 
-export async function forceDeleteCompanyPurchase(
-  id: number,
-  companyId: number
-) {
+export async function forceDeleteCompanyPurchase(id: number) {
   return tryCatch(async () => {
-    const data = deleteCompanyPurchaseSchema.parse({ id, companyId });
+    const data = deleteCompanyPurchaseSchema.parse({ id });
     const companyPurchase = await prisma.companyPurchase.delete({
       where: {
         id: data.id,
-        companyId: data.companyId,
-        company: { deleted_at: null },
         deleted_at: { not: null },
       },
     });
@@ -277,7 +278,7 @@ export async function getOneCompanyPurchaseInfo(
       id,
       companyPurchaseId,
     });
-    const companyPurchaseInfo = await prisma.purchasesInfo.findUniqueOrThrow({
+    const companyPurchaseInfo = await prisma.purchasesInfo.findFirst({
       where: {
         id: data.id,
         companyPurchaseId: data.companyPurchaseId,
@@ -292,9 +293,9 @@ export async function getListCompanyPurchaseInfo(companyPurchaseId: number) {
   return tryCatch(async () => {
     const data = getListCompanyPurchaseInfoSchema.parse({ companyPurchaseId });
     const purchase = await prisma.companyPurchase.findFirst({
-      where: { id: data.companyPurchaseId, company: { deleted_at: null } },
+      where: { id: data.companyPurchaseId, deleted_at: null },
     });
-    if (!purchase) throw new Error('وەسڵی پارەدان نەدۆزرایەوە');
+    if (!purchase) throw new Error('وەسڵ نەدۆزرایەوە');
 
     const companyPurchaseInfo = await prisma.purchasesInfo.findMany({
       where: {
@@ -313,7 +314,7 @@ export async function createCompanyPurchaseInfo(
     const data = createCompanyPurchaseInfoSchema.parse(dataCompanyPurchaseInfo);
     const companyPurchaseInfo = await prisma.$transaction(async (tx) => {
       const companyPurchase = await tx.companyPurchase.findFirstOrThrow({
-        where: { id: data.companyPurchaseId, company: { deleted_at: null } },
+        where: { id: data.companyPurchaseId, deleted_at: null },
       });
       if (!companyPurchase) throw new Error('وەسڵی پارەدان نەدۆزرایەوە');
       if (
@@ -324,7 +325,7 @@ export async function createCompanyPurchaseInfo(
       }
 
       await tx.companyPurchase.update({
-        where: { id: data.companyPurchaseId, type: 'LOAN' },
+        where: { id: data.companyPurchaseId, type: 'LOAN', deleted_at: null },
         data: { totalRemaining: { increment: data.amount } },
       });
       const purchaseInfo = await tx.purchasesInfo.create({ data });
@@ -349,7 +350,6 @@ export async function deleteCompanyPurchaseInfo(
         companyPurchaseId: data.companyPurchaseId,
         companyPurchase: {
           deleted_at: null,
-          company: { deleted_at: null },
         },
       },
       select: {

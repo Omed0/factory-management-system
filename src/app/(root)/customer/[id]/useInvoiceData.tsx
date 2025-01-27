@@ -1,7 +1,6 @@
-import { getPaidLoanSaleListActions, getProductWithSaleWithcustomerForInvoiceActions } from '@/actions/sale'
-import { OneSale } from '@/server/schema/sale'
 import { useQuery } from '@tanstack/react-query'
-import React from 'react'
+import { OneSale } from '@/server/schema/sale'
+import { getPaidLoanSaleListActions, getProductWithSaleWithcustomerForInvoiceActions } from '@/actions/sale'
 
 type Props = {
     sale: OneSale
@@ -10,8 +9,8 @@ type Props = {
 export function useInvoiceData({ sale }: Props) {
     const res = useQuery({
         queryKey: ["sale-invoice"],
-        queryFn: async () => (await getProductWithSaleWithcustomerForInvoiceActions(sale.id, sale.customerId!)).sale,
-        enabled: !!sale.id && !!sale.customerId && sale.isFinished
+        queryFn: async () => (await getProductWithSaleWithcustomerForInvoiceActions(sale.id)).sale,
+        enabled: !!sale.id && sale.isFinished
     })
 
     return res

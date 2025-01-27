@@ -83,3 +83,7 @@ export const defaultDates = {
   from: new Date(new Date().setMonth(currentMonth, 1)).toLocaleDateString(), // First day of the month
   to: new Date(new Date().setMonth(currentMonth + 1, 0)).toLocaleDateString(), // Last day of the month
 };
+
+export const fastSaleCustomer = {
+  name: 'فرۆشتنی خێرا',
+};

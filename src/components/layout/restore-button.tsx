@@ -53,11 +53,10 @@ export default function RestoreButton({ onClose }: Props) {
                 method: "POST",
                 body: formData,
             });
-            const data = await response.json();
 
             if (response.ok) {
-                toast.success(data.message, {
-                    description: data?.description,
+                toast.success("سەرکەووتوبوو", {
+                    description: "ڕیستۆرکرا بە فایلی تێلێگرام",
                     duration: 4000,
                 });
                 router.refresh();

@@ -36,6 +36,7 @@ import useSetQuery from '@/hooks/useSetQuery';
 import { OneExpense } from '@/server/schema/expense';
 import { useState } from 'react';
 import useInputSetQuery from '@/hooks/use-input-set-query';
+import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -69,26 +70,8 @@ export function DataTableToolbar<TData>({
           isTrash={isTrash}
           table={table}
         />
-        <Button
-          variant={isTrash ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href="/expense?status=trash" replace>
-            <Archive className="size-4" />
-          </Link>
-        </Button>
-        <Button
-          variant={isTrash ? 'outline' : 'default'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href="/expense" replace>
-            <ShieldCheck className="size-4" />
-          </Link>
-        </Button>
+        <TrashAndActiveButtons />
+
       </div>
       <CustomDialogWithTrigger
         open={open}

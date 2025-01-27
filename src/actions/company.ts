@@ -183,9 +183,9 @@ export async function updateCompanyPurchaseActions(
 
 export async function deleteCompanyPurchaseActions(
   id: number,
-  companyId: number
+  companyId?: number | null
 ) {
-  const companyPurchase = await deleteCompanyPurchase(id, companyId);
+  const companyPurchase = await deleteCompanyPurchase(id);
   if (companyPurchase === null || 'error' in companyPurchase) {
     return {
       success: false,
@@ -198,9 +198,9 @@ export async function deleteCompanyPurchaseActions(
 
 export async function restoreCompanyPurchaseActions(
   id: number,
-  companyId: number
+  companyId?: number | null
 ) {
-  const companyPurchase = await restoreCompanyPurchase(id, companyId);
+  const companyPurchase = await restoreCompanyPurchase(id);
   if (companyPurchase === null || 'error' in companyPurchase) {
     return {
       success: false,
@@ -213,9 +213,9 @@ export async function restoreCompanyPurchaseActions(
 
 export async function forceDeleteCompanyPurchaseActions(
   id: number,
-  companyId: number
+  companyId?: number | null
 ) {
-  const companyPurchase = await forceDeleteCompanyPurchase(id, companyId);
+  const companyPurchase = await forceDeleteCompanyPurchase(id);
   if (companyPurchase === null || 'error' in companyPurchase) {
     return {
       success: false,
@@ -269,7 +269,7 @@ export async function createCompanyPurchaseInfoActions(
       message: companyPurchaseInfo?.error,
     };
   }
-  revalidatePath(`/company/${data.companyPurchaseId}`);
+  revalidatePath(`/company`);
   return { success: true, message: 'دروستکراو' };
 }
 
@@ -287,6 +287,6 @@ export async function deleteCompanyPurchaseInfoActions(
       message: companyPurchaseInfo?.error,
     };
   }
-  revalidatePath(`/company/${companyPurchaseId}`);
+  revalidatePath(`/company`);
   return { success: true, message: 'بەتەواوی سڕایەوە' };
 }

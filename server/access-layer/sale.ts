@@ -23,6 +23,7 @@ import {
 } from '../schema/sale';
 import { prisma } from '@/lib/client';
 import { Prisma } from '@prisma/client';
+import { fastSaleCustomer } from '@/lib/constant';
 
 async function getCustomerById(id: number, tx: Prisma.TransactionClient) {
   const customer = await tx.customers.findFirst({
@@ -104,7 +105,19 @@ export async function createSaleForCustomer({
 }) {
   return tryCatch(async () => {
     const data = createSaleSchema.parse({ ...saleValues });
-    const newSale = await prisma.sales.create({ data });
+    const isFastSale = await prisma.customers.findFirst({
+      where: {
+        id: data.customerId,
+        deleted_at: null,
+        name: { contains: fastSaleCustomer.name },
+      },
+    });
+    const newSale = await prisma.sales.create({
+      data: {
+        ...data,
+        fastSale: isFastSale ? true : false,
+      },
+    });
 
     if (!newSale) throw new Error('هەڵەیەک ڕوویدا لە دروستکردنی وەصڵ');
 
@@ -121,12 +134,10 @@ export async function updateSaleForCustomer({
     const { id: saleId, ...rest } = updateSaleSchema.parse(saleValues);
 
     const sale = await prisma.$transaction(async (tx) => {
-      const { customer } = await getCustomerById(rest.customerId, tx);
-      const { sale } = await getSaleById(
-        { id: saleId, customerId: customer.id },
-        tx
-      );
-
+      const sale = await tx.sales.findFirst({
+        where: { id: saleId, deleted_at: null },
+      });
+      if (!sale) throw new Error('وەصڵ نەدۆزرایەوە');
       if (sale.saleType !== rest.saleType)
         throw new Error(
           'گۆڕانکاری ناکرێت لە جۆری پارەدان، بەردەوامبە لەسەر شێوازی پێشوو'
@@ -144,21 +155,13 @@ export async function updateSaleForCustomer({
   });
 }
 
-export async function deleteSaleForCustomer({
-  id,
-  customerId,
-}: {
-  id: number;
-  customerId: number;
-}) {
+export async function deleteSaleForCustomer({ id }: { id: number }) {
   return tryCatch(async () => {
-    const data = deleteSaleSchema.parse({ id, customerId });
+    const data = deleteSaleSchema.parse({ id });
     const sale = await prisma.sales.update({
       where: {
         id: data.id,
-        customerId: data.customerId,
         deleted_at: null,
-        customer: { deleted_at: null },
       },
       data: { deleted_at: new Date() },
     });
@@ -169,19 +172,12 @@ export async function deleteSaleForCustomer({
   });
 }
 
-export async function restoreSaleForCustomer({
-  id,
-  customerId,
-}: {
-  id: number;
-  customerId: number;
-}) {
+export async function restoreSaleForCustomer({ id }: { id: number }) {
   return tryCatch(async () => {
-    const data = restoreSaleSchema.parse({ id, customerId });
+    const data = restoreSaleSchema.parse({ id });
     const sale = await prisma.sales.update({
       where: {
         id: data.id,
-        customerId: data.customerId,
         deleted_at: { not: null },
       },
       data: { deleted_at: null },
@@ -193,19 +189,12 @@ export async function restoreSaleForCustomer({
   });
 }
 
-export async function forceDeleteSaleForCustomer({
-  id,
-  customerId,
-}: {
-  id: number;
-  customerId: number;
-}) {
+export async function forceDeleteSaleForCustomer({ id }: { id: number }) {
   return tryCatch(async () => {
-    const data = restoreSaleSchema.parse({ id, customerId });
+    const data = restoreSaleSchema.parse({ id });
     const sale = await prisma.sales.delete({
       where: {
         id: data.id,
-        customerId: data.customerId,
         deleted_at: { not: null },
       },
     });
@@ -273,23 +262,15 @@ export async function finishSaleInvoice({
 
 // SALE PRODUCT DATA LAYERS
 
-export async function getProductSaleList({
-  saleId,
-  customerId,
-}: {
-  saleId: number;
-  customerId: number;
-}) {
+export async function getProductSaleList({ saleId }: { saleId: number }) {
   return tryCatch(async () => {
     if (!saleId) throw new Error('هیچ وەصڵێک هەڵنەبژێردراوە');
-    const data = getListProductSaleSchema.parse({ saleId, customerId });
+    const data = getListProductSaleSchema.parse({ saleId });
     const sale = await prisma.sales.findFirst({
       where: {
         id: data.saleId,
-        customerId: data.customerId,
         isFinished: false,
         deleted_at: null,
-        customer: { deleted_at: null },
       },
     });
 
@@ -308,19 +289,15 @@ export async function getProductSaleList({
 
 export async function getProductWithSaleWithcustomerForInvoice({
   saleId,
-  customerId,
 }: {
   saleId: number;
-  customerId: number;
 }) {
   return tryCatch(async () => {
-    const data = getListProductSaleSchema.parse({ saleId, customerId });
+    const data = getListProductSaleSchema.parse({ saleId });
     const sale = await prisma.sales.findFirst({
       where: {
         id: data.saleId,
-        customerId: data.customerId,
         deleted_at: null,
-        customer: { deleted_at: null },
       },
       include: {
         customer: true,

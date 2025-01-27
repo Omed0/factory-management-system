@@ -80,11 +80,8 @@ export async function updateSaleForCustomerActions(data: UpdateSale) {
   return { success: true, message: 'گۆڕانکاری سەرکەوتبوو' };
 }
 
-export async function deleteSaleForCustomerActions(
-  id: any,
-  customerId: number
-) {
-  const sale = await deleteSaleForCustomer({ id, customerId });
+export async function deleteSaleForCustomerActions(id: any) {
+  const sale = await deleteSaleForCustomer({ id });
   if (sale === null || 'error' in sale) {
     return {
       success: false,
@@ -95,11 +92,8 @@ export async function deleteSaleForCustomerActions(
   return { success: true, message: 'وەصڵ ئەرشیفکرا' };
 }
 
-export async function restoreSaleForCustomerActions(
-  id: any,
-  customerId: number
-) {
-  const sale = await restoreSaleForCustomer({ id, customerId });
+export async function restoreSaleForCustomerActions(id: any) {
+  const sale = await restoreSaleForCustomer({ id });
   if (sale === null || 'error' in sale) {
     return {
       success: false,
@@ -110,11 +104,8 @@ export async function restoreSaleForCustomerActions(
   return { success: true, message: 'وەصڵ گەڕێندرایەوە' };
 }
 
-export async function forceDeleteSaleForCustomerActions(
-  id: any,
-  customerId: number
-) {
-  const sale = await forceDeleteSaleForCustomer({ id, customerId });
+export async function forceDeleteSaleForCustomerActions(id: any) {
+  const sale = await forceDeleteSaleForCustomer({ id });
   if (sale === null || 'error' in sale) {
     return {
       success: false,
@@ -152,11 +143,8 @@ export async function finishSaleActions(id: any, isFinished: boolean) {
 
 // SALE PRODUCT ACTIONS
 
-export async function getProductSaleListActions(
-  saleId: number,
-  customerId: number
-) {
-  const SaleWithProducts = await getProductSaleList({ saleId, customerId });
+export async function getProductSaleListActions(saleId: number) {
+  const SaleWithProducts = await getProductSaleList({ saleId });
   if (SaleWithProducts === null || 'error' in SaleWithProducts) {
     return {
       success: false,
@@ -167,12 +155,10 @@ export async function getProductSaleListActions(
 }
 
 export async function getProductWithSaleWithcustomerForInvoiceActions(
-  saleId: number,
-  customerId: number
+  saleId: number
 ) {
   const sale = await getProductWithSaleWithcustomerForInvoice({
     saleId,
-    customerId,
   });
   if (sale === null || 'error' in sale) {
     return {

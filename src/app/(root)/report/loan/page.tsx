@@ -1,19 +1,19 @@
 import { getPartnersLoanActions } from '@/actions/information';
 import { DataTable } from '../_component/data-table';
-import { PartnersLoanTypes } from '@/server/schema/information';
 import { columns_loan } from '../_component/columns-loan';
+import { ReportTradePartnerTypes } from '@/server/schema/information';
 
 
 type Props = {
     searchParams: {
-        loanPartner: "customer" | "company" | undefined;
+        loanPartner?: ReportTradePartnerTypes['type']
     }
 }
 
 export const dynamic = 'force-dynamic'
 
 export default async function ReportLoans({ searchParams }: Props) {
-    const type = searchParams.loanPartner ?? "customer"
+    const type = searchParams.loanPartner ?? "customers"
     const loans = await getPartnersLoanActions({ type });
 
     if (!loans.success || !loans.data) {

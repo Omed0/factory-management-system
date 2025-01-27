@@ -62,7 +62,7 @@ export type ListCompanyPurchase = OneCompanyPurchase[];
 export const createCompanyPurchaseSchema = z
   .object({
     name: z.string().min(3, 'ناوەکەت زۆر کورتە').max(100, 'ناوەکەت زۆر درێژە'),
-    companyId: z.number().int().positive(),
+    companyId: z.number().int().positive().optional().nullable(),
     totalAmount: z.coerce.number().positive(),
     type: z.nativeEnum(CompanyPurchaseType),
     note: z.string().nullable().optional(),
@@ -101,15 +101,10 @@ export const getOneCompanyPurchaseSchema = z.object({
   id: z.number().int().positive(),
 });
 
-export const deleteCompanyPurchaseSchema = getOneCompanyPurchaseSchema.and(
-  z.object({
-    companyId: z.number().int().positive(),
-  })
-);
+export const deleteCompanyPurchaseSchema = getOneCompanyPurchaseSchema;
 
 export const deleteManyCompanyPurchaseSchema = z.object({
   ids: z.array(z.number().int().positive()),
-  companyId: z.number().int().positive(),
 });
 
 // COMPANY PURCHASE INFO SCHEMA
@@ -136,12 +131,7 @@ export const createCompanyPurchaseInfoSchema = z.object({
   note: z.string().nullable().optional(),
 });
 
-export const updateCompanyPurchaseInfoSchema =
-  createCompanyPurchaseInfoSchema.and(
-    z.object({
-      id: z.number().int().positive(),
-    })
-  );
+export const updateCompanyPurchaseInfoSchema = createCompanyPurchaseInfoSchema;
 
 export const getOneCompanyPurchaseInfoSchema = z.object({
   id: z.number().int().positive(),

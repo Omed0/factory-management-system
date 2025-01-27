@@ -18,6 +18,7 @@ import {
 import Cards from './components/cards';
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side';
 import NotificationCard from './components/notification-card';
+import { BellDot, BellRing } from 'lucide-react';
 
 
 export const metadata: Metadata = {
@@ -50,6 +51,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   const { latestSales, totalSalesCount, ...rest } = informations.data
+  const hasNotification = notificationLoan.data.oneMonthAgoCustomers.length > 0 || notificationLoan.data.twoMonthsAgoCustomers.length > 0
 
   return (
     <section className="p-3">
@@ -65,8 +67,13 @@ export default async function DashboardPage({ searchParams }: Props) {
                 </div>
               </div>
               <TabsList>
-                <TabsTrigger value="notifications">ئاگادارکردنەوە</TabsTrigger>
-                <TabsTrigger value="overview">داشبۆرد</TabsTrigger>
+                <TabsTrigger value="notifications" className='relative'>
+                  {hasNotification && (<span className='absolute -top-2 -start-2'>
+                    <BellRing className='size-5 fill-current text-red-400' />
+                  </span>)}
+                  ئاگادارکردنەوە
+                </TabsTrigger>
+                <TabsTrigger value="overview" >داشبۆرد</TabsTrigger>
               </TabsList>
             </div>
             <TabsContent value="overview" className="space-y-6">

@@ -35,6 +35,7 @@ import {
 import { Input } from '@/components/ui/input';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneProduct } from '@/server/schema/product';
+import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -65,27 +66,9 @@ export function DataTableToolbar<TData>({
           isTrash={isTrash}
           table={table}
         />
-        <Button
-          variant={isTrash ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href="/product?status=trash" replace>
-            <Archive className="size-4" />
-          </Link>
-        </Button>
-        <Button
-          variant={isTrash ? 'outline' : 'default'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href="/product" replace>
-            <ShieldCheck className="size-4" />
-          </Link>
-        </Button>
+        <TrashAndActiveButtons />
       </div>
+
       <CustomDialogWithTrigger
         open={open}
         onOpenChange={setOpen}

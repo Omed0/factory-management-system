@@ -14,6 +14,7 @@ import AddCompany from './add-company-form';
 import { useEffect, useState } from 'react';
 import BackButton from '@/components/layout/back-button';
 import useInputSetQuery from '@/hooks/use-input-set-query';
+import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -41,26 +42,7 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
-        <Button
-          variant={isTrash ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href={`${pathname}?status=trash`} replace>
-            <Archive className="size-4" />
-          </Link>
-        </Button>
-        <Button
-          variant={isTrash ? 'outline' : 'default'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href={`${pathname}`} replace>
-            <ShieldCheck className="size-4" />
-          </Link>
-        </Button>
+        <TrashAndActiveButtons />
       </div>
       <CustomDialogWithTrigger
         open={open}

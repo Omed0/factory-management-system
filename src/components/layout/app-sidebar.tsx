@@ -5,10 +5,12 @@ import {
   Building2,
   LayoutDashboard,
   PackageSearch,
+  ReceiptText,
   Settings,
   SquareKanban,
   TicketPercent,
   UserRound,
+  UserRoundMinus,
   Users,
 } from 'lucide-react';
 
@@ -31,12 +33,12 @@ const data = {
       icon: LayoutDashboard,
     },
     {
-      title: 'کڕیارەکان',
+      title: 'فرۆشتنەکان',
       url: '/customer',
       icon: UserRound,
     },
     {
-      title: 'کۆمپانیاکان',
+      title: 'کڕینەکان',
       url: '/company',
       icon: Building2,
     },
@@ -59,6 +61,7 @@ const data = {
       title: 'ڕاپۆرتات',
       url: '/report',
       icon: SquareKanban,
+      isActive: true,
       items: [
         {
           title: 'قەرز',
@@ -77,8 +80,16 @@ const data = {
           url: '/report/sale',
         },
         {
-          title: 'بەپێی کەس',
+          title: 'وەصڵی سەربەخۆ',
+          url: '/report/self-invoice',
+        },
+        {
+          title: 'کەشف حسابی کەسی',
           url: '/report/person',
+        },
+        {
+          title: 'کەشف حساب کارمەند',
+          url: '/report/employee',
         },
         {
           title: 'کەشف حساب قاسە',

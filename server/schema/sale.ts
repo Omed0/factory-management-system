@@ -36,7 +36,7 @@ export type RestorePaidLoanSale = z.infer<typeof restorePaidLoanSaleSchema>;
 
 export const createSaleSchema = z
   .object({
-    customerId: z.number().int().positive(),
+    customerId: z.number().int().positive().optional(),
     saleNumber: z
       .string()
       .regex(
@@ -83,8 +83,10 @@ export const finishSaleSchema = z.object({
   saleId: z.number().int().positive(),
 });
 
-export const deleteSaleSchema = getOneSaleSchema;
-export const restoreSaleSchema = getOneSaleSchema;
+export const deleteSaleSchema = z.object({
+  id: z.number().int(),
+});
+export const restoreSaleSchema = deleteSaleSchema;
 
 // PRODUCT SALE SCHEMA
 
@@ -114,7 +116,6 @@ export const getOneProductSaleSchema = z.object({
 
 export const getListProductSaleSchema = z.object({
   saleId: z.number().int().positive(),
-  customerId: z.number().int().positive(),
 });
 
 export const deleteProductSaleSchema = getOneProductSaleSchema;

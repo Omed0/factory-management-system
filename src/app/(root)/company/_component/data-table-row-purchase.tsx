@@ -39,8 +39,8 @@ import useSetQuery from '@/hooks/useSetQuery';
 import { OneCompanyPurchase } from '@/server/schema/company';
 import { formatCurrency, parseDate } from '@/lib/utils';
 import { useDollar } from '@/hooks/useDollar';
-import { useReactToPrint } from 'react-to-print';
 import { now } from '@/lib/constant';
+import usePrint from '@/hooks/use-print';
 
 export function DataTableRowPurchaseActions({
   row,
@@ -52,7 +52,7 @@ export function DataTableRowPurchaseActions({
 
   const [open, setOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { companyId, id, name, type } = row.original;
+  const { companyId, id, name, type, company } = row.original;
 
   const isLoan = type === 'LOAN';
   //const isFinish = totalAmount === totalRemaining;
@@ -83,6 +83,7 @@ export function DataTableRowPurchaseActions({
               }
             >
               <ModalTablePurchaseInfo
+                company={company?.name || ''}
                 companyPurchaseId={id}
                 isTrash={isTrash}
               />
@@ -95,7 +96,7 @@ export function DataTableRowPurchaseActions({
             description="دڵنیای لە هێنانەوەی ئەم کۆمپانیایە"
             restorKey={id}
             classNameButton="w-full h-9"
-            action={(id) => restoreCompanyPurchaseActions(id, companyId!)}
+            action={(id) => restoreCompanyPurchaseActions(id, companyId)}
             title={`${name}`}
           />
         ) : (
@@ -132,8 +133,8 @@ export function DataTableRowPurchaseActions({
           description={`${isTrash ? 'ئەم داتایە بە تەواوی دەسڕێتەوە' : 'دڵنیایی لە ئەرشیفکردنی ئەم داتایە'}`}
           submit={
             isTrash
-              ? (id) => forceDeleteCompanyPurchaseActions(id, companyId!)
-              : (id) => deleteCompanyPurchaseActions(id, companyId!)
+              ? (id) => forceDeleteCompanyPurchaseActions(id, companyId)
+              : (id) => deleteCompanyPurchaseActions(id, companyId)
           }
           classNameButton="bg-red-500 text-white w-full h-9"
           onClose={() => setDropdownOpen(false)}
@@ -147,9 +148,11 @@ export function DataTableRowPurchaseActions({
 }
 
 export function ModalTablePurchaseInfo<T extends number>({
+  company,
   companyPurchaseId,
   isTrash,
 }: {
+  company: string;
   companyPurchaseId: T;
   isTrash: boolean;
 }) {
@@ -159,7 +162,7 @@ export function ModalTablePurchaseInfo<T extends number>({
   const currency = searchParams.get("currency") || "USD"
 
   const contentRef = useRef(null)
-  const handlePrint = useReactToPrint({ contentRef });
+  const handlePrint = usePrint({ contentRef })
 
   const { isLoading, data, isError, error, refetch } = usePurchaseInfo(
     companyPurchaseId,
@@ -222,8 +225,12 @@ export function ModalTablePurchaseInfo<T extends number>({
         <Printer className="size-5" />
       </Button>
       <div ref={contentRef} className='my-2 mt-5'>
-        <div className='flex items-center gap-2 justify-between'>
-          <h2 className='text-2xl font-medium'>وەصڵی قەرز</h2>
+        <div className='flex items-center gap-2 justify-between text-2xl font-bold'>
+          <h1 className="text-primary">زانیار گرووپ</h1>
+          <h2 className='capitalize'>فرۆشیار : {company}</h2>
+        </div>
+        <div className='flex items-center gap-2 justify-between my-1'>
+          <h2 className='text-lg font-medium'>وەصڵی قەرز</h2>
           <p>{now.toLocaleString()}</p>
         </div>
         <Table className="mt-4 w-full flex-1 border">

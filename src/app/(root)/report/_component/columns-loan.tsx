@@ -14,23 +14,7 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="زنجیرە" />
         ),
-        cell: ({ row }) => {
-            const { searchParams } = useSetQuery()
-            const partnerLoanType = searchParams.get('loanPartner') || "customer";
-            const { id, invoice, partnerId = null } = row.original;
-            return (
-                partnerId ? (
-                    <Link
-                        className='cursor-pointer underline text-blue-400'
-                        href={`${partnerLoanType === "customer" ? "/customer" : "/company"}/${partnerId}?invoice=${invoice}`}
-                        passHref>
-                        <span>{id}</span>
-                    </Link>
-                ) : (
-                    <span>{id}</span>
-                )
-            )
-        }
+        cell: ({ row }) => <span>{row.original.id}</span>
     },
     {
         accessorKey: 'name',
@@ -44,11 +28,23 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="وەصڵ" />
         ),
-        cell: ({ row }) => (
-            <div className="flex w-[100px]">
-                <span>{row.original.invoice}</span>
-            </div>
-        )
+        cell: function ({ row }) {
+            const { searchParams } = useSetQuery()
+            const partnerLoanType = searchParams.get('loanPartner') || "customers";
+            const { invoice, partnerId = null } = row.original;
+            return (
+                partnerId ? (
+                    <Link
+                        className='cursor-pointer underline text-blue-400'
+                        href={`${partnerLoanType === "customers" ? "/customer" : "/company"}/${partnerId}?invoice=${invoice}`}
+                        passHref>
+                        <span>{invoice}</span>
+                    </Link>
+                ) : (
+                    <span>{invoice}</span>
+                )
+            )
+        }
     },
     {
         accessorKey: 'totalAmount',
@@ -57,8 +53,9 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         ),
         cell: function CellComponent({ row }) {
             const { totalAmount, dollar, discount } = row.original;
+            const TotalAmountWithDiscount = !!discount ? totalAmount - discount : totalAmount; //in company purchase does not have discount so we need to check it
             const formatPrice = useConvertCurrency(totalAmount, dollar);
-            const formatPriceWithDiscount = useConvertCurrency(totalAmount - discount, dollar);
+            const formatPriceWithDiscount = useConvertCurrency(TotalAmountWithDiscount, dollar);
             return (
                 <div className="flex min-w-24">
                     {discount > 0 ?

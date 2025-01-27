@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-
 import { getListCompanyPurchaseInfoActions } from '@/actions/company';
+
 
 export function usePurchaseInfo(companyPurchaseId: number, isTrash?: boolean) {
   const datas = useQuery({

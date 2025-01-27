@@ -47,8 +47,24 @@ export const getInfoAboutBoxSchema = z.object({
   to: z.string().optional(),
 });
 
+export const getActionsEmployeeSchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+  name: z.string().optional(),
+});
+
 export const getPartnersLoanSchema = z.object({
-  type: z.enum(['customer', 'company']),
+  type: z.enum(['customers', 'companies']),
+});
+
+export const getSelfInvoiceSchema = z.object({
+  type: z.enum(['companies', 'customers']),
+  dates: z
+    .object({
+      from: z.string(),
+      to: z.string(),
+    })
+    .optional(),
 });
 
 export type DashboardInfoTypes = z.infer<typeof getDashboardInfoSchema>;
@@ -63,5 +79,7 @@ export type getReportChartPartnerTypes = z.infer<
 >;
 export type InfoAboutBoxTypes = z.infer<typeof getInfoAboutBoxSchema>;
 export type PartnersLoanTypes = z.infer<typeof getPartnersLoanSchema>;
+export type getActionsEmployeeTypes = z.infer<typeof getActionsEmployeeSchema>;
+export type getSelfInvoiceTypes = z.infer<typeof getSelfInvoiceSchema>;
 
 export type TradePartner = Companies | Customers;

@@ -2,7 +2,6 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { usePurchaseInfo } from '../purchase-info-state';
@@ -41,6 +40,7 @@ import {
   updateCompanyPurchaseSchema,
 } from '@/server/schema/company';
 import { useDollar } from '@/hooks/useDollar';
+import { now } from '@/lib/constant';
 
 type Props = {
   purchase?: Partial<OneCompanyPurchase>;
@@ -54,8 +54,6 @@ type FormType<T extends boolean> = T extends true
 
 export default function AddPurchase({ purchase, title, handleClose }: Props) {
   const isEdit = !!purchase;
-  const params = useParams();
-  const companyId = purchase?.companyId || Number(params.id);
   const { data } = useDollar()
 
   const form = useForm<FormType<typeof isEdit>>({
@@ -63,7 +61,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
     resolver: zodResolver(
       isEdit ? updateCompanyPurchaseSchema : createCompanyPurchaseSchema
     ),
-    defaultValues: defaultValues(companyId, { dollar: data.dollar, ...purchase }) as FormType<
+    defaultValues: defaultValues({ dollar: data.dollar, ...purchase }) as FormType<
       typeof isEdit
     >,
   });
@@ -72,6 +70,7 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
   const type = form.watch('type');
 
   const { refetch } = usePurchaseInfo(purchase?.id ?? 0);
+
   async function onSubmit(values: FormType<typeof isEdit>) {
     let companyValues;
     if (isEdit && purchase?.id) {
@@ -208,18 +207,16 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
 }
 
 function defaultValues(
-  companyId: number,
   values?: Partial<OneCompanyPurchase>
 ) {
   if (values) {
-    values.companyId = +companyId
     values.type = values.type ?? 'CASH';
     if (values.purchaseDate) {
       values.purchaseDate = new Date(values.purchaseDate);
     } else {
-      values.purchaseDate = new Date();
+      values.purchaseDate = now;
     }
     return values;
   }
-  return { companyId, purchaseDate: new Date(), type: 'CASH' };
+  return { purchaseDate: now, type: 'CASH' };
 }

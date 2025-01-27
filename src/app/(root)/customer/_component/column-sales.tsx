@@ -26,7 +26,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
   {
     accessorKey: 'saleNumber',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="کۆدی وەصڵ" />
+      <DataTableColumnHeader column={column} title="ناوی وەصڵ" />
     ),
     cell: function CellComponent({ row }) {
       const sale = row.original;
@@ -149,6 +149,9 @@ export const column_sale: ColumnDef<OneSale>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="زیاتر" />
     ),
-    cell: ({ row }) => <DataTableRowSaleActions row={row} />,
+    cell: ({ row }) => {
+
+      return (<DataTableRowSaleActions row={row} />)
+    },
   },
 ];

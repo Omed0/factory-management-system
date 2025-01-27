@@ -1,4 +1,5 @@
 import '@/styles/globals.css';
+import '@/styles/print.css';
 
 import { PropsWithChildren } from 'react';
 

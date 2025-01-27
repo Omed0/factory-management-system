@@ -24,7 +24,7 @@ export const columns_detail_box_action: ColumnDef<CombinedData>[] = [
       return (
         isNotFirst && (
           <Link
-            className={"min-w-20 text-blue-500 underline"}
+            className={"min-w-14 text-blue-500 underline"}
             href={url || "#"}
           >
             {row.index}

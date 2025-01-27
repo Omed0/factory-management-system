@@ -12,7 +12,6 @@ import {
   deletePaidLoanSaleListActions,
   deleteSaleForCustomerActions,
   forceDeleteSaleForCustomerActions,
-  getPaidLoanSaleListActions,
   restoreSaleForCustomerActions,
 } from '@/actions/sale';
 import DeleteModal from '@/components/delete-modal';
@@ -39,10 +38,10 @@ import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
 import { formatCurrency, parseDate } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
-import { useReactToPrint } from "react-to-print"
 import InvoiceComponent from './invoice';
 import { useLoanInfo, useInvoiceData } from '../[id]/useInvoiceData';
 import { now } from '@/lib/constant';
+import usePrint from '@/hooks/use-print';
 
 
 export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
@@ -53,10 +52,10 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const contentRef = useRef(null)
-  const handlePrint = useReactToPrint({ contentRef });
+  const handlePrint = usePrint({ contentRef })
 
   const sale = row.original;
-  const { refetch } = useInvoiceData({ sale })
+  const { refetch, data } = useInvoiceData({ sale })
   const { refetch: fetchLoan } = useLoanInfo({ saleId: sale.id, isTrash });
 
   const isLoan = sale?.saleType === 'LOAN';
@@ -132,7 +131,7 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
                 </Button>
               }
             >
-              <ModalTablePaidLoanSale saleId={sale.id} isTrash={isTrash} />
+              <ModalTablePaidLoanSale saleId={sale.id} isTrash={isTrash} customer={data?.customer?.name || ''} />
             </CustomDialogWithTrigger>
             <DropdownMenuSeparator />
           </>
@@ -142,7 +141,7 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
             description="دڵنیای لە هێنانەوەی ئەم وەصڵە"
             restorKey={sale.id}
             classNameButton="w-full h-9"
-            action={(id) => restoreSaleForCustomerActions(id, sale.customerId!)}
+            action={(id) => restoreSaleForCustomerActions(id)}
             title={`${sale.saleNumber}`}
           />
         ) : (
@@ -183,8 +182,8 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
           description={`${isTrash ? 'ئەم وەصڵە بە تەواوی دەسڕێتەوە' : 'دڵنیایی لە ئەرشیفکردنی ئەم وەصڵە'}`}
           submit={(id) =>
             isTrash
-              ? forceDeleteSaleForCustomerActions(id, sale.customerId!)
-              : deleteSaleForCustomerActions(id, sale.customerId!)
+              ? forceDeleteSaleForCustomerActions(id)
+              : deleteSaleForCustomerActions(id)
           }
           classNameButton="bg-red-500 text-white w-full h-9"
           title={`${sale.saleNumber}`}
@@ -198,9 +197,11 @@ export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
 }
 
 export function ModalTablePaidLoanSale({
+  customer,
   saleId,
   isTrash,
 }: {
+  customer: string;
   saleId: number;
   isTrash: boolean;
 }) {
@@ -213,13 +214,9 @@ export function ModalTablePaidLoanSale({
 
   const currency = searchParams.get('currency') || 'USD';
 
-  const handlePrint = useReactToPrint({ contentRef });
-  const { data, isLoading, isError, error, refetch } = useLoanInfo({ saleId, isTrash });
+  const handlePrint = usePrint({ contentRef })
 
-  const dollarValue = data?.data?.sale.dollar || dollar
-  const formatedPrice = (amount: number) => {
-    return formatCurrency(amount, dollarValue, currency);
-  };
+  const { data, isLoading, isError, error, refetch } = useLoanInfo({ saleId, isTrash });
 
   if (isLoading) return <div className="p-4 text-center">چاوەڕوانبە ...</div>;
   if (isError || !data?.success || isTrash || !data.data) {
@@ -231,8 +228,12 @@ export function ModalTablePaidLoanSale({
   }
 
   const { loan, sale } = data.data;
-  const { totalAmount, totalRemaining, discount } = sale
+  const formatedPrice = (amount: number) => {
+    return formatCurrency(amount, dollarValue, currency);
+  };
 
+  const { totalAmount, totalRemaining, discount } = sale
+  const dollarValue = sale.dollar || dollar;
   const totalPeriod = (totalAmount - discount) - totalRemaining;
 
   const isFinished = totalPeriod === 0 && totalAmount > 0; //cannot add other paidLoan until have different value total and remainig
@@ -290,8 +291,12 @@ export function ModalTablePaidLoanSale({
         <Printer className="size-5" />
       </Button>
       <div className='my-2 mt-5' ref={contentRef}>
-        <div className='flex items-center gap-2 justify-between'>
-          <h2 className='text-2xl font-medium'>وەصڵی قەرز</h2>
+        <div className='flex items-center gap-2 justify-between text-2xl'>
+          <h1 className="font-bold text-primary">زانیار گرووپ</h1>
+          <h2 className='font-bold'>کڕیار : {customer}</h2>
+        </div>
+        <div className='flex items-center gap-2 justify-between my-1'>
+          <h2 className='text-lg font-medium'>وەصڵی قەرز</h2>
           <p>{now.toLocaleString()}</p>
         </div>
         <Table className="mt-4 w-full flex-1 border">
@@ -324,8 +329,8 @@ export function ModalTablePaidLoanSale({
           <TableHeader>
             <TableRow>
               <TableHead className="w-20 border-x">ژمارە</TableHead>
-              <TableHead className='text-center border-x w-24'>بڕ</TableHead>
-              <TableHead className='text-center border-x w-24'>بەروار</TableHead>
+              <TableHead className='text-center border-x w-28'>بڕ</TableHead>
+              <TableHead className='text-center border-x w-28'>بەروار</TableHead>
               <TableHead className="text-center border-x">تێبینی</TableHead>
               <TableHead className="text-end border-x w-16 hide-on-print">سڕینەوە</TableHead>
             </TableRow>
@@ -334,7 +339,7 @@ export function ModalTablePaidLoanSale({
             {loan.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="w-20 text-center">{item.id}</TableCell>
-                <TableCell className="amount-cell text-center">{formatCurrency(item.amount, dollarValue, currency)}</TableCell>
+                <TableCell className="amount-cell text-center">{formatedPrice(item.amount)}</TableCell>
                 <TableCell className='text-center'>
                   {parseDate(item.paidDate)}
                 </TableCell>

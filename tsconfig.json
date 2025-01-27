@@ -30,6 +30,15 @@
       "@/*": [
         "./src/*"
       ],
+      "@/app/*": [
+        "./src/app/*"
+      ],
+      "@/app/api/*": [
+        "./src/app/api/*"
+      ],
+      "@/styles/*": [
+        "./src/styles/*"
+      ],
       "@/server/*": [
         "./server/*"
       ],
