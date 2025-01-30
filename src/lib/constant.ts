@@ -51,15 +51,18 @@ export const redirect_to_page_name = [
   },
   {
     name: 'company',
-    value: (q: string, id: number) => `/company/${id}?=invoice=${q}`,
+    value: (q: string, id?: number | null) =>
+      `${id ? `/company/${id}?invoice=${q}` : `/report/self-invoice?name=${q}`}`,
   },
   {
     name: 'customer',
-    value: (q: string, id: number) => `/customer/${id}?invoice=${q}`,
+    value: (q: string, id?: number | null) =>
+      `${id ? `/customer/${id}?invoice=${q}` : `/report/self-invoice?saleNumber=${q}`}`,
   },
   {
     name: 'employee',
-    value: (q: string) => `/employee?name=${q}`,
+    value: (q: string, id?: number | null) =>
+      `${id ? `/employee?name=${q}` : `/report/employee?name=${q}`}`,
   },
 ];
 

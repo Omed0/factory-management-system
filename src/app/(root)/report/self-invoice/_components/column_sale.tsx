@@ -22,7 +22,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
         },
     },
     {
-        accessorKey: 'name',
+        accessorKey: 'saleNumber',
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="ناوی وەصڵ" />
         ),

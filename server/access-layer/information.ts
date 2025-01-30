@@ -30,7 +30,12 @@ import {
 } from '@/app/(root)/report/_constant';
 import { addMonths } from 'date-fns';
 import { calculateTotalAmount } from './box';
-import { addition_actions, now, subtraction_actions } from '@/lib/constant';
+import {
+  addition_actions,
+  fastSaleCustomer,
+  now,
+  subtraction_actions,
+} from '@/lib/constant';
 import { EmployeeActionType, Prisma } from '@prisma/client';
 import { OneSale } from '../schema/sale';
 import { OneCompanyPurchase } from '../schema/company';
@@ -95,7 +100,10 @@ export async function getDashboardInformation(data?: DashboardInfoTypes) {
 
     const latestSales = salesData.slice(-5).reverse();
     const totalSalesCount = salesData.length;
-    const totalCustomers = customers.length;
+    //remove فرۆشتن from customers
+    const totalCustomers = customers.filter(
+      (customer) => customer.name !== fastSaleCustomer.name
+    ).length;
     const totalSalesAmount = salesData.reduce(
       (sum, sale) => sum + sale.totalRemaining,
       0
@@ -169,7 +177,6 @@ export async function getDashboardChartInformation() {
               lt: new Date(year, month, 1), // Start of the next month
             },
             deleted_at: null,
-            isFinished: true,
           },
         });
         const all_employee_actions = await prisma.employeeActions.aggregate({
@@ -216,6 +223,7 @@ export async function getCustomersWhoDidntGiveLoan() {
           saleType: 'LOAN',
           deleted_at: null,
         },
+
         include: { paidLoans: true, customer: true },
       });
 
@@ -362,7 +370,7 @@ export async function getTradePartnerFromType(data: TradePartnerTypes) {
   return tryCatch(async () => {
     let table = Prisma.sql`customers`;
     const formated = getTradePartnerSchema.parse(data);
-    if (formated.type === 'companies') {
+    if (formated.type === 'company') {
       table = Prisma.sql`companies`;
     }
 
@@ -390,7 +398,7 @@ export async function getReportPartnerFromChart(
         const year = currentYear - Math.floor((currentMonth - i) / 12); // Adjust year if necessary
 
         let totalPartnerData: PartnerChartSummary;
-        if (formated.type === 'companies') {
+        if (formated.type === 'company') {
           totalPartnerData = await prisma.companyPurchase.aggregate({
             _sum: {
               totalRemaining: true,
@@ -466,7 +474,7 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
   return tryCatch(async () => {
     const formated = getReportTradePartnerSchema.parse(data);
     let loanSummary: LoanSummary;
-    if (formated.type === 'companies') {
+    if (formated.type === 'company') {
       loanSummary = await prisma.companyPurchase.aggregate({
         _sum: {
           totalRemaining: true,
@@ -516,11 +524,12 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
 
 export type CombinedData = {
   id: number | null;
-  name: string | null;
+  name: string;
   createdAt: Date | null;
   dollar: number | null;
   note: string | null;
   partner: string | null;
+  partnerId: number | null;
   type: 'expense' | 'sale' | 'companyPurchase' | EmployeeActionType | null;
   pathname: string | null;
   addition: number;
@@ -542,6 +551,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         e.created_at AS createdAt, 
         e.dollar, 
         e.title AS partner, 
+        NULL AS partnerId,
         'expense' AS type,
         'expense' AS pathname,
         0 AS addition, -- Expenses do not add to balance
@@ -557,6 +567,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
           cp.purchaseDate AS createdAt, 
           cp.dollar, 
           com.name AS partner, 
+          com.id AS partnerId,
           'companyPurchase' AS type,
           'company' AS pathname,
           0 AS addition, -- Purchases do not add to balance
@@ -571,7 +582,8 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         s.id, 
         s.saleNumber AS name, 
         s.saleDate AS createdAt, 
-        s.dollar, 
+        s.dollar,
+        c.id AS partnerId, 
         c.name AS partner, 
         'sale' AS type,
         'customer' AS pathname,
@@ -588,6 +600,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         emp.name AS name, 
         ea.dateAction AS createdAt, 
         ea.dollar, 
+        emp.id AS partnerId,
         emp.name AS partner, 
         ea.type AS type,
         'employee' AS pathname,
@@ -620,11 +633,12 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
     // Add summary row
     combinedData.push({
       id: null,
-      name: null,
+      name: '',
       createdAt: null,
       dollar: null,
       note: null,
       partner: 'کۆی گشتی',
+      partnerId: null,
       type: null,
       pathname: null,
       addition: totalAdditions,
@@ -650,7 +664,7 @@ export type PartnersLoan = {
 export async function getPartnersLoan(t: PartnersLoanTypes) {
   return tryCatch(async () => {
     // Parse the input type using the schema
-    const { type } = getPartnersLoanSchema.parse({ ...t });
+    const { type } = getPartnersLoanSchema.parse(t);
 
     // Base query for sales (with customer)
     const customersQuery = `
@@ -692,7 +706,7 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
 
     // Use query based on the type
     let partnersLoan: PartnersLoan[] | null = null;
-    if (type === 'customers') {
+    if (type === 'customer') {
       partnersLoan = (await prisma.$queryRawUnsafe(
         customersQuery
       )) as PartnersLoan[];
@@ -773,15 +787,19 @@ export async function getSelfInvoice(data?: getSelfInvoiceTypes) {
   return tryCatch(async () => {
     const formated = getSelfInvoiceSchema.parse(data); // use same schema as for from and to reuse
     let result: OneSale[] | OneCompanyPurchase[] | null = null;
-    if (formated.type === 'customers') {
+    if (formated.type === 'customer') {
       const sales = await prisma.sales.findMany({
         where: {
           saleDate: {
             gte: formated.dates?.from,
             lte: formated.dates?.to,
           },
-          deleted_at: null,
-          OR: [{ fastSale: true }, { customerId: null }],
+          deleted_at: formated.isTrash ? { not: null } : null,
+          OR: [
+            { fastSale: true },
+            { customerId: null },
+            { customer: { deleted_at: { not: null } } },
+          ],
         },
       });
       result = sales;
@@ -792,8 +810,8 @@ export async function getSelfInvoice(data?: getSelfInvoiceTypes) {
             gte: formated.dates?.from,
             lte: formated.dates?.to,
           },
-          deleted_at: null,
-          companyId: null,
+          deleted_at: formated.isTrash ? { not: null } : null,
+          OR: [{ company: { deleted_at: { not: null } } }, { companyId: null }],
         },
       });
       result = companyPurchases as unknown as OneCompanyPurchase[];

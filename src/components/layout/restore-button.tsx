@@ -120,32 +120,41 @@ export default function RestoreButton({ onClose }: Props) {
 
 
 function FormRestoreSql({ onClose }: Props) {
+    const [isLoading, setIsLoading] = useState(false)
     const form = useForm({
         resolver: zodResolver(validFiles),
         defaultValues: { files: [] },
     })
 
     const handleSubmit = async (values: any) => {
-        const formData = new FormData();
-        Array.from(values.files as FileList).forEach((file: File) => {
-            formData.append("files", file);
-        });
-        formData.append("restoreSource", "upload");
-
-        const response = await fetch("/api/restore", {
-            method: "POST",
-            body: formData,
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            toast.success(data.message, {
-                duration: 4000,
+        try {
+            setIsLoading(true)
+            const formData = new FormData();
+            Array.from(values.files as FileList).forEach((file: File) => {
+                formData.append("files", file);
             });
-            onClose && onClose();
-        } else {
-            toast.error(data.message);
+            formData.append("restoreSource", "upload");
+
+            const response = await fetch("/api/restore", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success(data.message, {
+                    duration: 4000,
+                });
+                onClose && onClose();
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            console.log(error);
+            toast.error("هەڵەیەک هەیە")
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -175,8 +184,17 @@ function FormRestoreSql({ onClose }: Props) {
                 </span>
 
                 <div className="mt-5 flex w-full flex-wrap gap-5">
-                    <Button type="submit" className="flex-1 basis-60" disabled={!form.formState.isDirty}>
-                        ڕیستۆرکردن
+                    <Button
+                        type="submit"
+                        className="flex-1 basis-60"
+                        disabled={!form.formState.isDirty || isLoading}
+                    >
+                        {isLoading ? (
+                            <LoaderCircle className="size-5 animate-spin duration-300" />
+                        ) : (<span>
+                            ڕیستۆرکردن
+                        </span>)
+                        }
                     </Button>
                     <DialogClose className="flex-1 basis-60">
                         <Button type="reset" variant="outline" className="min-w-full">

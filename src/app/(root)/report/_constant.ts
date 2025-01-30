@@ -61,19 +61,10 @@ export const tr_report_name = [
   { name: report_name[2], value: 'کڕین' },
 ];
 
-export const report_link = [
-  {
-    name: report_name[0],
-    value: (query: string) => `/expense?name=${query}`,
-  },
-  {
-    name: report_name[1],
-    value: (query: string, id: string) => `/customer/${id}?invoice=${query}`,
-  },
-  {
-    name: report_name[2],
-    value: (query: string, id: string) => `/company/${id}?invoice=${query}`,
-  },
+export const redirect_to_url_page = [
+  { name: report_name[0], value: `` },
+  { name: report_name[1], value: `` },
+  { name: report_name[2], value: `` },
 ];
 
 export const isShowValue = {

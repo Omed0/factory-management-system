@@ -7,6 +7,7 @@ import { PartnersLoan } from '@/server/access-layer/information';
 import Link from 'next/link';
 import useSetQuery from '@/hooks/useSetQuery';
 import { parseDate } from '@/lib/utils';
+import { redirect_to_page_name } from '@/lib/constant';
 
 export const columns_loan: ColumnDef<PartnersLoan>[] = [
     {
@@ -30,13 +31,15 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         ),
         cell: function ({ row }) {
             const { searchParams } = useSetQuery()
-            const partnerLoanType = searchParams.get('loanPartner') || "customers";
             const { invoice, partnerId = null } = row.original;
+            const partnerLoanType = searchParams.get('loanPartner') || "customer";
+            const url = redirect_to_page_name.find(({ name }) => name === partnerLoanType)?.value(partnerLoanType, partnerId);
+
             return (
                 partnerId ? (
                     <Link
                         className='cursor-pointer underline text-blue-400'
-                        href={`${partnerLoanType === "customers" ? "/customer" : "/company"}/${partnerId}?invoice=${invoice}`}
+                        href={url || '#'}
                         passHref>
                         <span>{invoice}</span>
                     </Link>

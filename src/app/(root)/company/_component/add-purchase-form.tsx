@@ -41,6 +41,7 @@ import {
 } from '@/server/schema/company';
 import { useDollar } from '@/hooks/useDollar';
 import { now } from '@/lib/constant';
+import { useParams } from 'next/navigation';
 
 type Props = {
   purchase?: Partial<OneCompanyPurchase>;
@@ -55,13 +56,15 @@ type FormType<T extends boolean> = T extends true
 export default function AddPurchase({ purchase, title, handleClose }: Props) {
   const isEdit = !!purchase;
   const { data } = useDollar()
+  const param = useParams()
+  const companyId = purchase?.companyId || Number(param.id)
 
   const form = useForm<FormType<typeof isEdit>>({
     mode: 'onSubmit',
     resolver: zodResolver(
       isEdit ? updateCompanyPurchaseSchema : createCompanyPurchaseSchema
     ),
-    defaultValues: defaultValues({ dollar: data.dollar, ...purchase }) as FormType<
+    defaultValues: defaultValues({ companyId, dollar: data.dollar, ...purchase }) as FormType<
       typeof isEdit
     >,
   });
@@ -72,6 +75,10 @@ export default function AddPurchase({ purchase, title, handleClose }: Props) {
   const { refetch } = usePurchaseInfo(purchase?.id ?? 0);
 
   async function onSubmit(values: FormType<typeof isEdit>) {
+    if (!values.companyId) {
+      toast.error("کۆمپانیا هەڵبژێرە")
+      return
+    }
     let companyValues;
     if (isEdit && purchase?.id) {
       companyValues = await updateCompanyPurchaseActions(

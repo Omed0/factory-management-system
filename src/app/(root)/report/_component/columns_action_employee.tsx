@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { isShowValue } from '../_constant';
 import { parseDate } from '@/lib/utils';
 import { employeeActionType } from '@/server/access-layer/information';
-import { tr_employee_action, tr_type_calculated } from '@/lib/constant';
+import { redirect_to_page_name, tr_employee_action, tr_type_calculated } from '@/lib/constant';
 
 export const columns_action_employee: ColumnDef<employeeActionType>[] = [
     {
@@ -19,13 +19,13 @@ export const columns_action_employee: ColumnDef<employeeActionType>[] = [
         ),
         cell: ({ row }) => {
             const isNotFirst = row.index !== 0;
-            const url = `/employee?name=${row.original.name}`;
-            const name = row.original.name;
+            const { name, employeeId } = row.original;
+            const url = redirect_to_page_name.find(({ name }) => name === "employee")?.value(name, row.original.employeeId);
             return (
-                isNotFirst && name ? (
+                isNotFirst && employeeId ? (
                     <Link
                         className={"min-w-14 text-blue-500 underline"}
-                        href={isNotFirst ? url : "#"}
+                        href={url || "#"}
                     >
                         {name}
                     </Link>

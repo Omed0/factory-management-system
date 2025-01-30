@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { type Row } from '@tanstack/react-table';
 import { Edit, Info, MoreHorizontalIcon, Plus, Printer, Receipt, Trash } from 'lucide-react';
 import { toast } from 'sonner';
@@ -44,7 +44,7 @@ import { now } from '@/lib/constant';
 import usePrint from '@/hooks/use-print';
 
 
-export function DataTableRowSaleActions({ row }: { row: Row<OneSale> }) {
+function DataTableRowSale({ row }: { row: Row<OneSale> }) {
   const { searchParams } = useSetQuery();
   const isTrash = searchParams.get('status') === 'trash';
 
@@ -231,28 +231,29 @@ export function ModalTablePaidLoanSale({
   const formatedPrice = (amount: number) => {
     return formatCurrency(amount, dollarValue, currency);
   };
-
   const { totalAmount, totalRemaining, discount } = sale
   const dollarValue = sale.dollar || dollar;
   const totalPeriod = (totalAmount - discount) - totalRemaining;
 
   const isFinished = totalPeriod === 0 && totalAmount > 0; //cannot add other paidLoan until have different value total and remainig
 
-  const totalInfo = [
-    {
-      title: 'کۆی قەرز',
-      value: formatedPrice(totalAmount),
-      valueWithDiscount: formatedPrice(totalAmount - discount),
-    },
-    {
-      title: 'کۆی دراوە',
-      value: formatedPrice(totalRemaining),
-    },
-    {
-      title: 'قەرزی ماوە',
-      value: formatedPrice(totalPeriod),
-    },
-  ];
+  const totalInfo = useMemo(() => {
+    return [
+      {
+        title: 'کۆی قەرز',
+        value: formatedPrice(totalAmount),
+        valueWithDiscount: formatedPrice(totalAmount - discount),
+      },
+      {
+        title: 'کۆی دراوە',
+        value: formatedPrice(totalRemaining),
+      },
+      {
+        title: 'قەرزی ماوە',
+        value: formatedPrice(totalPeriod),
+      },
+    ];
+  }, [dollarValue, data.data, currency]);
 
   return (
     <section className="flex-1">
@@ -293,7 +294,7 @@ export function ModalTablePaidLoanSale({
       <div className='my-2 mt-5' ref={contentRef}>
         <div className='flex items-center gap-2 justify-between text-2xl'>
           <h1 className="font-bold text-primary">زانیار گرووپ</h1>
-          <h2 className='font-bold'>کڕیار : {customer}</h2>
+          <h2 className='font-bold'>کڕیار : {customer || "سڕاوەتەوە"}</h2>
         </div>
         <div className='flex items-center gap-2 justify-between my-1'>
           <h2 className='text-lg font-medium'>وەصڵی قەرز</h2>
@@ -377,3 +378,5 @@ export function ModalTablePaidLoanSale({
     </section>
   );
 }
+
+export const DataTableRowSaleActions = memo(DataTableRowSale);

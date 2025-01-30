@@ -1,17 +1,15 @@
 'use client';
 
 import { Table } from '@tanstack/react-table';
-import { Archive, PlusCircleIcon, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
+import { PlusCircleIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import useSetQuery from '@/hooks/useSetQuery';
 import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
 import AddPurchase from './add-purchase-form';
 import AddCompany from './add-company-form';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import BackButton from '@/components/layout/back-button';
 import useInputSetQuery from '@/hooks/use-input-set-query';
 import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
@@ -25,8 +23,6 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false)
-  const { searchParams } = useSetQuery();
-  const isTrash = searchParams.get('status') === 'trash';
 
   const title = pathname.includes(pathname.split('/')[2])
   useInputSetQuery("invoice", "name", table);

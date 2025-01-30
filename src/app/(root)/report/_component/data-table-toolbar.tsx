@@ -16,13 +16,13 @@ interface DataTableToolbarProps<TData> {
 }
 
 const text_input_base_path = [
-  { name: "each-action", value: "ناو", field: "partner" },
-  { name: "sale", value: "ناوی کڕیار", field: "name" },
-  { name: "purchase", value: "ناوی کۆمپانیا", field: "name" },
-  { name: "expense", value: "ناوی خەرجی", field: "name" },
-  { name: "loan", value: "ناو", field: "name" },
-  { name: "employee", value: "ناو", field: "name" },
-  { name: "self-invoice", value: "ناو", field: "name" },
+  { name: "each-action", value: "ناو", field: () => "partner" },
+  { name: "sale", value: "ناوی کڕیار", field: () => "name" },
+  { name: "purchase", value: "ناوی کۆمپانیا", field: () => "name" },
+  { name: "expense", value: "ناوی خەرجی", field: () => "name" },
+  { name: "loan", value: "ناو", field: () => "name" },
+  { name: "employee", value: "ناو", field: () => "name" },
+  { name: "self-invoice", value: "ناو", field: (isComp?: boolean) => isComp ? "name" : "saleNumber" },
 ]
 
 const text_base_path = [
@@ -46,7 +46,8 @@ export function DataTableToolbar<TData>({
 
   const isLoan = pathname.includes("loan")
   const isSelfInvoice = pathname.includes("self-invoice")
-  const defaultTypeLoan = searchParams.get("type") || "customers"
+  const defaultTypeLoan = searchParams.get("type") || "customer"
+  const isComapny = defaultTypeLoan === "company"
 
   return (
     <div className="flex items-center justify-between">
@@ -56,9 +57,9 @@ export function DataTableToolbar<TData>({
         </Badge>
         <Input
           placeholder={`بگەڕی بۆ ${input?.value}`}
-          value={(table.getColumn(input?.field || "name")?.getFilterValue() as string) ?? ''}
+          value={(table.getColumn(input?.field(isComapny) || "name")?.getFilterValue() as string) ?? ''}
           onChange={(event) =>
-            table.getColumn(input?.field || "name")?.setFilterValue(event.target.value)
+            table.getColumn(input?.field(isComapny) || "name")?.setFilterValue(event.target.value)
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
@@ -73,8 +74,8 @@ export function DataTableToolbar<TData>({
             <SelectValue placeholder={defaultTypeLoan || "قەرزەکان"} />
           </SelectTrigger>
           <SelectContent className="w-full">
-            <SelectItem value="customers">کڕیار</SelectItem>
-            <SelectItem value="companies">کۆمپانیا</SelectItem>
+            <SelectItem value="customer">کڕیار</SelectItem>
+            <SelectItem value="company">کۆمپانیا</SelectItem>
           </SelectContent>
         </Select>
       ) : (
@@ -88,8 +89,8 @@ export function DataTableToolbar<TData>({
                 <SelectValue placeholder={defaultTypeLoan || "قەرزەکان"} />
               </SelectTrigger>
               <SelectContent className="w-full">
-                <SelectItem value="customers">کڕیار</SelectItem>
-                <SelectItem value="companies">کۆمپانیا</SelectItem>
+                <SelectItem value="customer">کڕیار</SelectItem>
+                <SelectItem value="company">کۆمپانیا</SelectItem>
               </SelectContent>
             </Select>
           )}

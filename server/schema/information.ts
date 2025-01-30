@@ -7,6 +7,8 @@ enum reports {
   purchase = 'purchase',
 }
 
+const partners = z.enum(['customer', 'company']);
+
 export const getDashboardInfoSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
@@ -25,11 +27,11 @@ export const getReportPersonByDateSchema = z.object({
 });
 
 export const getTradePartnerSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
 });
 
 export const getReportTradePartnerSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
   id: z.string(),
   dates: z.object({
     from: z.string().optional(),
@@ -38,7 +40,7 @@ export const getReportTradePartnerSchema = z.object({
 });
 
 export const getReportChartPartnerSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
   id: z.string(),
 });
 
@@ -54,11 +56,12 @@ export const getActionsEmployeeSchema = z.object({
 });
 
 export const getPartnersLoanSchema = z.object({
-  type: z.enum(['customers', 'companies']),
+  type: partners,
 });
 
 export const getSelfInvoiceSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
+  isTrash: z.boolean().optional(),
   dates: z
     .object({
       from: z.string(),

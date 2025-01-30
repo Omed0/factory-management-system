@@ -54,12 +54,20 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
   const { productSale, sale } = saleWithProduct!;
 
   const currency = searchParams.get('currency') || 'USD';
+  const queryInvoice = searchParams.get('invoice') || 0
+
+  const handleChangeInvoice = useCallback(
+    (value: string) => {
+      setQuery('invoice', value);
+    },
+    [setQuery]
+  );
 
   const currentInvoice = useMemo(() => {
     return sales?.sale.find(
-      (inv) => inv.id === +(searchParams.get('invoice') ?? 0)
+      (inv) => inv.id === +(queryInvoice)
     );
-  }, [sales?.sale, sale]);
+  }, [sales?.sale, sale, queryInvoice, handleChangeInvoice]);
 
   const handleDiscount = useCallback(
     debounce(async (v: string) => {
@@ -80,13 +88,13 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
         amount: formatedPrices(currentInvoice?.totalAmount || 0),
         del: !!sale.discount,
       },
-      { name: 'داشکاندن', amount: currentInvoice?.discount ?? '0' },
+      { name: 'داشکاندن', amount: currentInvoice?.discount || 0 },
       {
         name: 'کۆی گشتی دوای داشکاندن',
         amount: formatedPrices((currentInvoice?.totalAmount || 0) - (currentInvoice?.discount || 0)),
       },
     ];
-  }, [sale.id, currentInvoice, currency]);
+  }, [sale, currentInvoice, currency]);
 
   return (
     <aside className="flex h-full flex-[2] flex-col justify-between gap-4 rounded-lg border p-4 shadow">
@@ -94,7 +102,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
         <div className='flex items-center'>
           <Select
             defaultValue={currentInvoice?.id.toString()}
-            onValueChange={(e) => setQuery('invoice', e)}
+            onValueChange={handleChangeInvoice}
           >
             <SelectTrigger className="w-full">
               <SelectValue

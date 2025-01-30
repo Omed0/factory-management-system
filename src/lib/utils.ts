@@ -173,5 +173,7 @@ export const parseCurrency = (formatted: string): number => {
 
 export const parseDate = (date?: Date | string | null): string => {
   if (!date) return '';
-  return format(new Date(date).toISOString().split('T')[0], 'dd/MM/yyyy');
+  if (typeof date === 'string')
+    return format(new Date(date).toISOString().split('T')[0], 'dd/MM/yyyy');
+  return format(date, 'dd/MM/yyyy');
 };

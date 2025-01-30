@@ -1,18 +1,16 @@
 'use client';
 
 import { Table } from '@tanstack/react-table';
-import { Archive, PlusCircleIcon, ShieldCheck } from 'lucide-react';
-import Link from 'next/link';
+import { PlusCircleIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import useSetQuery from '@/hooks/useSetQuery';
 import CustomDialogWithTrigger from '@/components/layout/custom-dialog-trigger';
 import FormSaleForCustomer from './add-sale-form';
 import AddCustomer from './add-customer-form';
 import { OneCustomer } from '@/server/schema/customer';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import BackButton from '@/components/layout/back-button';
 import useInputSetQuery from '@/hooks/use-input-set-query';
 import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
@@ -35,10 +33,8 @@ export function DataTableToolbar<TData extends CustomerData>({
   customer
 }: DataTableToolbarProps<TData>) {
   const pathname = usePathname();
-  const { searchParams } = useSetQuery();
   const [open, setOpen] = useState(false)
 
-  const isTrash = searchParams.get('status') === 'trash';
   const isSale = pathname.includes(pathname.split('/')[2]);
   const title = isSale ? 'وەصڵەکان' : 'کڕیارەکان';
 

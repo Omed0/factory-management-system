@@ -150,7 +150,6 @@ export const column_sale: ColumnDef<OneSale>[] = [
       <DataTableColumnHeader column={column} title="زیاتر" />
     ),
     cell: ({ row }) => {
-
       return (<DataTableRowSaleActions row={row} />)
     },
   },

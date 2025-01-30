@@ -138,20 +138,41 @@ export async function getCompanyOnePurchase(companyId: number) {
 
 export async function getCompanyListPurchase(id: number, trashed: boolean) {
   return tryCatch(async () => {
-    const companyPurchase = await prisma.companyPurchase
-      .findMany({
-        where: {
-          companyId: id,
-          deleted_at: trashed ? { not: null } : null,
-          company: { deleted_at: null },
-        },
-        include: { company: true },
-      })
-      .catch((e) => {
-        throw new Error(e);
-      });
+    // Fetch the company details separately
+    const company = await prisma.companies.findUnique({
+      where: { id },
+    });
 
-    return companyPurchase;
+    if (!company) {
+      throw new Error('Company not found');
+    }
+
+    // Fetch the company purchases
+    const companyPurchases = await prisma.companyPurchase.findMany({
+      where: {
+        companyId: id,
+        deleted_at: trashed ? { not: null } : null,
+        company: { deleted_at: null },
+      },
+      include: { company: true },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    // If no purchases are found, return the company name with an empty purchases array
+    if (companyPurchases.length === 0) {
+      return {
+        company: company,
+        purchases: [],
+      };
+    }
+
+    // Return the purchases along with the company name
+    return {
+      company: company,
+      purchases: companyPurchases,
+    };
   });
 }
 

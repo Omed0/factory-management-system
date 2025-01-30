@@ -5,8 +5,9 @@ import { useParams } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from './data-table-column-header';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
-import { columns_report, report_link, report_name } from '../_constant';
+import { columns_report, report_name } from '../_constant';
 import { parseDate } from '@/lib/utils';
+import { redirect_to_page_name } from '@/lib/constant';
 
 export const columns_reports: ColumnDef<columns_report>[] = [
   {
@@ -33,17 +34,18 @@ export const columns_reports: ColumnDef<columns_report>[] = [
       <DataTableColumnHeader column={column} title="وەصڵ" />
     ),
     cell: ({ row }) => {
-      const { name, redirectId, id } = row.original;
       const param = useParams();
-      const path = report_link.find((item) => item.name === param.id)?.value(name, redirectId);
-      const notRedirect = +id === 0 || !redirectId;
+      const path = param.id === "sale" ? "customer" : param.id === "purchase" ? "company" : param.id;
+      const { name, redirectId, id } = row.original;
+      const url = redirect_to_page_name.find(({ name }) => name === path)?.value(name, +redirectId);
+      const notRedirect = +id === 0;
 
       return (
         <div className="flex min-w-24">
           {notRedirect ? (
             <span>{name}</span>
           ) : (
-            <Link className="text-blue-500 hover:underline" href={path || '#'}>
+            <Link className="text-blue-500 hover:underline" href={url || '#'}>
               {name}
             </Link>
           )}

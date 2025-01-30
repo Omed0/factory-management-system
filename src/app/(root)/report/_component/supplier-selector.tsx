@@ -8,12 +8,12 @@ import { ChevronsUpDown } from 'lucide-react'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import useSetQuery from '@/hooks/useSetQuery'
-import { TradePartner } from '@/server/schema/information'
+import { TradePartner, TradePartnerTypes } from '@/server/schema/information'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import CalenderRangMultiSide from '@/components/calender-rang-multi-side'
 
 type Props = {
-  type_partner: "companies" | "customers",
+  type_partner: TradePartnerTypes['type'],
   name: string
   partners: TradePartner[]
 }
@@ -22,7 +22,7 @@ type Props = {
 export default function SupplierSelector({ type_partner, partners, name }: Props) {
 
   const { setQuery } = useSetQuery(50)
-  const isCompany = type_partner === "companies" ? "کۆمپانیا" : "کڕیار"
+  const isCompany = type_partner === "company" ? "کۆمپانیا" : "کڕیار"
 
   const [open, setOpen] = useState(false)
   const value = useMemo(() => {
@@ -99,6 +99,6 @@ export default function SupplierSelector({ type_partner, partners, name }: Props
 
 
 const typePartner = [
-  { name: "کڕیار", value: "customers", icon: User },
-  { name: "کۆمپانیا", value: "companies", icon: Building },
+  { name: "کڕیار", value: "customer", icon: User },
+  { name: "کۆمپانیا", value: "company", icon: Building },
 ]

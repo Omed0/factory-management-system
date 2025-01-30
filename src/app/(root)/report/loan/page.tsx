@@ -13,7 +13,7 @@ type Props = {
 export const dynamic = 'force-dynamic'
 
 export default async function ReportLoans({ searchParams }: Props) {
-    const type = searchParams.loanPartner ?? "customers"
+    const type = searchParams.loanPartner || "customer"
     const loans = await getPartnersLoanActions({ type });
 
     if (!loans.success || !loans.data) {

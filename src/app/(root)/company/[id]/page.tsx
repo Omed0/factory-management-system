@@ -37,7 +37,7 @@ export default async function SpecificCompany({ searchParams, params }: Props) {
     );
   }
 
-  const companyName = companyPurchase.data?.[0]?.company?.name || "دیارینەکراو"
+  const companyName = companyPurchase.data?.company?.name || "دیارینەکراو"
 
   return (
     <section className="w-full space-y-4 p-2">
@@ -49,7 +49,7 @@ export default async function SpecificCompany({ searchParams, params }: Props) {
       </div>
       <DataTable
         columns={column_purchase as any[]}
-        data={companyPurchase.data ?? []}
+        data={companyPurchase.data?.purchases ?? []}
       />
     </section>
   );

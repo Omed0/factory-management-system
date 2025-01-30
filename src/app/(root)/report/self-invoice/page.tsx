@@ -10,6 +10,7 @@ type Props = {
     searchParams: {
         type: ReportTradePartnerTypes['type'],
         date: string,
+        status: string
     }
 }
 
@@ -17,9 +18,12 @@ export const dynamic = 'force-dynamic'
 
 export default async function ReportLoans({ searchParams }: Props) {
     const dates = searchParams.date ? changeDateToString(seperateDates(searchParams.date)) : undefined // if date is not provided, it will show all data
-    const type = searchParams.type ?? 'customers';
-    const res = await getSelfInvoiceActions({ dates, type });
-    const column = type === "customers" ? column_sale : column_purchase;
+    const type = searchParams.type || 'customer';
+    const isTrash = searchParams.status === "trash" || false
+    const column = type === "customer" ? column_sale : column_purchase;
+
+    const res = await getSelfInvoiceActions({ dates, type, isTrash });
+
 
     if (!res.success || !res.data) {
         return <div className="w-full h-full flex items-center justify-center">
@@ -28,7 +32,6 @@ export default async function ReportLoans({ searchParams }: Props) {
             </div>
         </div>
     }
-
 
     return (
         <section className="w-full space-y-4 p-2 pt-5">
