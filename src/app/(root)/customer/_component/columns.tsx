@@ -9,6 +9,7 @@ import { DataTableRowCustomerActions } from './data-table-row-customer-actions';
 import { Badge } from '@/components/ui/badge';
 import { cn, parseDate } from '@/lib/utils';
 import { OneCustomer } from '@/server/schema/customer';
+import { fastSaleCustomer } from '@/lib/constant';
 
 export const columns: ColumnDef<OneCustomer>[] = [
   {
@@ -79,9 +80,10 @@ export const columns: ColumnDef<OneCustomer>[] = [
       <DataTableColumnHeader column={column} title="بەروار" />
     ),
     cell: ({ row }) => {
+      const { created_at, name } = row.original;
       return (
         <div className="flex w-[100px] items-center">
-          <span>{parseDate(row.original.created_at)}</span>
+          <span>{name === fastSaleCustomer.name ? "" : parseDate(created_at)}</span>
         </div>
       );
     },
