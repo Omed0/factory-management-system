@@ -7,7 +7,10 @@ import { DataTableColumnHeader } from './data-table-column-header';
 import useConvertCurrency from '@/hooks/useConvertCurrency';
 import Link from 'next/link';
 import { CombinedData } from '@/server/access-layer/information';
-import { redirect_to_page_name, tr_define_name_type_table, tr_type_calculated } from '@/lib/constant';
+import {
+  redirect_to_page_name, tr_define_name_type_table,
+  tr_type_calculated
+} from '@/lib/constant';
 import { isShowValue } from '../_constant';
 import { parseDate } from '@/lib/utils';
 
@@ -18,13 +21,13 @@ export const columns_detail_box_action: ColumnDef<CombinedData>[] = [
       <DataTableColumnHeader column={column} title="زنجیرە" />
     ),
     cell: ({ row }) => {
-      const { id, pathname, name } = row.original;
-      const url = redirect_to_page_name.find((item) => item.name === pathname)?.value(name!, id || 0);
+      const { pathname, name, partnerId } = row.original;
+      const url = redirect_to_page_name.find((item) => item.name === pathname)?.value(name!, partnerId || 0);
       const isNotFirst = row.index !== 0;
       return (
         isNotFirst && (
           <Link
-            className={"min-w-20 text-blue-500 underline"}
+            className={"min-w-14 text-blue-500 underline"}
             href={url || "#"}
           >
             {row.index}

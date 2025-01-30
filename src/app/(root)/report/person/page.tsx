@@ -5,20 +5,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PaymentChart from "../_component/payment-chart";
 import FinancialSummary from "../_component/financial-summary";
 import { getReportPartnerChartActions, getReportPartnerSpecificTimeActions, getTradePartnerActions } from "@/actions/information";
+import { getReportChartPartnerTypes } from "@/server/schema/information";
 
 type Props = {
     searchParams: {
         date: string
         name: string;
-        type: "companies" | "customers"
+        type: getReportChartPartnerTypes['type']
     }
 }
 
 export const dynamic = 'force-dynamic'
 
 export default async function PersonReport({ searchParams }: Props) {
-    const { date, name, type = "customers" } = searchParams
-    const isCompany = type === "companies" ? "کۆمپانیا" : "کڕیار"
+    const { date, name, type = "customer" } = searchParams
+    const isCompany = type === "company" ? "کۆمپانیا" : "کڕیار"
 
     const dates = changeDateToString(seperateDates(date))
 

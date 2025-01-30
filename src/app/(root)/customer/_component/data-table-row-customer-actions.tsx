@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneCustomer } from '@/server/schema/customer';
+import { fastSaleCustomer } from '@/lib/constant';
+import { cn } from '@/lib/utils';
 
 export function DataTableRowCustomerActions({
   row,
@@ -35,10 +37,15 @@ export function DataTableRowCustomerActions({
   const [open, setOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const rowData = row.original;
+  const isFastSale = rowData.name === fastSaleCustomer.name
 
   return (
-    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-      <DropdownMenuTrigger asChild>
+    <DropdownMenu open={dropdownOpen} onOpenChange={isFastSale ? undefined : setDropdownOpen}>
+      <DropdownMenuTrigger
+        asChild
+        className={cn("", {
+          'cursor-not-allowed': isFastSale
+        })}>
         <Button
           variant="ghost"
           className="data-[state=open]:bg-muted flex size-8 p-0"

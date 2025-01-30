@@ -90,7 +90,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
 
   const { refetch } = useActionEmployee(
     form.watch('employeeId'),
-    getMonthStartAndEndOfMonth(new Date())
+    getMonthStartAndEndOfMonth(new Date().getMonth() + 1)
   );
 
   async function onSubmit(values: CreateEmployeeAction) {
@@ -120,7 +120,7 @@ export default function RowButtonAction<TData>({ table, item }: Props<TData>) {
     }
 
     return () => form.reset();
-  }, [open, isTrash, employees, getSelectedEmployee, form, item.type]);
+  }, [open, isTrash, employees, getSelectedEmployee, item.type]);
 
   return (
     <section className="flex items-center gap-2">

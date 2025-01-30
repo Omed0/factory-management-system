@@ -3,9 +3,8 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { OneSale } from '@/server/schema/sale'
-import { forwardRef } from 'react'
+import { forwardRef, memo, useMemo } from 'react'
 import { useInvoiceData } from '../[id]/useInvoiceData'
-import useConvertCurrency from '@/hooks/useConvertCurrency'
 import useSetQuery from '@/hooks/useSetQuery'
 import { formatCurrency, parseDate } from '@/lib/utils'
 import Image from 'next/image'
@@ -21,22 +20,27 @@ const footerInfo = [
     { name: "پەیوەندی", value: "07503590506" },
 ]
 
-const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref) => {
+const Invoice = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref) => {
     const { searchParams } = useSetQuery()
     const currency = searchParams.get("currency") || "USD"
 
     const { data, error, isError, isLoading } = useInvoiceData({ sale })
+    const formarPrice = (price: number) => formatCurrency(price, sale.dollar, currency)
 
-    const loan = ((data?.totalAmount || 0) - (data?.discount || 0)) - (data?.totalRemaining || 0)
-    const header = [
-        { name: "ژ.وەصڵ", value: data?.id },
-        { name: "جۆری وەصڵ", value: data?.saleType === "CASH" ? "نەقد" : "قەرز" },
-        { name: "ڕۆژ", value: parseDate(data?.saleDate) },
-        { name: "داشکاندن", value: useConvertCurrency(data?.discount || 0, sale.dollar) },
-        { name: "کۆی گشتی", value: useConvertCurrency(data?.totalAmount || 0, sale.dollar) },
-        { name: "بڕی دراو", value: useConvertCurrency(data?.totalRemaining || 0, sale.dollar) },
-        { name: "قەرز", value: useConvertCurrency(loan, sale.dollar) },
-    ]
+    const loan = useMemo(() => {
+        return formarPrice(((data?.totalAmount || 0) - (data?.discount || 0)) - (data?.totalRemaining || 0))
+    }, [data, sale, currency])
+    const header = useMemo(() => {
+        return [
+            { name: "ژ.وەصڵ", value: data?.id },
+            { name: "جۆری وەصڵ", value: data?.saleType === "CASH" ? "نەقد" : "قەرز" },
+            { name: "ڕۆژ", value: parseDate(data?.saleDate) },
+            { name: "داشکاندن", value: formarPrice(data?.discount || 0) },
+            { name: "کۆی گشتی", value: formarPrice(data?.totalAmount || 0) },
+            { name: "بڕی دراو", value: formarPrice(data?.totalRemaining || 0) },
+            { name: "قەرز", value: loan },
+        ]
+    }, [sale, data, currency])
 
     if (isError || !data) {
         return (
@@ -72,7 +76,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
                             </div>
                             <div className="flex gap-3 font-semibold border rounded-md bg-violet-100 p-1.5">
                                 <p>خاوەن حساب:</p>
-                                <p>{data.customer?.name}</p>
+                                <p>{data.customer?.name || "سڕاوەتەوە"}</p>
                             </div>
                         </div>
                         <div className='w-full flex mt-4'>
@@ -134,5 +138,7 @@ const InvoiceComponent = forwardRef<HTMLDivElement, InvoiceProps>(({ sale }, ref
         </Card>
     )
 })
+
+const InvoiceComponent = memo(Invoice)
 
 export default InvoiceComponent

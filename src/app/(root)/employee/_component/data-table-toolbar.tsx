@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import useSetQuery from '@/hooks/useSetQuery';
 import { OneEmployee } from '@/server/schema/employee';
 import useInputSetQuery from '@/hooks/use-input-set-query';
+import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -67,27 +68,9 @@ export function DataTableToolbar<TData>({
           isTrash={isTrash}
           table={table}
         />
-        <Button
-          variant={isTrash ? 'default' : 'outline'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href="/employee?status=trash" replace>
-            <Archive className="size-4" />
-          </Link>
-        </Button>
-        <Button
-          variant={isTrash ? 'outline' : 'default'}
-          size="sm"
-          className="h-8 lg:flex"
-          asChild
-        >
-          <Link href="/employee" replace>
-            <ShieldCheck className="size-4" />
-          </Link>
-        </Button>
+        <TrashAndActiveButtons />
       </div>
+
       <div className="flex items-center gap-4">
         {buttonAction.map((item) => (
           <RowButtonAction table={table} item={item} key={item.type} />
@@ -136,7 +119,8 @@ function DropdownMenuMoreAction<TData>({
             disabled={!isSelected}
           >
             <DynamicForm
-              id_form="archive-all"
+              key={"restore-all"}
+              id_form="restore-all"
               ids={ids}
               action={restoreManyEmployeeActions}
             >
@@ -149,7 +133,8 @@ function DropdownMenuMoreAction<TData>({
         <DropdownMenuItem disabled={!isSelected} className="text-red-500">
           {isTrash ? (
             <DynamicForm
-              id_form="archive-all"
+              id_form="force-delete-all"
+              key={"force-delete-all"}
               ids={ids}
               action={forceDeleteManyEmployeeActions}
             >
@@ -159,6 +144,7 @@ function DropdownMenuMoreAction<TData>({
           ) : (
             <DynamicForm
               id_form="archive-all"
+              key={"archive-all"}
               ids={ids}
               action={deleteManyEmployeeActions}
             >

@@ -64,7 +64,7 @@ export async function createSaleForCustomerActions(data: CreateSale) {
       message: sale?.error ?? 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ دروستکرا' };
 }
 
@@ -76,52 +76,43 @@ export async function updateSaleForCustomerActions(data: UpdateSale) {
       message: sale?.error ?? 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'گۆڕانکاری سەرکەوتبوو' };
 }
 
-export async function deleteSaleForCustomerActions(
-  id: any,
-  customerId: number
-) {
-  const sale = await deleteSaleForCustomer({ id, customerId });
+export async function deleteSaleForCustomerActions(id: any) {
+  const sale = await deleteSaleForCustomer({ id });
   if (sale === null || 'error' in sale) {
     return {
       success: false,
       message: sale?.error ?? 'هەڵەیەک ڕوویدا',
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ ئەرشیفکرا' };
 }
 
-export async function restoreSaleForCustomerActions(
-  id: any,
-  customerId: number
-) {
-  const sale = await restoreSaleForCustomer({ id, customerId });
+export async function restoreSaleForCustomerActions(id: any) {
+  const sale = await restoreSaleForCustomer({ id });
   if (sale === null || 'error' in sale) {
     return {
       success: false,
       message: sale?.error,
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ گەڕێندرایەوە' };
 }
 
-export async function forceDeleteSaleForCustomerActions(
-  id: any,
-  customerId: number
-) {
-  const sale = await forceDeleteSaleForCustomer({ id, customerId });
+export async function forceDeleteSaleForCustomerActions(id: any) {
+  const sale = await forceDeleteSaleForCustomer({ id });
   if (sale === null || 'error' in sale) {
     return {
       success: false,
       message: sale?.error,
     };
   }
-  revalidatePath('/customer');
+  revalidatePath('/customer/[id]', 'page');
   return { success: true, message: 'وەصڵ بەتەواوی سڕایەوە' };
 }
 
@@ -145,17 +136,15 @@ export async function finishSaleActions(id: any, isFinished: boolean) {
       message: sale?.error || 'هەڵەیەک هەیە',
     };
   }
-  //revalidatePath('/customer/[id]', 'page');
+  //revalidatePath('/customer/[id]', 'page'); // instead this use dynamic varibale in page invoices customer
+  //this is why not using this have a some function use both in inoivces and sales page if revalidate it will be a problem
   return { success: true, message: 'وەصڵ تەواو کرا' };
 }
 
 // SALE PRODUCT ACTIONS
 
-export async function getProductSaleListActions(
-  saleId: number,
-  customerId: number
-) {
-  const SaleWithProducts = await getProductSaleList({ saleId, customerId });
+export async function getProductSaleListActions(saleId: number) {
+  const SaleWithProducts = await getProductSaleList({ saleId });
   if (SaleWithProducts === null || 'error' in SaleWithProducts) {
     return {
       success: false,
@@ -166,12 +155,10 @@ export async function getProductSaleListActions(
 }
 
 export async function getProductWithSaleWithcustomerForInvoiceActions(
-  saleId: number,
-  customerId: number
+  saleId: number
 ) {
   const sale = await getProductWithSaleWithcustomerForInvoice({
     saleId,
-    customerId,
   });
   if (sale === null || 'error' in sale) {
     return {

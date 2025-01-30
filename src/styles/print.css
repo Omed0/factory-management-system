@@ -1,0 +1,22 @@
+/*@font-face {
+  font-family: 'print';
+  src: url('/public/fonts/unisirwan_bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}*/
+
+@media print {
+  @page {
+    size: A4 portrait;
+    /*margin: 4px;*/
+  }
+
+  body {
+    /*font-family: 'print', system-ui !important;*/
+    letter-spacing: 0.04em;
+  }
+
+  .hide-on-print {
+    display: none;
+  }
+}

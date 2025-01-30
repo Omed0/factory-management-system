@@ -2,11 +2,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import useConvertCurrency from "@/hooks/useConvertCurrency";
+import { TradePartnerTypes } from "@/server/schema/information";
 import { da } from "date-fns/locale";
 import { Banknote, DiamondPercent, DollarSign, HandCoins } from "lucide-react";
 
 type Props = {
-  type: "companies" | "customers"
+  type: TradePartnerTypes['type']
   data: {
     totalRemaining: number;
     totalAmount: number;
@@ -16,7 +17,7 @@ type Props = {
 }
 
 export default async function FinancialSummary({ type, data }: Props) {
-  const isCompany = type === "companies" ? "کۆی گشتی کڕدراو" : "کۆی گشتی فرۆشراو"
+  const isCompany = type === "company" ? "کۆی گشتی کڕدراو" : "کۆی گشتی فرۆشراو"
 
   const totalAmount = data.totalAmount
   const totalExistLoan = data.totalAvailableLoan
@@ -37,7 +38,7 @@ export default async function FinancialSummary({ type, data }: Props) {
     },
     { name: "کۆی واصڵ کراو", amount: formatedTotalRemaining, icon: HandCoins },
     { name: "کۆی قەرزی ماوە", amount: formatedtotalExistLoan, icon: Banknote },
-    { name: "کۆی داشکاندن", amount: formatedtotalDiscount, icon: DiamondPercent, hasNoDiscount: type === "companies" },
+    { name: "کۆی داشکاندن", amount: formatedtotalDiscount, icon: DiamondPercent, hasNoDiscount: type === "company" },
   ]
 
   return (

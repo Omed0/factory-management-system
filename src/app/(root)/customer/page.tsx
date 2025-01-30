@@ -2,6 +2,7 @@ import { UsersRound } from 'lucide-react';
 import { columns } from './_component/columns';
 import { DataTable } from './_component/data-table';
 import { getCustomerListActions } from '@/actions/customer';
+import { now } from '@/lib/constant';
 
 
 type Props = {

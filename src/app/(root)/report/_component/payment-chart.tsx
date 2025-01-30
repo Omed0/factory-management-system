@@ -6,11 +6,12 @@ import { useDollar } from "@/hooks/useDollar"
 import useSetQuery from "@/hooks/useSetQuery"
 import { now } from "@/lib/constant"
 import { formatCurrency, parseDate } from "@/lib/utils"
+import { TradePartnerTypes } from "@/server/schema/information"
 import { TrendingDown, TrendingUp } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 
 type Props = {
-  type: "companies" | "customers"
+  type: TradePartnerTypes['type']
   data: {
     chartData: {
       month: number;
@@ -34,7 +35,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function PaymentChart({ type, data }: Props) {
-  const isCompany = type === "companies" ? "کڕدراو" : "فرۆشراو"
+  const isCompany = type === "company" ? "کڕدراو" : "فرۆشراو"
   const { searchParams } = useSetQuery()
   const { data: { dollar } } = useDollar()
   const currency = searchParams.get("currency") || "USD"

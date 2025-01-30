@@ -127,7 +127,7 @@ model Employee {
 
 model EmployeeActions {
   id         Int                @id @default(autoincrement())
-  type       EmployeeActionType @default(ABSENT)
+  type       EmployeeActionType
   amount     Float
   dollar     Float
   note       String?
@@ -152,6 +152,7 @@ model Sales {
   monthlyPaid    Float      @default(0)
   saleDate       DateTime   @default(now())
   isFinished     Boolean    @default(false)
+  fastSale       Boolean?   @default(false)
   dollar         Float
   note           String?
   deleted_at     DateTime?

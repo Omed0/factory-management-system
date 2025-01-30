@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/client';
+import { fastSaleCustomer } from '@/lib/constant';
 import { createUser } from '@/server/access-layer/user';
 //import { faker } from '@faker-js/faker';
 //import {
@@ -30,6 +31,15 @@ const constants = {
     image: '/images/logo.jpg',
     phone: '07725425600',
   },
+  fastSale: {
+    name: fastSaleCustomer.name,
+    phone: '',
+    isSalariedeEmployee: false,
+    created_at: new Date(2525608000000),
+    address: '',
+    updated_at: new Date(2525608000000),
+    deleted_at: null,
+  },
 };
 
 async function generate_for_production() {
@@ -43,6 +53,11 @@ async function generate_for_production() {
       data: { price: 1500 },
     });
     console.log('dollar:', dollar);
+
+    const fastSale = await prisma.customers.create({
+      data: constants.fastSale,
+    });
+    console.log('Fast sale:', fastSale);
 
     console.log('Seeding completed.');
   } catch (error) {

@@ -3,6 +3,7 @@
 import { getCustomersWhoDidntGiveLoanActions } from "@/actions/information";
 import { Card, CardTitle, CardHeader, CardContent, CardDescription } from "@/components/ui/card";
 import useConvertCurrency from "@/hooks/useConvertCurrency";
+import { redirect_to_page_name } from "@/lib/constant";
 import { parseDate } from "@/lib/utils";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -22,6 +23,8 @@ export default function NotificationCard({ sale }: Props) {
     const lastPaid = sale.paidLoans.length ? sale.paidLoans[sale.paidLoans.length - 1].paidDate : sale.saleDate
     const formatDateLastPaid = parseDate(lastPaid)
 
+    const url = redirect_to_page_name.find((item) => item.name === 'customer')?.value(invocieName, sale.customerId)
+
     return (
         <Card>
             <CardHeader className="flex-row items-center justify-between p-4">
@@ -29,7 +32,7 @@ export default function NotificationCard({ sale }: Props) {
                     <p><strong>وەصڵ:</strong> {invocieName}</p>
                 </CardTitle>
                 <CardDescription>
-                    <Link href={`/customer/${sale.customerId}?invoice=${sale.saleNumber}`}
+                    <Link href={url || '#'}
                         className="text-blue-500 hover:underline"
                     >{sale.customer?.name}</Link>
                 </CardDescription>

@@ -4,7 +4,15 @@ import { useState } from 'react';
 import { Button } from '../ui/button';
 import { toast } from 'sonner';
 import { ArrowDown, DatabaseBackup, HardDriveDownload, LoaderCircle, Send } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from '../ui/dropdown-menu';
 
 const ways_backup = [
     { name: "تێلێگرام", value: "telegram" as const, icon: Send },

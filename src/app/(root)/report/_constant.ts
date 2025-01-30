@@ -3,7 +3,7 @@ import { EmployeeActionType } from '@prisma/client';
 export const keyExpense = {
   id: 'id',
   title: 'name',
-  amount: 'amount',
+  amount: 'totalAmount',
   created_at: 'date',
   note: 'note',
   dollar: 'dollar',
@@ -13,7 +13,8 @@ export const keySale = {
   id: 'id',
   saleType: 'type',
   saleNumber: 'name',
-  totalRemaining: 'amount',
+  totalRemaining: 'totalRemainig',
+  totalAmount: 'totalAmount',
   customerId: 'redirectId',
   saleDate: 'date',
   note: 'note',
@@ -25,7 +26,8 @@ export const keyPurchase = {
   id: 'id',
   name: 'name',
   type: 'type',
-  totalRemaining: 'amount',
+  totalRemaining: 'totalRemainig',
+  totalAmount: 'totalAmount',
   companyId: 'redirectId',
   purchaseDate: 'date',
   note: 'note',
@@ -37,7 +39,8 @@ export type columns_report = {
   id: string;
   name: string;
   type: string | null;
-  amount: number;
+  totalRemainig: number;
+  totalAmount: number;
   redirectId: string;
   date: string;
   note: string;
@@ -58,19 +61,10 @@ export const tr_report_name = [
   { name: report_name[2], value: 'کڕین' },
 ];
 
-export const report_link = [
-  {
-    name: report_name[0],
-    value: (query: string) => `/expense?name=${query}`,
-  },
-  {
-    name: report_name[1],
-    value: (query: string, id: string) => `/customer/${id}?invoice=${query}`,
-  },
-  {
-    name: report_name[2],
-    value: (query: string, id: string) => `/company/${id}?invoice=${query}`,
-  },
+export const redirect_to_url_page = [
+  { name: report_name[0], value: `` },
+  { name: report_name[1], value: `` },
+  { name: report_name[2], value: `` },
 ];
 
 export const isShowValue = {

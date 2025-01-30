@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
       // This is for checking the directory is exist (ENOENT : Error No Entry)
       await mkdir(uploadDir, { recursive: true });
     } else {
-      console.error('هەڵەیەک هەیە لە فۆڵدەری ڕەسمەکان\n', e);
       return NextResponse.json({ error: 'شتێک هەڵەیە.' }, { status: 500 });
     }
   }
@@ -46,9 +45,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ filePath });
   } catch (e: any) {
     console.error('هەڵەیەک ڕوویدا\n', e);
-    if (e.response.statusCode === 429) {
-      return NextResponse.json({ message: 'دووبارەی کەوە ڕیستۆرکردنەکە' });
-    }
     return NextResponse.json({
       description: e.message,
       message: 'هەڵەیەک ڕوویدا',

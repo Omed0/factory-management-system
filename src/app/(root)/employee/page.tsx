@@ -36,7 +36,7 @@ export default async function Employee({ searchParams }: Props) {
         </div>
         <ButtonAddEmployee />
       </div>
-      <DataTable columns={columns} data={employees.data!} />
+      <DataTable columns={columns} data={employees.data || []} />
     </section>
   );
 }

@@ -23,6 +23,7 @@ import {
   CreatePaidLoanSale,
   createPaidLoanSaleSchema,
 } from '@/server/schema/sale';
+import { now } from '@/lib/constant';
 
 type Props = {
   title: string;
@@ -43,7 +44,7 @@ export default function AddPaidLoanSale({
     defaultValues: {
       saleId: saleId ?? 0,
       amount: 0,
-      paidDate: new Date(),
+      paidDate: now,
       note: '',
     },
   });

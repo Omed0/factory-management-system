@@ -7,6 +7,8 @@ enum reports {
   purchase = 'purchase',
 }
 
+const partners = z.enum(['customer', 'company']);
+
 export const getDashboardInfoSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
@@ -25,11 +27,11 @@ export const getReportPersonByDateSchema = z.object({
 });
 
 export const getTradePartnerSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
 });
 
 export const getReportTradePartnerSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
   id: z.string(),
   dates: z.object({
     from: z.string().optional(),
@@ -38,7 +40,7 @@ export const getReportTradePartnerSchema = z.object({
 });
 
 export const getReportChartPartnerSchema = z.object({
-  type: z.enum(['companies', 'customers']),
+  type: partners,
   id: z.string(),
 });
 
@@ -47,8 +49,25 @@ export const getInfoAboutBoxSchema = z.object({
   to: z.string().optional(),
 });
 
+export const getActionsEmployeeSchema = z.object({
+  from: z.string().optional(),
+  to: z.string().optional(),
+  name: z.string().optional(),
+});
+
 export const getPartnersLoanSchema = z.object({
-  type: z.enum(['customer', 'company']),
+  type: partners,
+});
+
+export const getSelfInvoiceSchema = z.object({
+  type: partners,
+  isTrash: z.boolean().optional(),
+  dates: z
+    .object({
+      from: z.string(),
+      to: z.string(),
+    })
+    .optional(),
 });
 
 export type DashboardInfoTypes = z.infer<typeof getDashboardInfoSchema>;
@@ -63,5 +82,7 @@ export type getReportChartPartnerTypes = z.infer<
 >;
 export type InfoAboutBoxTypes = z.infer<typeof getInfoAboutBoxSchema>;
 export type PartnersLoanTypes = z.infer<typeof getPartnersLoanSchema>;
+export type getActionsEmployeeTypes = z.infer<typeof getActionsEmployeeSchema>;
+export type getSelfInvoiceTypes = z.infer<typeof getSelfInvoiceSchema>;
 
 export type TradePartner = Companies | Customers;

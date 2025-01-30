@@ -19,6 +19,8 @@ type Props = {
   };
 };
 
+export const dynamic = 'force-dynamic'
+
 export default async function SpecificCustomerSale({
   params,
   searchParams,
@@ -29,7 +31,7 @@ export default async function SpecificCustomerSale({
   const currency = searchParams.currency || 'USD';
 
   const { success, SaleWithProducts, message } =
-    await getProductSaleListActions(saleId, customerId);
+    await getProductSaleListActions(saleId);
 
   const [sales, product] = await Promise.all([
     getCustomerListSaleActions(customerId, false),

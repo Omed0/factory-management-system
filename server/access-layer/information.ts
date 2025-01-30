@@ -4,6 +4,8 @@ import { prisma } from '@/lib/client';
 import { tryCatch } from '@/lib/helper';
 import {
   DashboardInfoTypes,
+  getActionsEmployeeSchema,
+  getActionsEmployeeTypes,
   getDashboardInfoSchema,
   getInfoAboutBoxSchema,
   getPartnersLoanSchema,
@@ -11,6 +13,8 @@ import {
   getReportChartPartnerSchema,
   getReportChartPartnerTypes,
   getReportTradePartnerSchema,
+  getSelfInvoiceSchema,
+  getSelfInvoiceTypes,
   getTradePartnerSchema,
   InfoAboutBoxTypes,
   PartnersLoanTypes,
@@ -26,8 +30,15 @@ import {
 } from '@/app/(root)/report/_constant';
 import { addMonths } from 'date-fns';
 import { calculateTotalAmount } from './box';
-import { addition_actions, subtraction_actions } from '@/lib/constant';
+import {
+  addition_actions,
+  fastSaleCustomer,
+  now,
+  subtraction_actions,
+} from '@/lib/constant';
 import { EmployeeActionType, Prisma } from '@prisma/client';
+import { OneSale } from '../schema/sale';
+import { OneCompanyPurchase } from '../schema/company';
 
 type LoanSummary = {
   _sum: {
@@ -89,7 +100,10 @@ export async function getDashboardInformation(data?: DashboardInfoTypes) {
 
     const latestSales = salesData.slice(-5).reverse();
     const totalSalesCount = salesData.length;
-    const totalCustomers = customers.length;
+    //remove فرۆشتن from customers
+    const totalCustomers = customers.filter(
+      (customer) => customer.name !== fastSaleCustomer.name
+    ).length;
     const totalSalesAmount = salesData.reduce(
       (sum, sale) => sum + sale.totalRemaining,
       0
@@ -163,7 +177,6 @@ export async function getDashboardChartInformation() {
               lt: new Date(year, month, 1), // Start of the next month
             },
             deleted_at: null,
-            isFinished: true,
           },
         });
         const all_employee_actions = await prisma.employeeActions.aggregate({
@@ -210,6 +223,7 @@ export async function getCustomersWhoDidntGiveLoan() {
           saleType: 'LOAN',
           deleted_at: null,
         },
+
         include: { paidLoans: true, customer: true },
       });
 
@@ -291,15 +305,22 @@ export async function getSalesListSpecificTime(data: ReportDateTypes) {
         customer: true,
       },
     });
-    const totalSales = sales.reduce(
-      (sum, sale) => sum + sale.totalRemaining,
-      0
+    const totals = sales.reduce(
+      (acc, sale) => {
+        acc.totalRemaining += sale.totalRemaining;
+        acc.totalAmount += sale.totalAmount;
+        return acc;
+      },
+      { totalRemaining: 0, totalAmount: 0 }
     );
+
     const totalSaleObject = {
       id: 0,
       saleNumber: 'کۆی گشتی',
+      customer: { name: '', id: 0 },
       note: null,
-      totalRemaining: totalSales,
+      totalRemaining: totals.totalRemaining,
+      totalAmount: totals.totalAmount,
       saleDate: new Date(),
     };
 
@@ -322,15 +343,21 @@ export async function getPurchasesListSpecificTime(data: ReportDateTypes) {
       },
     });
 
-    const totalPurchase = purchases.reduce(
-      (sum, sale) => sum + sale.totalRemaining,
-      0
+    const totals = purchases.reduce(
+      (acc, purchase) => {
+        acc.totalRemaining += purchase.totalRemaining;
+        acc.totalAmount += purchase.totalAmount;
+        return acc;
+      },
+      { totalRemaining: 0, totalAmount: 0 }
     );
     const totalPurchaseObject = {
       id: 0,
       name: 'کۆی گشتی',
       note: null,
-      totalRemaining: totalPurchase,
+      totalRemaining: totals.totalRemaining,
+      totalAmount: totals.totalAmount,
+      company: { name: '', id: 0 },
       purchaseDate: new Date(),
     };
     purchases.unshift(totalPurchaseObject as any);
@@ -343,7 +370,7 @@ export async function getTradePartnerFromType(data: TradePartnerTypes) {
   return tryCatch(async () => {
     let table = Prisma.sql`customers`;
     const formated = getTradePartnerSchema.parse(data);
-    if (formated.type === 'companies') {
+    if (formated.type === 'company') {
       table = Prisma.sql`companies`;
     }
 
@@ -371,7 +398,7 @@ export async function getReportPartnerFromChart(
         const year = currentYear - Math.floor((currentMonth - i) / 12); // Adjust year if necessary
 
         let totalPartnerData: PartnerChartSummary;
-        if (formated.type === 'companies') {
+        if (formated.type === 'company') {
           totalPartnerData = await prisma.companyPurchase.aggregate({
             _sum: {
               totalRemaining: true,
@@ -447,7 +474,7 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
   return tryCatch(async () => {
     const formated = getReportTradePartnerSchema.parse(data);
     let loanSummary: LoanSummary;
-    if (formated.type === 'companies') {
+    if (formated.type === 'company') {
       loanSummary = await prisma.companyPurchase.aggregate({
         _sum: {
           totalRemaining: true,
@@ -497,11 +524,12 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
 
 export type CombinedData = {
   id: number | null;
-  name: string | null;
+  name: string;
   createdAt: Date | null;
   dollar: number | null;
   note: string | null;
   partner: string | null;
+  partnerId: number | null;
   type: 'expense' | 'sale' | 'companyPurchase' | EmployeeActionType | null;
   pathname: string | null;
   addition: number;
@@ -523,6 +551,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         e.created_at AS createdAt, 
         e.dollar, 
         e.title AS partner, 
+        NULL AS partnerId,
         'expense' AS type,
         'expense' AS pathname,
         0 AS addition, -- Expenses do not add to balance
@@ -538,6 +567,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
           cp.purchaseDate AS createdAt, 
           cp.dollar, 
           com.name AS partner, 
+          com.id AS partnerId,
           'companyPurchase' AS type,
           'company' AS pathname,
           0 AS addition, -- Purchases do not add to balance
@@ -552,7 +582,8 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         s.id, 
         s.saleNumber AS name, 
         s.saleDate AS createdAt, 
-        s.dollar, 
+        s.dollar,
+        c.id AS partnerId, 
         c.name AS partner, 
         'sale' AS type,
         'customer' AS pathname,
@@ -569,6 +600,7 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         emp.name AS name, 
         ea.dateAction AS createdAt, 
         ea.dollar, 
+        emp.id AS partnerId,
         emp.name AS partner, 
         ea.type AS type,
         'employee' AS pathname,
@@ -601,11 +633,12 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
     // Add summary row
     combinedData.push({
       id: null,
-      name: null,
+      name: '',
       createdAt: null,
       dollar: null,
       note: null,
       partner: 'کۆی گشتی',
+      partnerId: null,
       type: null,
       pathname: null,
       addition: totalAdditions,
@@ -631,20 +664,20 @@ export type PartnersLoan = {
 export async function getPartnersLoan(t: PartnersLoanTypes) {
   return tryCatch(async () => {
     // Parse the input type using the schema
-    const { type } = getPartnersLoanSchema.parse({ ...t });
+    const { type } = getPartnersLoanSchema.parse(t);
 
     // Base query for sales (with customer)
     const customersQuery = `
       SELECT 
-        s.id AS id,
+        s.id,
         s.saleNumber AS invoice, 
         s.saleDate AS date, 
-        s.totalAmount AS totalAmount, 
-        s.discount AS discount, 
-        s.totalRemaining AS totalRemaining,
-        s.dollar AS dollar,
+        s.totalAmount, 
+        s.discount, 
+        s.totalRemaining,
+        s.dollar,
         c.id AS partnerId, 
-        c.name AS name
+        c.name
       FROM Sales s
       LEFT JOIN Customers c ON c.id = s.customerId
       WHERE s.saleType = 'LOAN' 
@@ -655,15 +688,15 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
     // Base query for company purchases (with company)
     const companiesQuery = `
       SELECT 
-        cp.id AS id, 
+        cp.id, 
         cp.name AS invoice,
         cp.purchaseDate AS date, 
-        cp.totalAmount AS totalAmount, 
-        cp.totalRemaining AS totalRemaining,
+        cp.totalAmount, 
+        cp.totalRemaining,
         0 AS discount,
-        cp.dollar AS dollar,
+        cp.dollar,
         com.id AS partnerId, 
-        com.name AS name
+        com.name
       FROM CompanyPurchase cp
       LEFT JOIN Companies com ON com.id = cp.companyId
       WHERE cp.type = 'LOAN'
@@ -683,6 +716,107 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
       )) as PartnersLoan[];
     }
     return partnersLoan;
+  });
+}
+
+export type employeeActionType = {
+  id: number;
+  employeeId: number;
+  name: string;
+  createdAt: Date;
+  dollar: number;
+  type: string;
+  addition: number;
+  subtraction: number;
+};
+
+export async function getActionsEmployee(data?: getActionsEmployeeTypes) {
+  return tryCatch(async () => {
+    const formated = getActionsEmployeeSchema.parse(data);
+
+    const result: employeeActionType[] = await prisma.$queryRaw`
+      WITH EmployeeActionsCTE AS (
+        SELECT 
+          ea.id, 
+          emp.id AS employeeId,
+          emp.name,
+          ea.dateAction AS createdAt, 
+          ea.dollar, 
+          ea.type,
+          CASE WHEN ea.type IN ('PUNISHMENT', 'ABSENT') THEN ea.amount ELSE 0 END AS addition,
+          CASE WHEN ea.type IN ('OVERTIME', 'BONUS') THEN ea.amount ELSE 0 END AS subtraction
+        FROM EmployeeActions ea
+        LEFT JOIN Employee emp ON ea.employeeId = emp.id
+        WHERE 
+          (${formated.name} IS NULL OR LOWER(emp.name) LIKE LOWER(${`%${formated.name}%`}))
+          AND (${formated.from} IS NULL OR ${formated.to} IS NULL OR ea.dateAction BETWEEN ${formated.from} AND ${formated.to})
+      ),
+      TotalsCTE AS (
+        SELECT
+          SUM(addition) AS totalAdditions,
+          SUM(subtraction) AS totalSubtractions
+        FROM EmployeeActionsCTE
+      )
+      SELECT 
+        id,
+        employeeId,
+        name,
+        createdAt,
+        dollar,
+        type,
+        addition,
+        subtraction
+      FROM EmployeeActionsCTE
+      UNION ALL
+      SELECT 
+        0 AS id,
+        0 AS employeeId,
+        'کۆی گشتی' AS name,
+        ${now} AS createdAt,
+        NULL AS dollar,
+        NULL AS type,
+        totalAdditions AS addition,
+        totalSubtractions AS subtraction
+      FROM TotalsCTE
+    `;
+    return result;
+  });
+}
+
+export async function getSelfInvoice(data?: getSelfInvoiceTypes) {
+  return tryCatch(async () => {
+    const formated = getSelfInvoiceSchema.parse(data); // use same schema as for from and to reuse
+    let result: OneSale[] | OneCompanyPurchase[] | null = null;
+    if (formated.type === 'customer') {
+      const sales = await prisma.sales.findMany({
+        where: {
+          saleDate: {
+            gte: formated.dates?.from,
+            lte: formated.dates?.to,
+          },
+          deleted_at: formated.isTrash ? { not: null } : null,
+          OR: [
+            { fastSale: true },
+            { customerId: null },
+            { customer: { deleted_at: { not: null } } },
+          ],
+        },
+      });
+      result = sales;
+    } else {
+      const companyPurchases = await prisma.companyPurchase.findMany({
+        where: {
+          purchaseDate: {
+            gte: formated.dates?.from,
+            lte: formated.dates?.to,
+          },
+          deleted_at: formated.isTrash ? { not: null } : null,
+          OR: [{ company: { deleted_at: { not: null } } }, { companyId: null }],
+        },
+      });
+      result = companyPurchases as unknown as OneCompanyPurchase[];
+    }
+    return result;
   });
 }
 

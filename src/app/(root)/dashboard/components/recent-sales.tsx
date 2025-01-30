@@ -4,7 +4,7 @@ import CustomToolTip from '@/components/custom-tool-tip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useDollar } from '@/hooks/useDollar';
 import useSetQuery from '@/hooks/useSetQuery';
-import { FALLBACK_IMAGE } from '@/lib/constant';
+import { FALLBACK_IMAGE, redirect_to_page_name } from '@/lib/constant';
 import { cn, formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -23,6 +23,8 @@ export function RecentSales({ data }: Props) {
     return formatCurrency(amount, dollar, currency)
   }
 
+  const urls = (q: string, id?: number) => redirect_to_page_name.find((item) => item.name === 'customer')?.value(q, id)
+
   return (
     <div dir='rtl' className="space-y-8">
       {latestSales.map((sale: any) => {
@@ -36,8 +38,9 @@ export function RecentSales({ data }: Props) {
             <div className="ms-4 space-y-1">
               <Link
                 className='underline text-blue-400 leading-none'
-                href={`/customer/${sale.customerId}?invoice=${sale.saleNumber}`}>
-                {sale.customer?.name}</Link>
+                href={urls(sale.saleNumber, sale.customerId) || "#"}>
+                {sale.customer?.name || "سڕاوەتەوە"}
+              </Link>
               <p className="text-muted-foreground text-sm">
                 {sale.customer?.phone}
               </p>
@@ -52,13 +55,13 @@ export function RecentSales({ data }: Props) {
               </CustomToolTip>
 
               {!!sale.discount ? (
-                <div className='flex flex-col'>
-                  <del className="font-medium text-red-500 text-opacity-60">
-                    {formatAmounts(sale.totalAmount)}
-                  </del>
+                <div className='flex gap-2 justify-end'>
                   <p>
                     {formatAmounts(sale.totalAmount - sale.discount)}
                   </p>
+                  <del className="font-medium text-red-500 text-opacity-60">
+                    {formatAmounts(sale.totalAmount)}
+                  </del>
                 </div>
               ) : (
                 <p className="ms-auto font-medium">{formatAmounts(sale.totalAmount)}</p>

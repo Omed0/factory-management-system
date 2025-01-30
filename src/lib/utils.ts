@@ -20,12 +20,15 @@ export function removeEmpty(obj: any) {
   return obj;
 }
 
-export function getMonthStartAndEndOfMonth(date: Date) {
-  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 2);
-  startOfMonth.setUTCHours(0, 0, 0, 0);
+export function getMonthStartAndEndOfMonth(month: number) {
+  const currentYear = new Date().getFullYear();
+  // Create a date object for the first day of the month
+  const startOfMonth = new Date(currentYear, month - 1, 1);
+  startOfMonth.setHours(0, 0, 0, 0);
 
-  const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-  endOfMonth.setUTCHours(23, 59, 59, 999);
+  // Create a date object for the last day of the month
+  const endOfMonth = new Date(currentYear, month, 0);
+  endOfMonth.setHours(23, 59, 59, 999);
 
   return { startOfMonth, endOfMonth };
 }
@@ -170,5 +173,7 @@ export const parseCurrency = (formatted: string): number => {
 
 export const parseDate = (date?: Date | string | null): string => {
   if (!date) return '';
-  return format(new Date(date).toISOString().split('T')[0], 'dd/MM/yyyy');
+  if (typeof date === 'string')
+    return format(new Date(date).toISOString().split('T')[0], 'dd/MM/yyyy');
+  return format(date, 'dd/MM/yyyy');
 };

@@ -2,6 +2,7 @@
 
 import { report_name } from '@/app/(root)/report/_constant';
 import {
+  getActionsEmployee,
   getCustomersWhoDidntGiveLoan,
   getDashboardChartInformation,
   getDashboardInformation,
@@ -12,14 +13,18 @@ import {
   getPurchasesListSpecificTime,
   getReportPartnerFromChart,
   getSalesListSpecificTime,
+  getSelfInvoice,
   getTradePartnerFromType,
 } from '@/server/access-layer/information';
 import {
   DashboardInfoTypes,
+  getActionsEmployeeTypes,
   getReportChartPartnerTypes,
+  getSelfInvoiceTypes,
   InfoAboutBoxTypes,
   PartnersLoanTypes,
   ReportDateTypes,
+  ReportPersonTypes,
   ReportTradePartnerTypes,
   TradePartnerTypes,
 } from '@/server/schema/information';
@@ -124,8 +129,32 @@ export async function getDetailActionBoxActions(date?: InfoAboutBoxTypes) {
   return { success: true, data: res };
 }
 
+export async function getActionsEmployeeActions(
+  date?: getActionsEmployeeTypes
+) {
+  const res = await getActionsEmployee(date);
+  if (!res || 'error' in res) {
+    return {
+      success: false,
+      message: res?.error ?? 'هەڵەیەک هەیە',
+    };
+  }
+  return { success: true, data: res };
+}
+
 export async function getPartnersLoanActions(type: PartnersLoanTypes) {
   const res = await getPartnersLoan(type);
+  if (!res || 'error' in res) {
+    return {
+      success: false,
+      message: res?.error ?? 'هەڵەیەک هەیە',
+    };
+  }
+  return { success: true, data: res };
+}
+
+export async function getSelfInvoiceActions(data?: getSelfInvoiceTypes) {
+  const res = await getSelfInvoice(data);
   if (!res || 'error' in res) {
     return {
       success: false,

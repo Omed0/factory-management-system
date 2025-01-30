@@ -64,13 +64,15 @@ export function NavMain({
                       <span>{item.title}</span>
                     </Link>
                     {hasSubItems && (
-                      <ChevronRight className="hover:bg-background ms-auto rounded-full transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <ChevronRight
+                        className="hover:bg-background ms-auto rounded-full transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                      />
                     )}
                   </SidebarMenuButton>
                 </CollapsibleTrigger>
                 {hasSubItems && (
                   <CollapsibleContent>
-                    <SidebarMenuSub>
+                    <SidebarMenuSub className='mx-1.5 px-1.5'>
                       {item.items?.map((subItem) => (
                         <SidebarMenuSubItem
                           key={subItem.title}
