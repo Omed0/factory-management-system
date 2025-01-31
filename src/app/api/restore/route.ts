@@ -108,12 +108,12 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const restoreSource = formData.get('restoreSource') as 'local' | 'upload';
     const files = formData.getAll('files') as File[];
-
     let zipFilePath: string;
 
     if (restoreSource === 'local') {
       // Restore from local backup
-      zipFilePath = path.resolve('D:/backups', 'backup.zip');
+      console.log('Restoring from local backup...');
+      zipFilePath = path.resolve('D:', 'Backups', 'backup.zip');
       if (!fs.existsSync(zipFilePath)) {
         throw new Error(`Backup file not found at: ${zipFilePath}`);
       }
@@ -187,10 +187,13 @@ export async function POST(req: Request) {
     console.log('Temporary files cleaned up.');
 
     const message =
-      restoreSource === 'local'
+      restoreSource == 'local'
         ? 'ڕیستۆرکرا لەسەر کۆمپیوتەرەکەوە'
         : 'ڕیستۆرکرا بە فایلەکانی تێلێگرام';
-    return NextResponse.json({ message: 'Success', description: message });
+    return NextResponse.json({
+      message: 'سەرکەوتوو بوو',
+      description: message,
+    });
   } catch (error: any) {
     console.error('Error:', error.message);
     return NextResponse.json({

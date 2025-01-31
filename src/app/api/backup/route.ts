@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 
     if (isUploadToDrive) {
       // Save to local directory
-      const destinationPath = path.join(process.cwd(), 'Backups', 'backup.zip');
+      const destinationPath = path.join('D:', 'Backups', 'backup.zip');
       ensureDirectoryExists(path.dirname(destinationPath));
       fs.copyFileSync(zipFilePath, destinationPath);
       console.log(`Backup saved to: ${destinationPath}`);
@@ -129,7 +129,10 @@ export async function POST(req: Request) {
       ? 'باکئەپ کرا بۆ کۆمپیتەرەکە'
       : 'باکئەپ بۆ تێلیگرام ناردرا';
 
-    return NextResponse.json({ message: 'Success', description: message });
+    return NextResponse.json({
+      message: 'سەرکەوتوو بوو',
+      description: message,
+    });
   } catch (error: any) {
     console.error('Error:', error.message);
     return NextResponse.json({

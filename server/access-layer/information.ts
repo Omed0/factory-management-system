@@ -583,8 +583,8 @@ export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
         s.saleNumber AS name, 
         s.saleDate AS createdAt, 
         s.dollar,
-        c.id AS partnerId, 
         c.name AS partner, 
+        c.id AS partnerId, 
         'sale' AS type,
         'customer' AS pathname,
         s.totalRemaining AS addition, -- Sales increase the balance
