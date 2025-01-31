@@ -10,6 +10,13 @@ import { isShowValue } from '../_constant';
 import { parseDate } from '@/lib/utils';
 import { employeeActionType } from '@/server/access-layer/information';
 import { redirect_to_page_name, tr_employee_action, tr_type_calculated } from '@/lib/constant';
+import { TableCell } from '@/components/ui/table';
+import EditEmployeeActions from '../../employee/_component/edit-employee-action';
+import { UpdateEmployeeAction } from '@/server/schema/employee';
+import { deleteEmployeeActionActions } from '@/actions/employee';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Trash } from 'lucide-react';
 
 export const columns_action_employee: ColumnDef<employeeActionType>[] = [
     {
@@ -82,6 +89,36 @@ export const columns_action_employee: ColumnDef<employeeActionType>[] = [
         ),
         cell: ({ row }) => {
             return (<div>{parseDate(row.original.createdAt)}</div>)
+        },
+    },
+    {
+        accessorKey: 'other',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="زیاتر" />
+        ),
+        cell: ({ row }) => {
+            const { id } = row.original;
+
+            return (
+                id != 0 && (
+                    <form
+                        action={async () => {
+                            const { success, message } =
+                                await deleteEmployeeActionActions(Number(id));
+                            if (!success) {
+                                toast.error(message);
+                                return;
+                            }
+                            toast.success(message);
+                            //refetch();
+                        }}
+                    >
+                        <Button variant="destructive" className='h-8 px-2'>
+                            <Trash className="size-5" />
+                        </Button>
+                    </form>
+                )
+            )
         },
     },
 ];

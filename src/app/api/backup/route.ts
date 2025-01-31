@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 
     if (isUploadToDrive) {
       // Save to local directory
-      const destinationPath = path.join('D:/Backups', 'backup.zip');
+      const destinationPath = path.join(process.cwd(), 'Backups', 'backup.zip');
       ensureDirectoryExists(path.dirname(destinationPath));
       fs.copyFileSync(zipFilePath, destinationPath);
       console.log(`Backup saved to: ${destinationPath}`);
@@ -123,19 +123,6 @@ export async function POST(req: Request) {
 
       // Step 5: Send each chunk to Telegram
       await sendFilesToTelegram(chunks, token, chatId);
-
-      // Clean up chunk files
-      for (const chunk of chunks) {
-        fs.unlinkSync(chunk);
-      }
-    }
-
-    // Clean up the main dump and ZIP files
-    if (fs.existsSync(dumpFilePath)) {
-      fs.unlinkSync(dumpFilePath);
-    }
-    if (fs.existsSync(zipFilePath)) {
-      fs.unlinkSync(zipFilePath);
     }
 
     const message = isUploadToDrive
@@ -149,5 +136,18 @@ export async function POST(req: Request) {
       description: error.message,
       message: 'هەڵەیەک ڕویدا',
     });
+  } finally {
+    // Clean up temporary files
+    if (dumpFilePath && fs.existsSync(dumpFilePath)) {
+      fs.unlinkSync(dumpFilePath);
+    }
+    if (zipFilePath && fs.existsSync(zipFilePath)) {
+      fs.unlinkSync(zipFilePath);
+    }
+    for (const chunk of chunks) {
+      if (fs.existsSync(chunk)) {
+        fs.unlinkSync(chunk);
+      }
+    }
   }
 }

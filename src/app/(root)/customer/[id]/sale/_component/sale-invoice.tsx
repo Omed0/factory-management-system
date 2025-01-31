@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useTransition } from 'react';
 import { Calculator, CheckCheck, Minus, Plus, Trash } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import {
@@ -246,6 +246,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
 }
 
 function SubmitForm({ sale }: { sale: OneSale }) {
+  const router = useRouter()
   return (
     <>
       <DialogHeader>
@@ -261,7 +262,7 @@ function SubmitForm({ sale }: { sale: OneSale }) {
             const { message, success } = await finishSaleActions(sale.id, true);
             if (success) {
               toast.info(message);
-              redirect(`/customer/${sale.customerId}`);
+              router.replace(`/customer/${sale.customerId}`);
             }
             toast.error(message);
             return;

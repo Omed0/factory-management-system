@@ -11,7 +11,7 @@
     "dev": "next dev",
     "move-build-folder": "moveBuildFolder.bat",
     "build:local": "prisma generate && prisma db push && next build && node copy-assets.js",
-    "build": "npm run build && npm run move-build-folder",
+    "build": "npm run build:local && npm run move-build-folder",
     "start:local": "node ./.next/standalone/server.js",
     "start": "node ../system-management/standalone/server.js",
     "preview": "next build && next start",
