@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import useSetQuery from '@/hooks/useSetQuery';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TrashAndActiveButtons from '@/components/trash-and-active-buttons';
+import useInputSetQuery from '@/hooks/use-input-set-query';
 
 
 interface DataTableToolbarProps<TData> {
@@ -48,6 +49,8 @@ export function DataTableToolbar<TData>({
   const isSelfInvoice = pathname.includes("self-invoice")
   const defaultTypeLoan = searchParams.get("type") || "customer"
   const isComapny = defaultTypeLoan === "company"
+
+  useInputSetQuery(input?.field(isComapny) || "name", input?.field(isComapny) || "name", table);
 
   return (
     <div className="flex items-center justify-between">

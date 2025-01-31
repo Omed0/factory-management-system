@@ -54,9 +54,10 @@ export default function RestoreButton({ onClose }: Props) {
                 body: formData,
             });
 
+            const data = await response.json();
             if (response.ok) {
-                toast.success("سەرکەووتوبوو", {
-                    description: "ڕیستۆرکرا بە فایلی تێلێگرام",
+                toast.success(data?.message, {
+                    description: data?.description,
                     duration: 4000,
                 });
                 router.refresh();
@@ -91,13 +92,6 @@ export default function RestoreButton({ onClose }: Props) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem
-                        className="justify-end gap-3 cursor-pointer"
-                        onClick={() => handleRestore("local")}
-                    >
-                        لۆکاڵ
-                        <HardDriveDownload className="size-5" />
-                    </DropdownMenuItem>
                     <CustomDialogWithTrigger
                         open={modalTelegram}
                         onOpenChange={setModalTelegram}
@@ -111,6 +105,13 @@ export default function RestoreButton({ onClose }: Props) {
                             <FormRestoreSql onClose={onClose} />
                         </section>
                     </CustomDialogWithTrigger>
+                    <DropdownMenuItem
+                        className="justify-end gap-3 cursor-pointer"
+                        onClick={() => handleRestore("local")}
+                    >
+                        لۆکاڵ
+                        <HardDriveDownload className="size-5" />
+                    </DropdownMenuItem>
                 </DropdownMenuGroup>
             </DropdownMenuContent>
         </DropdownMenu>

@@ -140,7 +140,7 @@ export const column_sale: ColumnDef<OneSale>[] = [
             const trueCondition = fastSale && customerId;
             return (
                 <div className="flex items-center justify-center">
-                    <span>{trueCondition ? "فرۆشتنی خێرا" : "خاوەنی سڕاوەتەوە"}</span>
+                    {trueCondition ? <span className='text-blue-500'>فرۆشتنی خێرا</span> : <span className='text-red-500'>خاوەنی سڕاوەتەوە</span>}
                 </div>
             );
         },

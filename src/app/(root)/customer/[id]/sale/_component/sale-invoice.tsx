@@ -41,6 +41,7 @@ import { debounce, formatCurrency } from '@/lib/utils';
 import { OneSale } from '@/server/schema/sale';
 import BackButton from '@/components/layout/back-button';
 
+
 type Props = {
   saleWithProduct: Awaited<
     ReturnType<typeof getProductSaleListActions>
@@ -257,12 +258,16 @@ function SubmitForm({ sale }: { sale: OneSale }) {
         </DialogTitle>
       </DialogHeader>
       <form
+        key={sale.id}
+        id={sale.id.toString()}
         action={async () => {
           if (sale.id && !sale.isFinished) {
             const { message, success } = await finishSaleActions(sale.id, true);
             if (success) {
               toast.info(message);
+              //router.prefetch(`/customer/${sale.customerId}`, { kind: PrefetchKind.FULL });
               router.replace(`/customer/${sale.customerId}`);
+              return;
             }
             toast.error(message);
             return;
@@ -277,7 +282,7 @@ function SubmitForm({ sale }: { sale: OneSale }) {
           </p>
         </div>
         <DialogFooter className="mt-3 w-full gap-3 sm:justify-center">
-          <Button className="min-w-fit flex-1" type="submit">
+          <Button form={sale.id.toString()} className="min-w-fit flex-1" type="submit">
             تەواوکردن
           </Button>
           <DialogClose className="min-w-fit flex-1">

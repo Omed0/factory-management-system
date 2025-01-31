@@ -37,7 +37,7 @@ export const column_purchase: ColumnDef<OneCompanyPurchase>[] = [
                     <span className={cn("", {
                         "line-through": isFinish
                     })}>
-                        {row.original?.name}</span>
+                        {row.original?.name || "خاوەنی سڕاوەتەوە"}</span>
                 </div>
             );
         },

@@ -93,7 +93,7 @@ export default function SupplierSelector({ type_partner, partners, name }: Props
           </Tooltip>
         ))}
       </div>
-    </div >
+    </div>
   )
 }
 
