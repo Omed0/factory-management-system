@@ -65,17 +65,17 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
   );
 
   const currentInvoice = useMemo(() => {
-    return sales?.sale.find(
-      (inv) => inv.id === +(queryInvoice)
-    );
-  }, [sales?.sale, sale, queryInvoice, handleChangeInvoice]);
+    return sales?.sale.find((inv) => inv.id === +queryInvoice);
+  }, [sales?.sale, queryInvoice]);
 
   const handleDiscount = useCallback(
     debounce(async (v: string) => {
       const discount = Number.parseFloat(v || '0');
-      if (discount >= 0) await discountSaleActions(sale.id, discount);
+      if (discount >= 0 && currentInvoice?.id) {
+        await discountSaleActions(currentInvoice.id, discount);
+      }
     }, 500),
-    [sale.id] // Dependency array
+    [currentInvoice?.id]
   );
 
   const formatedPrices = (amount: number) => {
@@ -130,7 +130,7 @@ export default function SaleInvoice({ saleWithProduct, sales }: Props) {
         <div className="h-fit border-b p-2">
           {pricing.map((p) =>
             p.name === 'داشکاندن' ? (
-              <div key={p.name} className="flex items-center gap-8 space-y-1">
+              <div key={p.name + new Date().getTime()} className="flex items-center gap-8 space-y-1">
                 <p>{p.name}:</p>
                 <Input
                   dir="ltr"

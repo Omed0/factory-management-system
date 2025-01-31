@@ -54,6 +54,7 @@ export default function Products({ product, invoice, currency }: Props) {
           </section>
         </CustomDialogWithTrigger>
         <AddCustomProduct
+          listProduct={product}
           invoice={invoice}
           product={selectProduct}
           resetSelectProduct={setSelectProduct}

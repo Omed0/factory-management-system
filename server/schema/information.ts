@@ -33,10 +33,12 @@ export const getTradePartnerSchema = z.object({
 export const getReportTradePartnerSchema = z.object({
   type: partners,
   id: z.string(),
-  dates: z.object({
-    from: z.string().optional(),
-    to: z.string().optional(),
-  }),
+  dates: z
+    .object({
+      from: z.string(),
+      to: z.string(),
+    })
+    .optional(),
 });
 
 export const getReportChartPartnerSchema = z.object({

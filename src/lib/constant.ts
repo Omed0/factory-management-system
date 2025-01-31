@@ -62,7 +62,7 @@ export const redirect_to_page_name = [
   {
     name: 'employee',
     value: (q: string, id?: number | null) =>
-      `${id ? `/employee?name=${q}` : `/report/employee?name=${q}`}`,
+      `${id ? `/employee?name=${q}` : `/report/employee?name=سڕاوەتەوە`}`,
   },
 ];
 

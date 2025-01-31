@@ -483,8 +483,8 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
         where: {
           companyId: +data.id,
           purchaseDate: {
-            gte: formated.dates.from,
-            lte: formated.dates.to,
+            gte: formated.dates?.from,
+            lte: formated.dates?.to,
           },
           deleted_at: null,
         },
@@ -499,8 +499,8 @@ export async function getLoanSummary(data: ReportTradePartnerTypes) {
         where: {
           customerId: +data.id,
           saleDate: {
-            gte: formated.dates.from,
-            lte: formated.dates.to,
+            gte: formated.dates?.from,
+            lte: formated.dates?.to,
           },
           deleted_at: null,
         },
@@ -748,7 +748,7 @@ export async function getActionsEmployee(data?: getActionsEmployeeTypes) {
         FROM EmployeeActions ea
         LEFT JOIN Employee emp ON ea.employeeId = emp.id
         WHERE 
-          (${formated.name} IS NULL OR LOWER(emp.name) LIKE LOWER(${`%${formated.name}%`}))
+          (${formated?.name} IS NULL OR LOWER(emp.name) LIKE LOWER(${`%${formated?.name}%`}))
           AND (${formated.from} IS NULL OR ${formated.to} IS NULL OR ea.dateAction BETWEEN ${formated.from} AND ${formated.to})
       ),
       TotalsCTE AS (

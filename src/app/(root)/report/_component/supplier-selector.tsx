@@ -32,7 +32,7 @@ export default function SupplierSelector({ type_partner, partners, name }: Props
 
   return (
     <div className='flex items-center gap-4'>
-      <CalenderRangMultiSide />
+      <CalenderRangMultiSide noDefault isShowResetButton btnClassName='h-10' className='' />
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger defaultValue={value.id} asChild>
           <Button

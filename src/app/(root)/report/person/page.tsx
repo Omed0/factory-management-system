@@ -23,7 +23,7 @@ export default async function PersonReport({ searchParams }: Props) {
     const { date, name, type = "customer" } = searchParams
     const isCompany = type === "company" ? "کۆمپانیا" : "کڕیار"
 
-    const dates = changeDateToString(seperateDates(date))
+    const dates = date ? changeDateToString(seperateDates(date)) : undefined
 
     const { success, data, message } = await getTradePartnerActions({ type })
 
@@ -37,9 +37,9 @@ export default async function PersonReport({ searchParams }: Props) {
 
     const partner = (data.find((partner) => partner?.id === +name) || data?.[0] || 0)
 
-    const report_chart = await getReportPartnerChartActions({ id: partner.id.toString(), type })
-    const report_partner = await getReportPartnerSpecificTimeActions({ id: partner.id.toString(), type, dates })
-    const url = type === "customer" ? `/customer/${partner.id.toString()}` : `/company/${partner.id.toString()}`
+    const report_chart = await getReportPartnerChartActions({ id: partner.id?.toString(), type })
+    const report_partner = await getReportPartnerSpecificTimeActions({ id: partner.id?.toString(), type, dates })
+    const url = type === "customer" ? `/customer/${partner.id?.toString()}` : `/company/${partner.id?.toString()}`
 
     if (!report_chart.data || !report_partner.data) {
         return <div className="w-full h-full flex items-center justify-center">

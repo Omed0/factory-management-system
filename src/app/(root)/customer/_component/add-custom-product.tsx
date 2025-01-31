@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { createProductSaleListActions } from '@/actions/sale';
 import { CurrencyInput } from '@/components/custom-currency-input';
 import { Button } from '@/components/ui/button';
@@ -18,11 +18,12 @@ type Props = {
     product: OneProduct | null;
     resetSelectProduct: React.Dispatch<React.SetStateAction<OneProduct | null>>;
     invoice: OneSale
+    listProduct: OneProduct[]
 }
 
-export default function AddCustomProduct({ product, resetSelectProduct, invoice }: Props) {
+export default function AddCustomProduct({ product, resetSelectProduct, invoice, listProduct }: Props) {
 
-    const [open, setOpen] = useState(false);
+    //const [open, setOpen] = useState(false);
     const { data: { dollar } } = useDollar()
     const form = useForm<CreateProductSale>({
         mode: 'onSubmit',
@@ -71,9 +72,14 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice 
                         <FormItem className="flex-1 basis-40">
                             <FormLabel>ناو</FormLabel>
                             <FormControl>
-                                <Input {...field} />
+                                <Input {...field} list="productList" />
                             </FormControl>
                             <FormMessage />
+                            <datalist id="productList">
+                                {listProduct.slice(0, 10).map((pr) => (
+                                    <option key={pr.id} value={pr.name} />
+                                ))}
+                            </datalist>
                         </FormItem>
                     )}
                 />

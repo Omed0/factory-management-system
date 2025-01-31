@@ -16,7 +16,8 @@ export const dynamic = 'force-dynamic'
 export default async function ReportActionsEmployee({ searchParams }: Props) {
     const dates = searchParams.date ? changeDateToString(seperateDates(searchParams.date)) : undefined // if date is not provided, it will show all data
 
-    const Actions = await getActionsEmployeeActions({ name: searchParams.name, ...dates })
+    //name: searchParams.name,
+    const Actions = await getActionsEmployeeActions({ ...dates })
 
     if (!Actions.success || !Actions.data) {
         return <div className="w-full h-full flex items-center justify-center">
