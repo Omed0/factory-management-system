@@ -123,8 +123,10 @@ export async function POST(req: Request) {
         throw new Error('No files uploaded.');
       }
 
-      const tempDir = os.tmpdir();
-
+      const tempDir = path.join(__dirname, 'temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
       // Save uploaded files to a temporary directory
       const uploadedFiles = await Promise.all(
         files.map(async (file) => {

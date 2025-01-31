@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { unstable_cache as nextCache } from 'next/cache';
 
 import {
   createPaidLoanSaleList,
@@ -136,8 +137,8 @@ export async function finishSaleActions(id: any, isFinished: boolean) {
       message: sale?.error || 'هەڵەیەک هەیە',
     };
   }
-  //revalidatePath('/customer/[id]', 'page'); // instead this use dynamic varibale in page invoices customer
-  //this is why not using this have a some function use both in inoivces and sales page if revalidate it will be a problem
+  //revalidatePath('/customer/[id]', 'page');// instead this use dynamic variable in page invoices customer
+  // this is why not using this have some function use both in invoices and sales page if revalidate it will be a problem
   return { success: true, message: 'وەصڵ تەواو کرا' };
 }
 

@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  distDir: '.next', // Ensure this is set correctly
   async redirects() {
     return [
       {
