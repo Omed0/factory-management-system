@@ -16,12 +16,12 @@ import { toast } from 'sonner';
 
 type Props = {
     product: OneProduct | null;
-    resetSelectProduct: React.Dispatch<React.SetStateAction<OneProduct | null>>;
+    setProduct: React.Dispatch<React.SetStateAction<OneProduct | null>>;
     invoice: OneSale
     listProduct: OneProduct[]
 }
 
-export default function AddCustomProduct({ product, resetSelectProduct, invoice, listProduct }: Props) {
+export default function AddCustomProduct({ product, invoice, listProduct, setProduct }: Props) {
 
     //const [open, setOpen] = useState(false);
     const { data: { dollar } } = useDollar()
@@ -33,7 +33,14 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice,
 
     const reset = useCallback(() => {
         form.reset(form.formState.defaultValues);
-    }, [form]);
+    }, [form, form.formState.defaultValues]);
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const product = listProduct.find((pr) => pr.name === e.target.value)
+        if (product) {
+            setProduct(product)
+        }
+    }, [listProduct, setProduct]);
 
     async function onSubmit(values: CreateProductSale) {
         const newProduct = await createProductSaleListActions(values)
@@ -42,7 +49,7 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice,
             toast.error(newProduct.message);
         } else {
             toast.success(newProduct.message);
-            resetSelectProduct(null);
+            setProduct(null);
             reset()
         }
     }
@@ -72,7 +79,14 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice,
                         <FormItem className="flex-1 basis-40">
                             <FormLabel>ناو</FormLabel>
                             <FormControl>
-                                <Input {...field} list="productList" />
+                                <Input
+                                    {...field}
+                                    list="productList"
+                                    onChange={(e) => {
+                                        field.onChange(e)
+                                        handleChange(e)
+                                    }}
+                                />
                             </FormControl>
                             <FormMessage />
                             <datalist id="productList">
@@ -115,7 +129,7 @@ export default function AddCustomProduct({ product, resetSelectProduct, invoice,
                         type="reset"
                         variant="destructive"
                         onClick={() => {
-                            resetSelectProduct(null);
+                            setProduct(null);
                             reset()
                         }}
                     >

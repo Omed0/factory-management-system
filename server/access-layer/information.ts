@@ -536,7 +536,6 @@ export type CombinedData = {
   subtraction: number;
   balance: number;
 };
-
 export async function getDetailActionBox(date?: InfoAboutBoxTypes) {
   return tryCatch(async () => {
     const parsedDate = date ? getInfoAboutBoxSchema.parse(date) : null;
@@ -668,40 +667,106 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
 
     // Base query for sales (with customer)
     const customersQuery = `
+      WITH SalesData AS (
+          SELECT 
+              s.id,
+              s.saleNumber AS invoice, 
+              s.saleDate AS date, 
+              s.totalAmount, 
+              s.discount, 
+              s.totalRemaining,
+              s.dollar,
+              c.id AS partnerId, 
+              c.name
+          FROM Sales s
+          LEFT JOIN Customers c ON c.id = s.customerId
+          WHERE s.saleType = 'LOAN' 
+            AND s.totalRemaining != s.totalAmount - s.discount
+            AND s.deleted_at IS NULL
+      ),
+      SalesSummary AS (
+          SELECT 
+              SUM(totalAmount - discount) AS totalAmountAfterDiscount,
+              SUM(totalRemaining) AS totalRemainingSum
+          FROM SalesData
+      )
       SELECT 
-        s.id,
-        s.saleNumber AS invoice, 
-        s.saleDate AS date, 
-        s.totalAmount, 
-        s.discount, 
-        s.totalRemaining,
-        s.dollar,
-        c.id AS partnerId, 
-        c.name
-      FROM Sales s
-      LEFT JOIN Customers c ON c.id = s.customerId
-      WHERE s.saleType = 'LOAN' 
-        AND s.totalRemaining != s.totalAmount - s.discount
-        AND s.deleted_at IS NULL
+          id,
+          invoice,
+          date,
+          totalAmount,
+          discount,
+          totalRemaining,
+          dollar,
+          partnerId,
+          name
+      FROM SalesData
+
+      UNION ALL
+
+      SELECT 
+          NULL AS id,
+          NULL AS invoice,
+          NULL AS date,
+          totalAmountAfterDiscount AS totalAmount,
+          0 AS discount,
+          totalRemainingSum AS totalRemaining,
+          NULL AS dollar,
+          0 AS partnerId,
+          'کۆی گشتی' AS name
+      FROM SalesSummary;
     `;
 
     // Base query for company purchases (with company)
     const companiesQuery = `
+      WITH CompanyPurchaseData AS (
+        SELECT 
+          cp.id, 
+          cp.name AS invoice,
+          cp.purchaseDate AS date, 
+          cp.totalAmount, 
+          cp.totalRemaining,
+          0 AS discount,
+          cp.dollar,
+          com.id AS partnerId, 
+          com.name
+        FROM CompanyPurchase cp
+        LEFT JOIN Companies com ON com.id = cp.companyId
+        WHERE cp.type = 'LOAN'
+          AND cp.totalRemaining != cp.totalAmount
+          AND cp.deleted_at IS NULL
+      ),
+  CompanyPurchaseSummary AS (
       SELECT 
-        cp.id, 
-        cp.name AS invoice,
-        cp.purchaseDate AS date, 
-        cp.totalAmount, 
-        cp.totalRemaining,
-        0 AS discount,
-        cp.dollar,
-        com.id AS partnerId, 
-        com.name
-      FROM CompanyPurchase cp
-      LEFT JOIN Companies com ON com.id = cp.companyId
-      WHERE cp.type = 'LOAN'
-        AND cp.totalRemaining != cp.totalAmount
-        AND cp.deleted_at IS NULL
+          SUM(totalAmount) AS totalAmountSum,
+          SUM(totalRemaining) AS totalRemainingSum
+      FROM CompanyPurchaseData
+  )
+  SELECT 
+      id,
+      invoice,
+      date,
+      totalAmount,
+      discount,
+      totalRemaining,
+      dollar,
+      partnerId,
+      name
+  FROM CompanyPurchaseData
+
+  UNION ALL
+
+  SELECT 
+      NULL AS id,
+      NULL AS invoice,
+      NULL AS date,
+      totalAmountSum AS totalAmount,
+      0 AS discount,
+      totalRemainingSum AS totalRemaining,
+      NULL AS dollar,
+      0 AS partnerId,
+      'کۆی گشتی' AS name
+  FROM CompanyPurchaseSummary;
     `;
 
     // Use query based on the type
@@ -715,7 +780,7 @@ export async function getPartnersLoan(t: PartnersLoanTypes) {
         companiesQuery
       )) as PartnersLoan[];
     }
-    return partnersLoan;
+    return partnersLoan.reverse();
   });
 }
 

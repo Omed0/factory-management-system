@@ -22,7 +22,7 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         header: ({ column }) => (
             <DataTableColumnHeader column={column} title="ناو" />
         ),
-        cell: ({ row }) => (<span>{row.original?.name ?? "سڕاوەتەوە"}</span>),
+        cell: ({ row }) => (<span>{row.original?.name || "سڕاوەتەوە"}</span>),
     },
     {
         accessorKey: 'invocie',
@@ -52,7 +52,7 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
     {
         accessorKey: 'totalAmount',
         header: ({ column }) => (
-            <DataTableColumnHeader column={column} title="کۆی قەرزی ماوە" />
+            <DataTableColumnHeader column={column} title="کۆی پارەکە" />
         ),
         cell: function CellComponent({ row }) {
             const { totalAmount, dollar, discount } = row.original;
@@ -81,6 +81,22 @@ export const columns_loan: ColumnDef<PartnersLoan>[] = [
         cell: function CellComponent({ row }) {
             const { totalRemaining, dollar } = row.original;
             const formatPrice = useConvertCurrency(totalRemaining, dollar);
+            return (
+                <div className="flex min-w-24">
+                    <span>{formatPrice}</span>
+                </div>
+            );
+        },
+    },
+    {
+        accessorKey: 'totalRemaining',
+        header: ({ column }) => (
+            <DataTableColumnHeader column={column} title="کۆی قەرزی ماوە" />
+        ),
+        cell: function CellComponent({ row }) {
+            const { totalRemaining, dollar, discount, totalAmount } = row.original;
+            const ExistLoan = !!discount ? (totalAmount - discount) - totalRemaining : totalAmount - totalRemaining; //in company purchase does not have discount so we need to check it
+            const formatPrice = useConvertCurrency(ExistLoan, dollar);
             return (
                 <div className="flex min-w-24">
                     <span>{formatPrice}</span>

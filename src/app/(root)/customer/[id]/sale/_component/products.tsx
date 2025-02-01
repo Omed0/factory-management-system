@@ -57,7 +57,7 @@ export default function Products({ product, invoice, currency }: Props) {
           listProduct={product}
           invoice={invoice}
           product={selectProduct}
-          resetSelectProduct={setSelectProduct}
+          setProduct={setSelectProduct}
         />
       </div>
       <div className='flex flex-wrap gap-4 px-3'>
