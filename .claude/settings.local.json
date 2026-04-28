@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Select-Object Name, Id })",
+      "Bash(tasklist /FI \"PID eq 20420\")",
+      "Bash(bunx tsc *)",
+      "Bash(bunx vite *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in d.get\\('exports',{}\\).items\\(\\) if 'server' in k or 'plugin' in k]\")",
+      "WebSearch",
+      "Bash(supabase --version)",
+      "Read(//c/Users/CS5/.agents/skills/supabase/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
+      "Bash(supabase db *)",
+      "Bash(bun x *)",
+      "Bash(docker exec *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(docker port *)",
+      "Bash(docker inspect *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('exports', {}\\), indent=2\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['version']\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['version']\\); print\\(json.dumps\\(d.get\\('exports',{}\\).get\\('.',{}\\), indent=2\\)\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if k in ['main','types','exports','module']}, indent=2\\)\\)\")",
+      "Bash(curl -s http://localhost:3000/healthz -H \"X-Forwarded-For: 127.0.0.1\")",
+      "Bash(curl -s http://localhost:3000/ -L)",
+      "Bash(curl -s http://localhost:8000/rest/v1/site_settings?select=id -H \"apikey: $\\(grep ANON_KEY .env)",
+      "Bash(bun -e ' *)",
+      "Bash(docker compose *)"
+    ]
+  }
+}

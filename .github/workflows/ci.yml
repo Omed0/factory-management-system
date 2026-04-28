@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  app:
+    name: typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run build
+
+  sql-lint:
+    name: SQL syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Spin up Postgres + apply migrations
+        run: |
+          docker run -d --name pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 supabase/postgres:15.8.1.085
+          for i in {1..30}; do
+            docker exec pg pg_isready -U postgres && break
+            sleep 1
+          done
+          for f in supabase/migrations/*.sql; do
+            echo "→ $f"
+            docker exec -i pg psql -U postgres -v ON_ERROR_STOP=1 < "$f"
+          done

@@ -1,61 +1,32 @@
 {
   "compilerOptions": {
-    //"target": "es5",
-    "target": "ESNext",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
     ],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "jsx": "react-jsx",
     "strict": true,
-    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
-    //"module": "esnext",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    //"moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "baseUrl": ".",
+    "allowImportingTsExtensions": false,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+    "ignoreDeprecations": "5.0",
     "paths": {
-      "@/*": [
+      "~/*": [
         "./src/*"
-      ],
-      "@/app/*": [
-        "./src/app/*"
-      ],
-      "@/app/api/*": [
-        "./src/app/api/*"
-      ],
-      "@/styles/*": [
-        "./src/styles/*"
-      ],
-      "@/server/*": [
-        "./server/*"
-      ],
-      "@/components/*": [
-        "./src/components/*"
       ]
     }
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/app/api/backup/route.ts",
-    "app.js",
-  ],
-  "exclude": [
-    "node_modules"
+    "src",
   ]
 }

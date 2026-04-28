@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs sed *)",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Bash(curl -s http://localhost:3000/ -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s http://localhost:3000/healthz -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -sf http://localhost:3000/ -L)",
+      "Bash(curl -sf http://localhost:3000/login -L)",
+      "Bash(bun remove *)"
+    ]
+  }
+}

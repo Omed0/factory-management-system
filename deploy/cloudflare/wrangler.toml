@@ -1,0 +1,34 @@
+# Cloudflare Workers deployment for the TanStack Start app.
+# Build:    DEPLOY_TARGET=cloudflare bun run build   (from repo root)
+# Deploy:   wrangler deploy --config deploy/cloudflare/wrangler.toml
+#
+# Self-hosted Supabase still runs on the VPS — the Worker reaches Kong over
+# the public domain you set as PUBLIC_SUPABASE_URL.
+
+name = "fms-app"
+main = "../../.output/server/index.mjs"
+compatibility_date = "2025-12-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[observability]
+enabled = true
+
+[vars]
+NODE_ENV = "production"
+DEPLOY_TARGET = "cloudflare"
+# Set to your VPS public API URL (Caddy → Kong):
+PUBLIC_SUPABASE_URL = "https://api.your-domain.com"
+# Secrets go via `wrangler secret put` (never put in this file):
+#   wrangler secret put PUBLIC_SUPABASE_ANON_KEY
+#   wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+#   wrangler secret put R2_ACCESS_KEY_ID
+#   wrangler secret put R2_SECRET_ACCESS_KEY
+
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "fms-backups"
+
+[assets]
+directory = "../../.output/public"
+binding = "ASSETS"

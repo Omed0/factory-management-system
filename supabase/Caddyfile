@@ -1,0 +1,41 @@
+# Caddy config for production deployment.
+# Replace ${APP_DOMAIN} and ${API_DOMAIN} via environment substitution
+# (Caddy reads {$VAR} from process env automatically).
+
+{$APP_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy app:3000 {
+        health_uri /healthz
+        health_interval 15s
+        transport http {
+            keepalive 30s
+            keepalive_idle_conns 10
+        }
+    }
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'"
+    }
+}
+
+{$API_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy kong:8000
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+    }
+}
+
+# Studio is admin-only — basic-auth + path scoping.
+# Generate the password hash with: docker run --rm caddy:2-alpine caddy hash-password
+{$STUDIO_DOMAIN} {
+    basic_auth {
+        {$STUDIO_USER} {$STUDIO_PASS_HASH}
+    }
+    reverse_proxy studio:3000
+}

@@ -1,0 +1,28 @@
+# Build artefacts
+.output/
+dist/
+build/
+
+# Source not needed in image
+supabase/
+deploy/
+docs/
+.git/
+.github/
+
+# Dev dependencies and caches
+node_modules/
+*.log
+
+# Secrets — never bake into image; inject at runtime via env
+.env
+.env.*
+
+# OS / IDE noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.user
+*.tsbuildinfo

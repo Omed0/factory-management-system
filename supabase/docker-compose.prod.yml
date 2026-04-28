@@ -1,0 +1,97 @@
+# Production overlay for the Supabase self-host stack.
+# Compose this WITH the vendored docker-compose.yml:
+#
+#   docker compose --env-file ../.env \
+#     -f docker-compose.yml \
+#     -f docker-compose.prod.yml \
+#     up -d
+#
+# Adds:
+#   * Caddy reverse proxy with automatic TLS (Let's Encrypt)
+#   * Resource limits + restart-on-failure for every service
+#   * Stricter Postgres logging
+#   * Removes published Postgres port (only reachable inside the network)
+#   * Adds the app container
+
+name: supabase
+
+services:
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: fms-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      kong:
+        condition: service_healthy
+      app:
+        condition: service_started
+
+  app:
+    image: ghcr.io/${GH_OWNER:-yourname}/factory-management-system:${APP_TAG:-latest}
+    container_name: fms-app
+    restart: unless-stopped
+    expose: ["3000"]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SUPABASE_URL: http://kong:8000
+      PUBLIC_SUPABASE_URL: ${PUBLIC_SUPABASE_URL}
+      PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_BUCKET: ${R2_BUCKET}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+
+  # ── Hardening overrides on the upstream services ─────────────────────────────
+
+  db:
+    ports: !reset []   # don't publish 5432; supavisor is the only public ingress
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+    command:
+      [
+        "postgres",
+        "-c", "config_file=/etc/postgresql/postgresql.conf",
+        "-c", "log_min_messages=warning",
+        "-c", "log_connections=on",
+        "-c", "log_disconnections=on",
+        "-c", "log_statement=ddl"
+      ]
+
+  kong:
+    ports: !reset []   # only Caddy reaches kong
+    expose: ["8000"]
+
+
+  studio:
+    # In production keep Studio behind Caddy basic-auth; do not expose it directly.
+    expose: ["3000"]
+
+  supavisor:
+    ports: !reset []   # don't expose pooler externally; intra-VPC only
+
+volumes:
+  caddy_data:
+  caddy_config:
