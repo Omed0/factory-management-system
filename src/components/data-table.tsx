@@ -1,4 +1,4 @@
-﻿import {
+import {
   type ColumnDef,
   type SortingState,
   flexRender,
@@ -13,6 +13,7 @@ import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table';
@@ -26,6 +27,8 @@ interface DataTableProps<T> {
   emptyMessage?: string;
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 export function DataTable<T>({
   data,
   columns,
@@ -36,11 +39,12 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [currentPageSize, setCurrentPageSize] = useState(pageSize);
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter, pagination: { pageIndex: 0, pageSize: currentPageSize } },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: 'includesString',
@@ -48,19 +52,46 @@ export function DataTable<T>({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    autoResetPageIndex: true,
   });
+
+  const handlePageSizeChange = (val: string) => {
+    setCurrentPageSize(Number(val));
+    table.setPageSize(Number(val));
+    table.setPageIndex(0);
+  };
+
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const totalPages = table.getPageCount();
+  const currentPage = table.getState().pagination.pageIndex + 1;
 
   return (
     <div className="space-y-3">
-      {searchKey && (
-        <Input
-          placeholder={searchPlaceholder}
-          value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
-          className="max-w-sm"
-        />
-      )}
+      {/* Search + page size */}
+      <div className="flex items-center justify-between gap-3">
+        {searchKey ? (
+          <Input
+            placeholder={searchPlaceholder}
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="max-w-xs"
+          />
+        ) : <div />}
+
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Rows per page</span>
+          <Select value={String(currentPageSize)} onValueChange={handlePageSizeChange}>
+            <SelectTrigger className="h-8 w-17.5">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       <div className="rounded-md border border-border">
         <Table>
@@ -105,18 +136,22 @@ export function DataTable<T>({
         </Table>
       </div>
 
+      {/* Footer: count + page nav */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {table.getFilteredRowModel().rows.length} row(s) &middot; page {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
+          {filteredCount} row{filteredCount !== 1 ? 's' : ''}
+          {totalPages > 1 && ` · page ${currentPage} / ${totalPages}`}
         </p>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
