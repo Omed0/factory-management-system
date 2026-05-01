@@ -1,12 +1,13 @@
 name: Release (build + push image)
 
-# Required repo secrets  (Settings → Secrets and variables → Actions → Secrets):
-#   VITE_SUPABASE_URL        — public Kong URL baked into the browser bundle, e.g. https://api.your-domain.com
-#   CLOUDFLARE_API_TOKEN     — Cloudflare API token with Workers:Edit permission
-#   CLOUDFLARE_ACCOUNT_ID    — your Cloudflare account ID
+# Required repo secrets  (Settings -> Secrets and variables -> Actions -> Secrets):
+#   VITE_SUPABASE_URL        -- public Kong URL baked into the browser bundle, e.g. https://api.your-domain.com
+#   VITE_SUPABASE_ANON_KEY   -- Supabase anon key baked into the browser bundle (same value as ANON_KEY)
+#   CLOUDFLARE_API_TOKEN     -- Cloudflare API token with Workers:Edit permission
+#   CLOUDFLARE_ACCOUNT_ID    -- your Cloudflare account ID
 #
-# Required repo variable  (Settings → Secrets and variables → Actions → Variables):
-#   DEPLOY_CLOUDFLARE        — set to "true" to auto-deploy to Workers on every tag
+# Required repo variable  (Settings -> Secrets and variables -> Actions -> Variables):
+#   DEPLOY_CLOUDFLARE        -- set to "true" to auto-deploy to Workers on every tag
 
 on:
   push:
@@ -41,6 +42,7 @@ jobs:
             ghcr.io/${{ github.repository }}:latest
           build-args: |
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -58,6 +60,7 @@ jobs:
       - run: DEPLOY_TARGET=cloudflare bun run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

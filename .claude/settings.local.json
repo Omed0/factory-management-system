@@ -27,7 +27,21 @@
       "Bash(curl -s http://localhost:3000/ -L)",
       "Bash(curl -s http://localhost:8000/rest/v1/site_settings?select=id -H \"apikey: $\\(grep ANON_KEY .env)",
       "Bash(bun -e ' *)",
-      "Bash(docker compose *)"
+      "Bash(docker compose *)",
+      "mcp__claude_ai_Context7__resolve-library-id",
+      "mcp__claude_ai_Context7__query-docs",
+      "Bash(bun add *)",
+      "Bash(grep -Pn '\\\\$\\\\{' \"w:/Development/factory-management-system/scripts/setup.ps1\")",
+      "Bash(python3 -c ' *)",
+      "PowerShell(docker compose -f supabase/docker-compose.yml --env-file .env down --remove-orphans 2>&1)",
+      "PowerShell(.\\\\scripts\\\\setup.ps1 dev)",
+      "PowerShell(docker compose -f supabase/docker-compose.yml --env-file .env restart vector supavisor 2>&1)",
+      "PowerShell(docker exec \"realtime-dev.supabase-realtime\" sh -c 'echo \"ANON_KEY length: ${#ANON_KEY}; first 20: ${ANON_KEY:0:20}\"' 2>&1)",
+      "PowerShell(docker exec \"realtime-dev.supabase-realtime\" printenv ANON_KEY 2>&1)",
+      "PowerShell(Get-Content .env | Where-Object { $_ -match \"^\\(JWT_SECRET|ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY_BASE|POSTGRES_PASSWORD\\)=\" })",
+      "PowerShell(docker compose -f supabase/docker-compose.yml --env-file .env down --volumes --remove-orphans 2>&1)",
+      "Bash(docker volume *)",
+      "Bash(curl -s http://localhost:8000/rest/v1/ -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc3NjMwMTUxLCJleHAiOjIwOTI5OTAxNTF9.zbUENQmIIxk17GoehGnyjzP97DESoyvwoVapBk3QQu8\")"
     ]
   }
 }

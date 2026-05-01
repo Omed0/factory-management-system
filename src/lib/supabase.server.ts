@@ -4,17 +4,14 @@ import { getCookies, setCookie } from "@tanstack/react-start/server";
 import type { CookieSerializeOptions } from "cookie-es";
 
 import type { Database } from "~/lib/database.types";
-import { env } from "~/lib/env.server";
-
-// Internal URL (for server → Kong inside Docker), falls back to public URL.
-const serverUrl = env.SUPABASE_URL ?? env.PUBLIC_SUPABASE_URL;
+import { env, supabaseUrl } from "~/lib/env.server";
 
 /**
  * Per-request Supabase client that reads / writes session cookies.
  * Use inside createServerFn handlers and route loaders (RLS enforced).
  */
 export function getSupabaseServer() {
-  return createServerClient<Database, "public", Database["public"]>(serverUrl, env.PUBLIC_SUPABASE_ANON_KEY, {
+  return createServerClient<Database, "public", Database["public"]>(supabaseUrl, env.PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {
         const cookies = getCookies();
@@ -43,7 +40,7 @@ export function getSupabaseServer() {
  * Never expose to the browser.
  */
 export function getSupabaseAdmin() {
-  return createClient<Database, "public", "public">(serverUrl, env.SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient<Database, "public", "public">(supabaseUrl, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

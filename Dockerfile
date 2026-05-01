@@ -5,7 +5,7 @@
 
 FROM oven/bun:1-alpine AS deps
 WORKDIR /app
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 RUN --mount=type=cache,target=/root/.bun \
     bun install --frozen-lockfile
 
@@ -14,11 +14,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
-# VITE_SUPABASE_URL must be passed at build time so the browser Supabase client
-# (used for Storage uploads) knows the public Kong URL.
-# Example: docker build --build-arg VITE_SUPABASE_URL=https://api.your-domain.com .
+# Both VITE_* vars are baked into the browser bundle at build time.
+# Pass them via --build-arg so the browser Supabase client works in production.
+# Example:
+#   docker build \
+#     --build-arg VITE_SUPABASE_URL=https://api.your-domain.com \
+#     --build-arg VITE_SUPABASE_ANON_KEY=eyJ... \
+#     -t fms-app:latest .
 ARG VITE_SUPABASE_URL=""
+ARG VITE_SUPABASE_ANON_KEY=""
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN bun run build
 
 FROM oven/bun:1-alpine AS run

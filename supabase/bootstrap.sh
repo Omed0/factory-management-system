@@ -61,5 +61,5 @@ echo "✓ Supabase stack vendored at $HERE"
 echo
 echo "Next steps:"
 echo "  1. cp ../.env.example ../.env   (and fill in)"
-echo "  2. docker compose --env-file ../.env up -d"
-echo "  3. supabase db push  (applies our migrations/*.sql)"
+echo "  2. cd .. && bun run supabase:up"
+echo "  3. for f in supabase/migrations/*.sql; do bun run supabase:migrate < \"\$f\"; done"

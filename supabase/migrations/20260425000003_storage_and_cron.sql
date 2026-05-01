@@ -91,7 +91,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $$
+as $fn$
 begin
   if new.backup_cron is distinct from old.backup_cron then
     perform cron.unschedule('fms-nightly-backup');
@@ -99,7 +99,7 @@ begin
       $$select public.invoke_backup_fn()$$);
   end if;
   return new;
-end$$;
+end$fn$;
 
 create trigger site_settings_reschedule_backup
   after update on public.site_settings
