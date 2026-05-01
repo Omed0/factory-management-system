@@ -36,7 +36,9 @@ export const loadSiteSettings = createServerFn({ method: 'GET' }).handler(async 
   const sb = getSupabaseServer()
   const { data, error } = await sb
     .from('site_settings')
-    .select('*')
+    .select(
+      'id, factory_name, legal_name, tagline, logo_url, favicon_url, primary_color, accent_color, address, city, country, phone, email, tax_id, language, direction, base_currency, display_currency, default_dollar_rate, setup_completed, fiscal_year_start_month',
+    )
     .eq('id', 1)
     .maybeSingle<SiteSettings>();
   if (error) {

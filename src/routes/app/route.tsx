@@ -122,7 +122,7 @@ function NavItem({
       )}
       activeProps={{ className: 'active' }}
     >
-      <Icon className="h-[18px] w-[18px] shrink-0" />
+      <Icon className="h-4.5 w-4.5 shrink-0" />
       {!collapsed && <span>{label}</span>}
     </Link>
   )
@@ -174,7 +174,7 @@ function AppLayout() {
     <TooltipProvider delayDuration={0}>
       <aside className={cn(
         'flex flex-col h-full border-e border-sidebar-border bg-sidebar transition-all duration-200',
-        collapsed && !isMobile ? 'w-[60px]' : 'w-[240px]',
+        collapsed && !isMobile ? 'w-15' : 'w-60',
       )}>
         {/* Header */}
         <div className={cn(
@@ -326,7 +326,7 @@ function AppLayout() {
 
       {/* Mobile drawer */}
       <div className={cn(
-        'fixed inset-y-0 start-0 z-50 md:hidden transition-transform duration-200',
+        'fixed inset-y-0 inset-s-0 z-50 md:hidden transition-transform duration-200',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
       )}>
         <SidebarContent isMobile />
@@ -358,7 +358,7 @@ function AppLayout() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
+          <div className="p-4 md:p-6 max-w-350 mx-auto">
             <Outlet />
           </div>
         </main>
