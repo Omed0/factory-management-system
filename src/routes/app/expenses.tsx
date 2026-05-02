@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { can } from '~/lib/auth'
@@ -77,15 +78,16 @@ function ExpensesPage() {
   const expenses = useQuery({ queryKey: ['expenses'], queryFn: list })
   const [editing, setEditing] = useState<Expense | null>(null)
   const [creating, setCreating] = useState(false)
+  const { t } = useTranslation()
 
   const canWrite  = can(permissions, 'expenses', 'write')
   const canDelete = can(permissions, 'expenses', 'delete')
 
   const columns: ColumnDef<Expense>[] = [
-    { accessorKey: 'title', header: 'Title' },
-    { accessorKey: 'amount', header: 'Amount', cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD') },
-    { accessorKey: 'dollar', header: 'Rate (USD)', cell: ({ getValue }) => <span className="font-mono text-sm">{Number(getValue()).toLocaleString()}</span> },
-    { accessorKey: 'created_at', header: 'Date', cell: ({ getValue }) => new Date(String(getValue())).toLocaleDateString() },
+    { accessorKey: 'title', header: t('expenses.description') },
+    { accessorKey: 'amount', header: t('expenses.amount'), cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD') },
+    { accessorKey: 'dollar', header: `${t('common.dollar')} (USD)`, cell: ({ getValue }) => <span className="font-mono text-sm">{Number(getValue()).toLocaleString()}</span> },
+    { accessorKey: 'created_at', header: t('expenses.date'), cell: ({ getValue }) => new Date(String(getValue())).toLocaleDateString() },
     {
       id: 'actions', header: '', size: 100,
       cell: ({ row }) => (
@@ -98,10 +100,10 @@ function ExpensesPage() {
           {canDelete && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
               onClick={async () => {
-                if (!confirm(`Delete "${row.original.title}"?`)) return
+                if (!confirm(t('expenses.confirmRemove'))) return
                 try {
                   await softDelete({ data: { id: row.original.id } })
-                  toast.success('Expense removed')
+                  toast.success(t('expenses.expenseRemoved'))
                   qc.invalidateQueries({ queryKey: ['expenses'] })
                 } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
               }}>
@@ -117,18 +119,18 @@ function ExpensesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('expenses.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {expenses.data?.length ?? 0} record{expenses.data?.length !== 1 ? 's' : ''}
+            {t('expenses.subtitle', { count: expenses.data?.length ?? 0 })}
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Add expense
+            <Plus className="h-4 w-4" /> {t('expenses.addExpense')}
           </Button>
         )}
       </div>
-      <DataTable data={expenses.data ?? []} columns={columns} searchKey="title" emptyMessage="No expenses found" />
+      <DataTable data={expenses.data ?? []} columns={columns} searchKey="title" emptyMessage={t('expenses.noExpenses')} />
       {(creating || editing) && (
         <ExpenseDialog
           expense={editing}
@@ -143,6 +145,7 @@ function ExpensesPage() {
 function ExpenseDialog({ expense, onClose, onSaved }: {
   expense: Expense | null; onClose: () => void; onSaved: () => void
 }) {
+  const { t } = useTranslation()
   const dollarQ = useQuery({ queryKey: ['dollar-rate'], queryFn: getCurrentDollar })
   const form = useForm({
     defaultValues: {
@@ -155,7 +158,7 @@ function ExpenseDialog({ expense, onClose, onSaved }: {
     onSubmit: async ({ value }) => {
       try {
         await upsert({ data: value })
-        toast.success(expense ? 'Expense updated' : 'Expense recorded')
+        toast.success(expense ? t('expenses.expenseUpdated') : t('expenses.expenseCreated'))
         onSaved()
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -165,18 +168,18 @@ function ExpenseDialog({ expense, onClose, onSaved }: {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{expense ? 'Edit expense' : 'New expense'}</DialogTitle>
+          <DialogTitle>{expense ? t('expenses.editExpense') : t('expenses.newExpense')}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-          <TextField form={form} name="title" label="Title" required />
+          <TextField form={form} name="title" label={t('expenses.description')} required />
           <div className="grid grid-cols-2 gap-3">
-            <TextField form={form} name="amount" label="Amount (IQD)" type="number" required />
-            <TextField form={form} name="dollar" label="USD rate" type="number" required />
+            <TextField form={form} name="amount" label={`${t('expenses.amount')} (IQD)`} type="number" required />
+            <TextField form={form} name="dollar" label={`${t('common.dollar')} (USD)`} type="number" required />
           </div>
-          <TextAreaField form={form} name="note" label="Note" />
+          <TextAreaField form={form} name="note" label={t('expenses.note')} />
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={form.state.isSubmitting}>Save</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={form.state.isSubmitting}>{t('common.save')}</Button>
           </div>
         </form>
       </DialogContent>

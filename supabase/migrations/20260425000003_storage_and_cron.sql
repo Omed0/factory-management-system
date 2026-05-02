@@ -29,14 +29,14 @@ on conflict (id) do nothing;
 create policy "branding read"  on storage.objects for select to anon, authenticated
   using (bucket_id = 'branding');
 create policy "branding write" on storage.objects for all    to authenticated
-  using (bucket_id = 'branding' and public.is_admin_or_owner())
-  with check (bucket_id = 'branding' and public.is_admin_or_owner());
+  using (bucket_id = 'branding' and public.is_authenticated_user())
+  with check (bucket_id = 'branding' and public.is_authenticated_user());
 
 create policy "products read"  on storage.objects for select to anon, authenticated
   using (bucket_id = 'products');
 create policy "products write" on storage.objects for all    to authenticated
-  using (bucket_id = 'products' and public.is_admin_or_owner())
-  with check (bucket_id = 'products' and public.is_admin_or_owner());
+  using (bucket_id = 'products' and public.is_authenticated_user())
+  with check (bucket_id = 'products' and public.is_authenticated_user());
 
 -- Private bucket: any signed-in staff can read employee photos; only ADMIN/OWNER can write.
 create policy "employees read"  on storage.objects for select to authenticated
@@ -47,7 +47,7 @@ create policy "employees write" on storage.objects for all    to authenticated
 
 -- Backups: only OWNER may read; writes are service_role-only (Edge Function).
 create policy "backups read" on storage.objects for select to authenticated
-  using (bucket_id = 'backups' and public.is_owner());
+  using (bucket_id = 'backups' and public.is_admin_or_owner());
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Scheduled backup — pg_cron triggers the `backup` Edge Function nightly.

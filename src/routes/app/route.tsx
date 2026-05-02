@@ -3,9 +3,10 @@ import { createServerFn } from '@tanstack/react-start'
 import {
   BarChart3, Building2, ChevronLeft, DollarSign, FileText,
   LayoutDashboard, LogOut, Menu, Moon, Package, Receipt,
-  Settings, ShoppingCart, Sun, UserRound, Users, X,
+  Settings, ShoppingCart, Sun, UserRound, Users, Warehouse, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { can } from '~/lib/auth'
@@ -75,16 +76,17 @@ export const Route = createFileRoute('/app')({
 // ─── nav definition ───────────────────────────────────────────────────────────
 
 const NAV = [
-  { icon: LayoutDashboard, label: 'Dashboard',  to: '/app/dashboard',  perm: null },
-  { icon: ShoppingCart,    label: 'Sales',       to: '/app/sales',      perm: 'sales:view' },
-  { icon: Users,           label: 'Customers',   to: '/app/customers',  perm: 'customers:view' },
-  { icon: Package,         label: 'Products',    to: '/app/products',   perm: 'products:view' },
-  { icon: UserRound,       label: 'Employees',   to: '/app/employees',  perm: 'employees:view' },
-  { icon: Building2,       label: 'Companies',   to: '/app/companies',  perm: 'companies:view' },
-  { icon: Receipt,         label: 'Purchases',   to: '/app/purchases',  perm: 'purchases:view' },
-  { icon: FileText,        label: 'Expenses',    to: '/app/expenses',   perm: 'expenses:view' },
-  { icon: DollarSign,      label: 'Exchange',    to: '/app/dollar',     perm: 'dollar:view' },
-  { icon: BarChart3,       label: 'Reports',     to: '/app/reports',    perm: 'reports:view' },
+  { icon: LayoutDashboard, key: 'dashboard', to: '/app/dashboard',  perm: null },
+  { icon: ShoppingCart,    key: 'sales',     to: '/app/sales',      perm: 'sales:view' },
+  { icon: Users,           key: 'customers', to: '/app/customers',  perm: 'customers:view' },
+  { icon: Package,         key: 'products',  to: '/app/products',   perm: 'products:view' },
+  { icon: UserRound,       key: 'employees', to: '/app/employees',  perm: 'employees:view' },
+  { icon: Building2,       key: 'companies', to: '/app/companies',  perm: 'companies:view' },
+  { icon: Receipt,         key: 'purchases', to: '/app/purchases',  perm: 'purchases:view' },
+  { icon: FileText,        key: 'expenses',  to: '/app/expenses',   perm: 'expenses:view' },
+  { icon: DollarSign,      key: 'exchange',  to: '/app/dollar',     perm: 'dollar:view' },
+  { icon: BarChart3,       key: 'reports',    to: '/app/reports',     perm: 'reports:view' },
+  { icon: Warehouse,       key: 'warehouses', to: '/app/warehouses',  perm: 'warehouses:view' },
 ] as const
 
 // ─── dark-mode toggle ─────────────────────────────────────────────────────────
@@ -152,6 +154,7 @@ function AppLayout() {
   const { dark, toggle: toggleDark } = useDarkMode()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const { t } = useTranslation()
 
   const handleLogout = async () => {
     await logout({})
@@ -209,7 +212,7 @@ function AppLayout() {
             <button
               onClick={() => setCollapsed((c) => !c)}
               className="hidden md:flex rounded-lg p-1.5 hover:bg-sidebar-accent text-sidebar-foreground/70 shrink-0"
-              aria-label="Toggle sidebar"
+              aria-label={t('nav.toggleSidebar')}
             >
               <ChevronLeft className={cn('h-4 w-4 transition-transform', collapsed ? 'rotate-180' : '')} />
             </button>
@@ -222,7 +225,7 @@ function AppLayout() {
             <NavItem
               key={item.to}
               icon={item.icon}
-              label={item.label}
+              label={t(`nav.${item.key}`)}
               to={item.to}
               collapsed={collapsed && !isMobile}
               onClick={() => setMobileOpen(false)}
@@ -234,7 +237,7 @@ function AppLayout() {
               <Separator className="my-2 bg-sidebar-border" />
               <NavItem
                 icon={Settings}
-                label="Settings"
+                label={t('nav.settings')}
                 to="/app/settings"
                 collapsed={collapsed && !isMobile}
                 onClick={() => setMobileOpen(false)}
@@ -252,26 +255,26 @@ function AppLayout() {
                   <button
                     onClick={toggleDark}
                     className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/70"
-                    aria-label="Toggle theme"
+                    aria-label={t('nav.toggleSidebar')}
                   >
                     {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{dark ? 'Light mode' : 'Dark mode'}</TooltipContent>
+                <TooltipContent side="right">{dark ? t('nav.lightMode') : t('nav.darkMode')}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleLogout}
                     className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-sidebar-accent text-sidebar-foreground/70"
-                    aria-label="Sign out"
+                    aria-label={t('nav.signOut')}
                   >
                     <Avatar className="h-7 w-7">
                       <AvatarFallback className="text-xs bg-primary/15 text-primary font-semibold">{initials}</AvatarFallback>
                     </Avatar>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent side="right">Sign out ({profile?.name})</TooltipContent>
+                <TooltipContent side="right">{t('nav.signOutUser', { name: profile?.name })}</TooltipContent>
               </Tooltip>
             </div>
           ) : (
@@ -293,14 +296,14 @@ function AppLayout() {
                   <button
                     onClick={toggleDark}
                     className="rounded-md p-1.5 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    aria-label="Toggle theme"
+                    aria-label={dark ? t('nav.lightMode') : t('nav.darkMode')}
                   >
                     {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
                   </button>
                   <button
                     onClick={handleLogout}
                     className="rounded-md p-1.5 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    aria-label="Sign out"
+                    aria-label={t('nav.signOut')}
                   >
                     <LogOut className="h-3.5 w-3.5" />
                   </button>
@@ -314,7 +317,7 @@ function AppLayout() {
   )
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground" dir="ltr">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
 
       {/* Mobile overlay */}
       {mobileOpen && (

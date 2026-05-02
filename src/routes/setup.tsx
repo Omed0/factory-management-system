@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Factory, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseAdmin } from '~/lib/supabase.server'
 import { invalidateSettingsCache } from '~/routes/__root'
@@ -103,6 +104,8 @@ function ColorPicker({ form, name, label }: { form: any; name: string; label: st
 
 function SetupWizard() {
   const router = useRouter()
+  const { t } = useTranslation()
+
   const form = useForm({
     defaultValues: {
       factory_name: '', tagline: '', address: '', city: '', country: 'Iraq',
@@ -124,7 +127,7 @@ function SetupWizard() {
   })
 
   return (
-    <div className="min-h-screen bg-muted/40 flex items-start justify-center py-12 px-4" dir="ltr">
+    <div className="min-h-screen bg-muted/40 flex items-start justify-center py-12 px-4">
       <div className="w-full max-w-2xl space-y-6">
 
         {/* Header */}
@@ -133,8 +136,8 @@ function SetupWizard() {
             <Factory className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Factory Setup</h1>
-            <p className="text-sm text-muted-foreground">Configure your factory management system</p>
+            <h1 className="text-2xl font-bold">{t('setup.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('setup.subtitle')}</p>
           </div>
         </div>
 
@@ -143,19 +146,19 @@ function SetupWizard() {
           {/* Factory Info */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Factory information</CardTitle>
+              <CardTitle className="text-base">{t('setup.factoryInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <TextField form={form} name="factory_name" label="Factory name" required />
-              <TextField form={form} name="tagline" label="Tagline" placeholder="Optional short description" />
+              <TextField form={form} name="factory_name" label={t('setup.factoryName')} required />
+              <TextField form={form} name="tagline" label={t('setup.tagline')} placeholder={t('setup.taglinePlaceholder')} />
               <div className="grid grid-cols-2 gap-3">
-                <TextField form={form} name="country" label="Country" />
-                <TextField form={form} name="city" label="City" />
+                <TextField form={form} name="country" label={t('setup.country')} />
+                <TextField form={form} name="city" label={t('setup.city')} />
               </div>
-              <TextField form={form} name="address" label="Address" />
+              <TextField form={form} name="address" label={t('setup.address')} />
               <div className="grid grid-cols-2 gap-3">
-                <TextField form={form} name="phone" label="Phone" type="tel" />
-                <TextField form={form} name="email" label="Email" type="email" />
+                <TextField form={form} name="phone" label={t('setup.phone')} type="tel" />
+                <TextField form={form} name="email" label={t('setup.email')} type="email" />
               </div>
             </CardContent>
           </Card>
@@ -163,23 +166,23 @@ function SetupWizard() {
           {/* Locale & Currency */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Locale &amp; currency</CardTitle>
+              <CardTitle className="text-base">{t('setup.localeAndCurrency')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <SelectField form={form} name="language" label="Language" options={[
-                  { value: 'ckb' as const, label: 'Kurdish (Sorani)' },
-                  { value: 'ar'  as const, label: 'Arabic' },
-                  { value: 'en'  as const, label: 'English' },
+                <SelectField form={form} name="language" label={t('setup.language')} options={[
+                  { value: 'ckb' as const, label: t('setup.kurdishSorani') },
+                  { value: 'ar'  as const, label: t('setup.arabic') },
+                  { value: 'en'  as const, label: t('setup.english') },
                 ]} />
-                <SelectField form={form} name="direction" label="Text direction" options={[
-                  { value: 'rtl' as const, label: 'Right-to-left (RTL)' },
-                  { value: 'ltr' as const, label: 'Left-to-right (LTR)' },
+                <SelectField form={form} name="direction" label={t('setup.textDirection')} options={[
+                  { value: 'rtl' as const, label: t('setup.rtl') },
+                  { value: 'ltr' as const, label: t('setup.ltr') },
                 ]} />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <TextField form={form} name="base_currency" label="Currency code" placeholder="IQD" />
-                <TextField form={form} name="default_dollar_rate" label="USD rate (in local currency)" type="number" required />
+                <TextField form={form} name="base_currency" label={t('setup.currencyCode')} placeholder="IQD" />
+                <TextField form={form} name="default_dollar_rate" label={t('setup.usdRate')} type="number" required />
               </div>
             </CardContent>
           </Card>
@@ -187,12 +190,12 @@ function SetupWizard() {
           {/* Branding */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Branding colors</CardTitle>
+              <CardTitle className="text-base">{t('setup.brandingColors')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-6">
-                <ColorPicker form={form} name="primary_color" label="Primary color" />
-                <ColorPicker form={form} name="accent_color" label="Accent color" />
+                <ColorPicker form={form} name="primary_color" label={t('setup.primaryColor')} />
+                <ColorPicker form={form} name="accent_color" label={t('setup.accentColor')} />
               </div>
             </CardContent>
           </Card>
@@ -200,12 +203,12 @@ function SetupWizard() {
           {/* Owner Account */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Owner account</CardTitle>
+              <CardTitle className="text-base">{t('setup.ownerAccount')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <TextField form={form} name="owner_name" label="Full name" required />
-              <TextField form={form} name="owner_email" label="Email address" type="email" required />
-              <TextField form={form} name="owner_password" label="Password" type="password" placeholder="Minimum 8 characters" required />
+              <TextField form={form} name="owner_name" label={t('setup.fullName')} required />
+              <TextField form={form} name="owner_email" label={t('setup.emailAddress')} type="email" required />
+              <TextField form={form} name="owner_password" label={t('auth.password')} type="password" placeholder={t('setup.passwordPlaceholder')} required />
             </CardContent>
           </Card>
 
@@ -215,7 +218,7 @@ function SetupWizard() {
             {(submitting) => (
               <Button type="submit" className="w-full" size="lg" disabled={submitting}>
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? 'Creating factory...' : 'Create factory'}
+                {submitting ? t('setup.creatingFactory') : t('setup.createFactory')}
               </Button>
             )}
           </form.Subscribe>

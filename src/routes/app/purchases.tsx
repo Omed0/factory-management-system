@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Eye, Loader2, Plus, Printer, Trash2, Wallet } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { can } from '~/lib/auth'
@@ -234,6 +235,12 @@ const getCurrentDollar = createServerFn({ method: 'GET' }).handler(async () => {
   return data?.price ?? 1500
 })
 
+const listWarehouses = createServerFn({ method: 'GET' }).handler(async () => {
+  const sb = getSupabaseServer()
+  const { data } = await (sb.from('warehouses') as any).select('id, name').is('deleted_at', null).order('name')
+  return (data ?? []) as { id: number; name: string }[]
+})
+
 const PurchaseSchema = z.object({
   id: z.number().optional(),
   name: z.string().min(1),
@@ -243,6 +250,7 @@ const PurchaseSchema = z.object({
   note: z.string().nullish().transform((v) => v || null),
   purchase_date: z.string(),
   dollar: z.coerce.number().positive(),
+  warehouse_id: z.number().nullable().optional(),
 })
 
 const upsert = createServerFn({ method: 'POST' })
@@ -254,6 +262,7 @@ const upsert = createServerFn({ method: 'POST' })
     const base = {
       name: data.name, company_id: data.company_id, total_amount: data.total_amount, type: data.type,
       note: data.note, purchase_date: new Date(data.purchase_date).toISOString(), dollar: data.dollar,
+      warehouse_id: data.warehouse_id ?? null,
     }
     if (data.id) {
       const { error } = await (sb.from('company_purchases') as any).update(base).eq('id', data.id)
@@ -314,29 +323,30 @@ function PurchasesPage() {
   const purchases = useQuery({ queryKey: ['purchases'], queryFn: list })
   const [creating, setCreating] = useState(false)
   const [viewingId, setViewingId] = useState<number | null>(null)
+  const { t } = useTranslation()
 
   const canWrite  = can(permissions, 'purchases', 'write')
   const canDelete = can(permissions, 'purchases', 'delete')
   const canPay    = can(permissions, 'purchases', 'pay')
 
   const columns: ColumnDef<Purchase>[] = [
-    { accessorKey: 'name', header: 'Description' },
+    { accessorKey: 'name', header: t('common.description') },
     {
-      accessorKey: 'purchase_date', header: 'Date', size: 110,
+      accessorKey: 'purchase_date', header: t('common.date'), size: 110,
       cell: ({ getValue }) => new Date(String(getValue())).toLocaleDateString(),
     },
     {
-      accessorKey: 'type', header: 'Type', size: 80,
+      accessorKey: 'type', header: t('common.type'), size: 80,
       cell: ({ getValue }) => (
         <Badge variant={getValue() === 'LOAN' ? 'outline' : 'secondary'}>{getValue<string>()}</Badge>
       ),
     },
     {
-      accessorKey: 'total_amount', header: 'Total',
+      accessorKey: 'total_amount', header: t('common.total'),
       cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD'),
     },
     {
-      accessorKey: 'total_remaining', header: 'Remaining',
+      accessorKey: 'total_remaining', header: t('purchases.remaining'),
       cell: ({ getValue }) => {
         const v = Number(getValue())
         return (
@@ -350,16 +360,16 @@ function PurchasesPage() {
       id: 'actions', header: '', size: 80,
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
-          <Button size="sm" variant="ghost" title="View details" onClick={() => setViewingId(row.original.id)}>
+          <Button size="sm" variant="ghost" title={t('purchases.viewDetails')} onClick={() => setViewingId(row.original.id)}>
             <Eye className="h-4 w-4" />
           </Button>
           {canDelete && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
               onClick={async () => {
-                if (!confirm(`Delete "${row.original.name}"?`)) return
+                if (!confirm(t('purchases.confirmDelete', { name: row.original.name }))) return
                 try {
                   await softDelete({ data: { id: row.original.id } })
-                  toast.success('Purchase removed')
+                  toast.success(t('purchases.purchaseRemoved'))
                   qc.invalidateQueries({ queryKey: ['purchases'] })
                 } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
               }}>
@@ -375,14 +385,14 @@ function PurchasesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Purchases</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('purchases.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {purchases.data?.length ?? 0} purchase{purchases.data?.length !== 1 ? 's' : ''}
+            {t('purchases.subtitle', { count: purchases.data?.length ?? 0 })}
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> New purchase
+            <Plus className="h-4 w-4" /> {t('purchases.addPurchase')}
           </Button>
         )}
       </div>
@@ -391,8 +401,8 @@ function PurchasesPage() {
         data={purchases.data ?? []}
         columns={columns}
         searchKey="name"
-        searchPlaceholder="Search purchases…"
-        emptyMessage="No purchases found"
+        searchPlaceholder={t('purchases.searchPlaceholder')}
+        emptyMessage={t('purchases.noPurchases')}
       />
 
       {creating && (
@@ -426,6 +436,7 @@ function PurchaseDetailDialog({
   onClose: () => void
   onUpdated: () => void
 }) {
+  const { t } = useTranslation()
   const detail = useQuery({
     queryKey: ['purchase-detail', purchaseId],
     queryFn: () => getPurchaseDetail({ data: { id: purchaseId } }),
@@ -448,11 +459,11 @@ function PurchaseDetailDialog({
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            {p ? p.name : 'Loading…'}
+            {p ? p.name : t('common.loading')}
             {p && <Badge variant={p.type === 'LOAN' ? 'outline' : 'secondary'}>{p.type}</Badge>}
             {p && p.type === 'LOAN' && (
               <Badge variant={p.total_remaining === 0 ? 'default' : 'secondary'}>
-                {p.total_remaining === 0 ? 'Fully paid' : 'Outstanding'}
+                {p.total_remaining === 0 ? t('purchases.fullyPaid') : t('purchases.outstanding')}
               </Badge>
             )}
           </DialogTitle>
@@ -463,59 +474,56 @@ function PurchaseDetailDialog({
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         )}
-        {detail.isError && <p className="text-sm text-destructive py-4">Failed to load details.</p>}
+        {detail.isError && <p className="text-sm text-destructive py-4">{t('purchases.loadFailed')}</p>}
 
         {p && !paying && !receipt && (
           <div className="space-y-5">
-            {/* Meta */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
-              <div><span className="text-muted-foreground">Date: </span>{new Date(p.purchase_date).toLocaleDateString()}</div>
-              <div><span className="text-muted-foreground">USD rate: </span>{formatCurrency(p.dollar, 'USD')}</div>
+              <div><span className="text-muted-foreground">{t('common.date')}: </span>{new Date(p.purchase_date).toLocaleDateString()}</div>
+              <div><span className="text-muted-foreground">{t('purchases.usdRate')}: </span>{formatCurrency(p.dollar, 'USD')}</div>
               {p.company_name && (
-                <div><span className="text-muted-foreground">Supplier: </span><strong>{p.company_name}</strong></div>
+                <div><span className="text-muted-foreground">{t('purchases.supplier')}: </span><strong>{p.company_name}</strong></div>
               )}
               {p.company_phone && (
-                <div><span className="text-muted-foreground">Phone: </span>{p.company_phone}</div>
+                <div><span className="text-muted-foreground">{t('common.phone')}: </span>{p.company_phone}</div>
               )}
               {p.note && (
                 <div className="col-span-2 rounded-md bg-muted px-3 py-2 text-xs mt-1">
-                  <span className="font-medium">Note: </span>{p.note}
+                  <span className="font-medium">{t('common.note')}: </span>{p.note}
                 </div>
               )}
             </div>
 
             <Separator />
 
-            {/* Totals */}
             <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1 text-sm">
               <div className="flex justify-between font-semibold text-base">
-                <span>Total amount</span>
+                <span>{t('purchases.totalAmount')}</span>
                 <span>{formatCurrency(p.total_amount, 'IQD')}</span>
               </div>
               {p.type === 'LOAN' && (
                 <>
                   <div className="flex justify-between text-green-700 dark:text-green-400">
-                    <span>Paid so far</span>
+                    <span>{t('purchases.paidSoFar')}</span>
                     <span>{formatCurrency(p.total_amount - p.total_remaining, 'IQD')}</span>
                   </div>
                   <div className={`flex justify-between font-semibold ${p.total_remaining > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                    <span>Remaining</span>
+                    <span>{t('purchases.remaining')}</span>
                     <span>{formatCurrency(p.total_remaining, 'IQD')}</span>
                   </div>
                 </>
               )}
             </div>
 
-            {/* Payment history */}
             {p.type === 'LOAN' && p.payments.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Payment history</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('purchases.paymentHistory')}</p>
                 <table className="w-full text-sm">
                   <thead className="text-muted-foreground">
                     <tr>
-                      <th className="text-start pb-1 font-medium">Date</th>
-                      <th className="text-end pb-1 font-medium">Amount</th>
-                      <th className="text-start pb-1 font-medium pl-3">Note</th>
+                      <th className="text-start pb-1 font-medium">{t('common.date')}</th>
+                      <th className="text-end pb-1 font-medium">{t('common.amount')}</th>
+                      <th className="text-start pb-1 font-medium pl-3">{t('common.note')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -531,16 +539,15 @@ function PurchaseDetailDialog({
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex items-center justify-between pt-1">
               <Button variant="outline" size="sm" onClick={() => printHtml(buildPurchaseInvoiceHtml(p, settings))}>
-                <Printer className="h-4 w-4" /> Print record
+                <Printer className="h-4 w-4" /> {t('purchases.printRecord')}
               </Button>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={onClose}>Close</Button>
+                <Button variant="ghost" onClick={onClose}>{t('common.close')}</Button>
                 {canPay && p.type === 'LOAN' && p.total_remaining > 0 && (
                   <Button onClick={() => setPaying(true)}>
-                    <Wallet className="h-4 w-4" /> Record payment
+                    <Wallet className="h-4 w-4" /> {t('purchases.recordPayment')}
                   </Button>
                 )}
               </div>
@@ -548,7 +555,6 @@ function PurchaseDetailDialog({
           </div>
         )}
 
-        {/* Inline pay form */}
         {paying && p && (
           <PurchasePayForm
             purchase={p}
@@ -557,7 +563,6 @@ function PurchaseDetailDialog({
           />
         )}
 
-        {/* Receipt */}
         {receipt && p && (
           <PurchaseReceipt
             payment={receipt}
@@ -581,12 +586,13 @@ function PurchasePayForm({
   onCancel: () => void
   onDone: (r: { amount: number; paid_at: string; note: string | null; new_remaining: number }) => void
 }) {
+  const { t } = useTranslation()
   const form = useForm({
     defaultValues: { amount: 0, note: '' },
     onSubmit: async ({ value }) => {
       try {
         const result = await recordPayment({ data: { purchase_id: purchase.id, amount: value.amount, note: value.note } })
-        toast.success('Payment recorded')
+        toast.success(t('purchases.paymentAdded'))
         onDone(result)
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -596,18 +602,18 @@ function PurchasePayForm({
     <div className="space-y-4">
       <div className="rounded-lg bg-muted/40 border border-border px-4 py-3">
         <p className="text-sm text-muted-foreground">
-          Purchase: <strong className="text-foreground">{purchase.name}</strong> &nbsp;·&nbsp;
-          Remaining: <strong className="text-orange-600 dark:text-orange-400">{formatCurrency(purchase.total_remaining, 'IQD')}</strong>
+          {t('purchases.purchaseLabel')}: <strong className="text-foreground">{purchase.name}</strong> &nbsp;·&nbsp;
+          {t('purchases.remaining')}: <strong className="text-orange-600 dark:text-orange-400">{formatCurrency(purchase.total_remaining, 'IQD')}</strong>
         </p>
       </div>
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-        <TextField form={form} name="amount" label="Amount paid (IQD)" type="number" required />
-        <TextAreaField form={form} name="note" label="Note (optional)" />
+        <TextField form={form} name="amount" label={`${t('purchases.paidAmount')} (IQD)`} type="number" required />
+        <TextAreaField form={form} name="note" label={`${t('common.note')} (${t('common.optional')})`} />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onCancel}>Back</Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>{t('common.back')}</Button>
           <Button type="submit" disabled={form.state.isSubmitting}>
             {form.state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Record payment
+            {t('purchases.recordPayment')}
           </Button>
         </div>
       </form>
@@ -626,45 +632,46 @@ function PurchaseReceipt({
   onClose: () => void
   onPrint: () => void
 }) {
+  const { t } = useTranslation()
   const balanceBefore = purchase.total_remaining + payment.amount
 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-muted-foreground">Amount paid</p>
+          <p className="text-sm font-medium text-muted-foreground">{t('purchases.paidAmount')}</p>
           <p className="text-2xl font-bold text-green-700 dark:text-green-400">{formatCurrency(payment.amount, 'IQD')}</p>
         </div>
         <Separator />
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <p className="text-muted-foreground text-xs">Purchase</p>
+            <p className="text-muted-foreground text-xs">{t('purchases.purchaseLabel')}</p>
             <p className="font-medium">{purchase.name}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Date</p>
+            <p className="text-muted-foreground text-xs">{t('common.date')}</p>
             <p className="font-medium">{new Date(payment.paid_at).toLocaleDateString()}</p>
           </div>
           {purchase.company_name && (
             <div>
-              <p className="text-muted-foreground text-xs">Supplier</p>
+              <p className="text-muted-foreground text-xs">{t('purchases.supplier')}</p>
               <p className="font-medium">{purchase.company_name}</p>
             </div>
           )}
           <div>
-            <p className="text-muted-foreground text-xs">Balance before</p>
+            <p className="text-muted-foreground text-xs">{t('purchases.balanceBefore')}</p>
             <p className="font-medium">{formatCurrency(balanceBefore, 'IQD')}</p>
           </div>
           <div className="col-span-2">
-            <p className="text-muted-foreground text-xs">Remaining balance</p>
+            <p className="text-muted-foreground text-xs">{t('purchases.remainingBalance')}</p>
             <p className={`font-semibold text-base ${purchase.total_remaining > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
               {formatCurrency(purchase.total_remaining, 'IQD')}
-              {purchase.total_remaining === 0 && ' — Fully paid!'}
+              {purchase.total_remaining === 0 && ` ${t('purchases.fullyPaidLabel')}`}
             </p>
           </div>
           {payment.note && (
             <div className="col-span-2 rounded bg-muted px-2 py-1.5 text-xs">
-              <span className="font-medium">Note: </span>{payment.note}
+              <span className="font-medium">{t('common.note')}: </span>{payment.note}
             </div>
           )}
         </div>
@@ -672,9 +679,9 @@ function PurchaseReceipt({
 
       <div className="flex items-center justify-between">
         <Button variant="outline" size="sm" onClick={onPrint}>
-          <Printer className="h-4 w-4" /> Print receipt
+          <Printer className="h-4 w-4" /> {t('purchases.printReceipt')}
         </Button>
-        <Button onClick={onClose}>Done</Button>
+        <Button onClick={onClose}>{t('common.done')}</Button>
       </div>
     </div>
   )
@@ -683,8 +690,10 @@ function PurchaseReceipt({
 // ─── New purchase dialog ──────────────────────────────────────────────────────
 
 function PurchaseDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const companies = useQuery({ queryKey: ['companies-mini'], queryFn: listCompanies })
-  const dollarQ   = useQuery({ queryKey: ['dollar-rate'],    queryFn: getCurrentDollar })
+  const { t } = useTranslation()
+  const companies   = useQuery({ queryKey: ['companies-mini'],  queryFn: listCompanies })
+  const dollarQ     = useQuery({ queryKey: ['dollar-rate'],     queryFn: getCurrentDollar })
+  const warehousesQ = useQuery({ queryKey: ['warehouses-mini'], queryFn: listWarehouses })
 
   const form = useForm({
     defaultValues: {
@@ -692,24 +701,28 @@ function PurchaseDialog({ onClose, onSaved }: { onClose: () => void; onSaved: ()
       type: 'CASH' as 'CASH' | 'LOAN', note: '',
       purchase_date: new Date().toISOString().slice(0, 10),
       dollar: dollarQ.data ?? 1500,
+      warehouse_id: null as number | null,
     },
     onSubmit: async ({ value }) => {
-      try { await upsert({ data: value }); toast.success('Purchase created'); onSaved() }
-      catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+      try {
+        await upsert({ data: value })
+        toast.success(t('purchases.purchaseCreated'))
+        onSaved()
+      } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
   })
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>New purchase</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t('purchases.newPurchase')}</DialogTitle></DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-          <TextField form={form} name="name" label="Description" required />
+          <TextField form={form} name="name" label={t('common.description')} required />
           <form.Field name="company_id">{(f) => (
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium">Supplier (company)</label>
+              <label className="text-sm font-medium">{t('purchases.supplierCompany')}</label>
               <Select value={f.state.value ? String(f.state.value) : ''} onValueChange={(v) => f.handleChange(v ? Number(v) : null)}>
-                <SelectTrigger><SelectValue placeholder="(none)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t('purchases.noneOption')} /></SelectTrigger>
                 <SelectContent>
                   {companies.data?.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                 </SelectContent>
@@ -717,20 +730,33 @@ function PurchaseDialog({ onClose, onSaved }: { onClose: () => void; onSaved: ()
             </div>
           )}</form.Field>
           <div className="grid grid-cols-2 gap-3">
-            <TextField form={form} name="total_amount"  label="Total (IQD)" type="number" required />
-            <SelectField form={form} name="type" label="Type" options={[
-              { value: 'CASH' as const, label: 'Cash' },
-              { value: 'LOAN' as const, label: 'Loan' },
+            <TextField form={form} name="total_amount" label={`${t('common.total')} (IQD)`} type="number" required />
+            <SelectField form={form} name="type" label={t('common.type')} options={[
+              { value: 'CASH' as const, label: t('purchases.cash') },
+              { value: 'LOAN' as const, label: t('purchases.loan') },
             ]} />
-            <TextField form={form} name="purchase_date" label="Date" type="date" required />
-            <TextField form={form} name="dollar" label="USD rate" type="number" required />
+            <TextField form={form} name="purchase_date" label={t('common.date')} type="date" required />
+            <TextField form={form} name="dollar" label={t('purchases.usdRate')} type="number" required />
           </div>
-          <TextAreaField form={form} name="note" label="Note" />
+          <TextAreaField form={form} name="note" label={t('common.note')} />
+          {(warehousesQ.data?.length ?? 0) > 0 && (
+            <form.Field name="warehouse_id">{(f) => (
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">{t('nav.warehouses')}</label>
+                <Select value={f.state.value ? String(f.state.value) : ''} onValueChange={(v) => f.handleChange(v ? Number(v) : null)}>
+                  <SelectTrigger><SelectValue placeholder={`(${t('purchases.noneOption')})`} /></SelectTrigger>
+                  <SelectContent>
+                    {warehousesQ.data?.map((w) => <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}</form.Field>
+          )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
             <Button type="submit" disabled={form.state.isSubmitting}>
               {form.state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create
+              {t('common.create')}
             </Button>
           </div>
         </form>

@@ -390,7 +390,7 @@ function Start-DeployVps {
     if (-not $viteAnon) { Stop-Script "VITE_SUPABASE_ANON_KEY is not set in .env. Run 'prod' setup first." }
     if (-not $ghOwner)  { Stop-Script "GH_OWNER is not set in .env. Run 'prod' setup first." }
 
-    $image = "ghcr.io/$ghOwner/fms-app:$appTag"
+    $image = "ghcr.io/$ghOwner/factory-management-system:$appTag"
 
     Write-Header "Building Docker image"
     Write-Info "Image : $image"

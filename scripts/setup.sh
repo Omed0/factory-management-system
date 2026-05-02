@@ -336,7 +336,7 @@ deploy_vps() {
   [ -n "$VITE_ANON" ] || die "VITE_SUPABASE_ANON_KEY is not set in .env. Run 'prod' setup first."
   [ -n "$GH_OWNER"  ] || die "GH_OWNER is not set in .env. Run 'prod' setup first."
 
-  local IMAGE="ghcr.io/${GH_OWNER}/fms-app:${APP_TAG}"
+  local IMAGE="ghcr.io/${GH_OWNER}/factory-management-system:${APP_TAG}"
 
   header "Building Docker image"
   info "Image : $IMAGE"

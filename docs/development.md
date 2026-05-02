@@ -16,6 +16,30 @@ No Supabase CLI needed locally — all DB operations go through `docker exec`.
 
 ## First-time setup (any machine)
 
+### Recommended: use the setup script
+
+The setup script handles everything (deps, `.env` generation with real JWT keys,
+Docker stack, migrations) in one command:
+
+**Windows (PowerShell):**
+```powershell
+.\scripts\setup.ps1 dev
+```
+
+**Linux / macOS (bash):**
+```bash
+bash scripts/setup.sh dev
+```
+
+Then start the dev server:
+```bash
+bun run dev   # → http://localhost:3000
+```
+
+---
+
+### Manual steps (if you need fine-grained control)
+
 ### 1. Clone and install
 
 ```bash
@@ -61,13 +85,21 @@ VITE_SUPABASE_ANON_KEY=<same as ANON_KEY>
 SUPABASE_SERVICE_ROLE_KEY=<same as SERVICE_ROLE_KEY>
 ```
 
+> **Important for dev:** `SUPABASE_URL` in `.env` should be `http://localhost:8000`
+> (the app runs outside Docker during dev). The `prod` setup script sets it to
+> `http://kong:8000` for the in-Docker app container — do not use that value for dev.
+
 ### 3. Start Supabase
 
 ```bash
 bun run supabase:up
-# Wait ~30 s then verify all 12+ containers are healthy:
+# Wait ~30–60 s then verify all 13 containers are healthy:
 docker ps --format "{{.Names}}: {{.Status}}"
 ```
+
+> **Fresh DB only:** if you ever wipe and reinitialise the database, you must also
+> delete `supabase/volumes/db/data/` — that bind-mount is NOT removed by
+> `docker compose down --volumes`.
 
 ### 4. Apply migrations
 
@@ -79,12 +111,16 @@ done
 ```
 
 Migrations applied in filename order:
+
 | File | Contents |
 |------|----------|
 | `20260425000001_initial_schema.sql` | All tables, enums, triggers |
 | `20260425000002_rls_policies.sql` | RLS + helper functions (`has_permission`, `is_owner`, etc.) |
 | `20260425000003_storage_and_cron.sql` | Storage buckets + pg_cron/pg_net setup |
 | `20260425000004_permissions.sql` | `permission_catalog` + `user_permissions` |
+| `20260425000005_security_hardening.sql` | `search_path` hardening + tighter storage/dollar policies |
+| `20260425000006_backup_credentials.sql` | R2 credential columns on `site_settings` |
+| `20260425000007_restore_sequences.sql` | Sequence repair helper after data restore |
 
 ### 5. Start the dev server
 

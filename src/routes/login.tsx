@@ -4,6 +4,7 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { Factory, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
@@ -34,6 +35,7 @@ export const Route = createFileRoute('/login')({
 function Login() {
   const router = useRouter()
   const { settings } = Route.useRouteContext()
+  const { t } = useTranslation()
 
   const form = useForm({
     defaultValues: { email: '', password: '' },
@@ -43,13 +45,13 @@ function Login() {
         await router.invalidate()
         router.navigate({ to: '/app/dashboard' })
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Sign in failed')
+        toast.error(e instanceof Error ? e.message : t('auth.signInFailed'))
       }
     },
   })
 
   return (
-    <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4" dir="ltr">
+    <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
 
         {/* Brand */}
@@ -68,22 +70,22 @@ function Login() {
         {/* Form */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Sign in</CardTitle>
-            <CardDescription>Enter your credentials to access the system</CardDescription>
+            <CardTitle className="text-lg">{t('auth.signIn')}</CardTitle>
+            <CardDescription>{t('auth.signInDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form
               className="space-y-4"
               onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}
             >
-              <TextField form={form} name="email"    label="Email"    type="email"    required />
-              <TextField form={form} name="password" label="Password" type="password" required />
+              <TextField form={form} name="email"    label={t('auth.email')}    type="email"    required />
+              <TextField form={form} name="password" label={t('auth.password')} type="password" required />
 
               <form.Subscribe selector={(s) => s.isSubmitting}>
                 {(submitting) => (
                   <Button type="submit" className="w-full" disabled={submitting}>
                     {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {submitting ? 'Signing in...' : 'Sign in'}
+                    {submitting ? t('auth.signingIn') : t('auth.signIn')}
                   </Button>
                 )}
               </form.Subscribe>

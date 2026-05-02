@@ -6,9 +6,11 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2, Upload } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { getSupabaseServer } from '~/lib/supabase.server';
 import { loadSiteSettings } from '~/lib/site-settings';
+import { LANG_META } from '~/lib/i18n';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
@@ -17,23 +19,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 
 const SettingsSchema = z.object({
-  factory_name:       z.string().min(2),
-  legal_name:         z.string().nullish().transform((v) => v || null),
-  tagline:            z.string().nullish().transform((v) => v || null),
-  logo_url:           z.string().nullish().transform((v) => v || null),
-  favicon_url:        z.string().nullish().transform((v) => v || null),
-  primary_color:      z.string().regex(/^#[0-9a-f]{6}$/i),
-  accent_color:       z.string().regex(/^#[0-9a-f]{6}$/i),
-  address:            z.string().nullish().transform((v) => v || null),
-  city:               z.string().nullish().transform((v) => v || null),
-  country:            z.string().min(1),
-  phone:              z.string().nullish().transform((v) => v || null),
-  email:              z.union([z.string().email(), z.literal('')]).nullish().transform((v) => v || null),
-  tax_id:             z.string().nullish().transform((v) => v || null),
-  language:           z.enum(['ckb', 'ar', 'en']),
-  direction:          z.enum(['rtl', 'ltr']),
-  base_currency:      z.string().min(3).max(4),
-  display_currency:   z.string().min(3).max(4),
+  factory_name: z.string().min(2),
+  legal_name: z.string().nullish().transform((v) => v || null),
+  tagline: z.string().nullish().transform((v) => v || null),
+  logo_url: z.string().nullish().transform((v) => v || null),
+  favicon_url: z.string().nullish().transform((v) => v || null),
+  primary_color: z.string().regex(/^#[0-9a-f]{6}$/i),
+  accent_color: z.string().regex(/^#[0-9a-f]{6}$/i),
+  address: z.string().nullish().transform((v) => v || null),
+  city: z.string().nullish().transform((v) => v || null),
+  country: z.string().min(1),
+  phone: z.string().nullish().transform((v) => v || null),
+  email: z.union([z.string().email(), z.literal('')]).nullish().transform((v) => v || null),
+  tax_id: z.string().nullish().transform((v) => v || null),
+  language: z.enum(['ckb', 'ar', 'en']),
+  base_currency: z.string().min(3).max(4),
+  display_currency: z.string().min(3).max(4),
   default_dollar_rate: z.coerce.number().positive(),
   fiscal_year_start_month: z.coerce.number().int().min(1).max(12),
 });
@@ -44,7 +45,8 @@ const updateBranding = createServerFn({ method: 'POST' })
     const sb = getSupabaseServer()
     const { data: ok } = await sb.rpc('has_permission', { p_resource: 'settings', p_action: 'write' });
     if (!ok) throw new Error('Forbidden');
-    const { error } = await sb.from('site_settings').update(data).eq('id', 1);
+    const direction = data.language === 'en' ? 'ltr' : 'rtl';
+    const { error } = await sb.from('site_settings').update({ ...data, direction }).eq('id', 1);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -56,6 +58,7 @@ export const Route = createFileRoute('/app/settings/branding')({
 
 function BrandingTab() {
   const { settings } = Route.useLoaderData();
+  const { i18n } = useTranslation();
   const router = useRouter();
   const [logoPreview, setLogoPreview] = useState<string | null>(settings?.logo_url ?? null);
 
@@ -74,8 +77,7 @@ function BrandingTab() {
       phone: settings?.phone ?? '',
       email: settings?.email ?? '',
       tax_id: settings?.tax_id ?? '',
-      language: settings?.language ?? 'ckb',
-      direction: settings?.direction ?? 'rtl',
+      language: (i18n.language ?? settings?.language ?? 'ckb') as 'ckb' | 'ar' | 'en',
       base_currency: settings?.base_currency ?? 'IQD',
       display_currency: settings?.display_currency ?? 'IQD',
       default_dollar_rate: settings?.default_dollar_rate ?? 1500,
@@ -113,8 +115,8 @@ function BrandingTab() {
         <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
         <CardContent className="grid gap-4">
           <Field form={form} name="factory_name" label="Factory name" />
-          <Field form={form} name="legal_name"   label="Legal name (optional)" />
-          <Field form={form} name="tagline"      label="Tagline" />
+          <Field form={form} name="legal_name" label="Legal name (optional)" />
+          <Field form={form} name="tagline" label="Tagline" />
 
           <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
             <div className="size-20 rounded-md border border-border bg-muted overflow-hidden">
@@ -134,7 +136,7 @@ function BrandingTab() {
         <CardHeader><CardTitle>Appearance</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <ColorField form={form} name="primary_color" label="Primary color" />
-          <ColorField form={form} name="accent_color"  label="Accent color" />
+          <ColorField form={form} name="accent_color" label="Accent color" />
         </CardContent>
       </Card>
 
@@ -142,25 +144,42 @@ function BrandingTab() {
         <CardHeader><CardTitle>Place</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
           <Field form={form} name="address" label="Address" />
-          <Field form={form} name="city"    label="City" />
+          <Field form={form} name="city" label="City" />
           <Field form={form} name="country" label="Country" />
-          <Field form={form} name="phone"   label="Phone" />
-          <Field form={form} name="email"   label="Email" />
-          <Field form={form} name="tax_id"  label="Tax ID" />
+          <Field form={form} name="phone" label="Phone" />
+          <Field form={form} name="email" label="Email" />
+          <Field form={form} name="tax_id" label="Tax ID" />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader><CardTitle>Locale & currency</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-4">
-          <SelectField form={form} name="language" label="Language" options={[
-            { v: 'ckb', l: 'Kurdish (Sorani)' }, { v: 'ar', l: 'Arabic' }, { v: 'en', l: 'English' },
-          ]} />
-          <SelectField form={form} name="direction" label="Direction" options={[
-            { v: 'rtl', l: 'Right-to-left' }, { v: 'ltr', l: 'Left-to-right' },
-          ]} />
-          <Field form={form} name="base_currency"    label="Base currency" />
-          <Field form={form} name="display_currency" label="Display currency" />
+          <form.Field name="language">
+            {(f) => (
+              <div className="grid gap-1.5">
+                <Label>Language</Label>
+                <Select
+                  value={f.state.value}
+                  onValueChange={(v) => {
+                    f.handleChange(v as 'ckb' | 'ar' | 'en')
+                    void i18n.changeLanguage(v)
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {LANG_META.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </form.Field>
+          <CurrencySelect form={form} name="base_currency" label="Base currency" />
+          <CurrencySelect form={form} name="display_currency" label="Display currency" />
           <Field form={form} name="default_dollar_rate" label="Default USD rate" type="number" />
           <Field form={form} name="fiscal_year_start_month" label="Fiscal year start month" type="number" />
         </CardContent>
@@ -219,6 +238,38 @@ function SelectField({ form, name, label, options }: any) {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {options.map((o: any) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+    </form.Field>
+  );
+}
+
+const CURRENCIES = [
+  { code: 'IQD', label: 'IQD — Iraqi Dinar' },
+  { code: 'USD', label: 'USD — US Dollar' },
+  { code: 'EUR', label: 'EUR — Euro' },
+  { code: 'GBP', label: 'GBP — British Pound' },
+  { code: 'TRY', label: 'TRY — Turkish Lira' },
+  { code: 'SAR', label: 'SAR — Saudi Riyal' },
+  { code: 'AED', label: 'AED — UAE Dirham' },
+  { code: 'KWD', label: 'KWD — Kuwaiti Dinar' },
+  { code: 'IRR', label: 'IRR — Iranian Rial' },
+];
+
+function CurrencySelect({ form, name, label }: any) {
+  return (
+    <form.Field name={name}>
+      {(f: any) => (
+        <div className="grid gap-1.5">
+          <Label>{label}</Label>
+          <Select value={f.state.value} onValueChange={(v) => f.handleChange(v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

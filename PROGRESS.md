@@ -1,221 +1,89 @@
-# FMS – Project Progress Tracker
+# Progress
 
-> Single source of truth for what is done, pending, and decided.
-> Update this file at the start and end of every session.
-> **Last updated: 2026-04-28**
+Last updated: 2026-05-03 (Phases A–F completed)
 
----
+## Done
 
-## Stack (reference)
+### Infrastructure
+- [x] Self-hosted Supabase Docker stack (13 containers: Kong, Auth, REST, Realtime, Storage, Studio, Analytics, Pooler, Vector, imgproxy, Edge Functions, DB, db-config)
+- [x] `supabase/bootstrap.sh` — vendors official docker tree; pinned ref
+- [x] `supabase/docker-compose.prod.yml` — Caddy TLS overlay + app container + resource limits
+- [x] `supabase/Caddyfile` — TLS, HSTS, Studio basic-auth, security headers
+- [x] `Dockerfile` — multi-stage bun build, non-root user, `/healthz` healthcheck
+- [x] Setup scripts (`scripts/setup.sh` + `scripts/setup.ps1`) — 4 modes: dev / prod / deploy:vps / deploy:cf
+- [x] CI workflow (`.github/workflows/ci.yml`) — typecheck + build + SQL migration smoke-test on push/PR
+- [x] Release workflow (`.github/workflows/release.yml`) — Docker image → ghcr.io + optional CF deploy on `v*` tag
+- [x] `deploy/vps/harden.sh` — UFW, fail2ban, Docker, 2 GB swap, healthcheck cron
+- [x] `deploy/cloudflare/wrangler.toml` — CF Workers config + R2 bucket binding
+- [x] `DEPLOY_TARGET=cloudflare` build path via `@cloudflare/vite-plugin`
+- [x] `.env.example` — all required vars documented with safe defaults
 
-| Layer | Technology |
-|-------|-----------|
-| App framework | TanStack Start (React 19, file-based router, server fns) |
-| Database | Self-hosted Supabase — Postgres 15, Auth, Storage, Edge Fns, pg_cron |
-| Styling | Tailwind 4 + CSS-first `@theme`, shadcn components |
-| Forms | TanStack Form |
-| Tables | TanStack Table v8 + shared `DataTable` component |
-| Client cache | TanStack Query |
-| Backup storage | Cloudflare R2 (primary) / Supabase Storage (fallback) |
-| Package manager | Bun |
+### Database (10 migrations)
+- [x] `0001_initial_schema` — all tables, enums, triggers, `site_settings` singleton, `dollar` rate table
+- [x] `0002_rls_policies` — RLS on all tables, `has_permission()`, `is_owner()`, `is_admin_or_owner()`, `is_authenticated_user()`
+- [x] `0003_storage_and_cron` — storage buckets (branding, products, employees, backups), pg_cron nightly backup job, `reschedule_backup_cron` trigger
+- [x] `0004_permissions` — `permission_catalog` (31 resource×action pairs), `user_permissions`, role-aware policies
+- [x] `0005_security_hardening` — `search_path` hardening on all functions, tighter per-role storage/dollar policies
+- [x] `0006_backup_credentials` — R2 credential columns (`r2_endpoint`, `r2_bucket`, `r2_access_key_id`, `r2_secret_access_key`) on `site_settings`
+- [x] `0007_restore_sequences` — sequence reset helper for data restore
+- [x] `0008_fix_backup_default` — backup_provider default → 'supabase'; fixes employees storage policy to allow all authenticated users
+- [x] `0009_warehouse_system` — `warehouses`, `warehouse_users`, `warehouse_products` tables + RLS; `grains_per_carton` on products; `warehouse_id` FK on sales/purchases/expenses; `adjust_warehouse_qty()` SECURITY DEFINER RPC
+- [x] `0010_warehouse_permissions` — 5 new permission_catalog entries (warehouses:view/write/delete, inventory:view/write)
 
----
+### App — core
+- [x] First-run setup wizard (`/setup`) — factory name, locale, colors, OWNER account
+- [x] Auth — Supabase password sign-in, session cookies, server-side RLS
+- [x] Root route — dynamic branding tokens applied as CSS vars before paint, no rebuild needed
+- [x] Auth-protected layout (`/app/route.tsx`) — sidebar, nav, permission-gated menu items
+- [x] `/healthz` — liveness probe (200 = DB reachable, 503 = DB down)
+- [x] Env validation schema (`src/lib/env.server.ts`) — zod, fails fast on missing vars
+- [x] Supabase client split — `getSupabaseServer()` (RLS on) · `getSupabaseAdmin()` (service-role) · `getSupabaseBrowser()` (anon, browser)
+- [x] `src/lib/auth.ts` — `requireUser()`, `loadPermissions()`, `can()`
+- [x] TypeScript types generated from live DB (`bun run gen:types`)
 
-## Status legend
+### App — modules
+- [x] Dashboard (`/app/dashboard`) — KPI summary cards + monthly revenue area chart (last 6 months); currency reads from `display_currency`
+- [x] Customers (`/app/customers`) — full CRUD, soft delete
+- [x] Products (`/app/products`) — CRUD + Supabase Storage image upload + optional `grains_per_carton` field
+- [x] Employees (`/app/employees`) — CRUD + actions (bonus / punishment / absent / overtime), dollar snapshot
+- [x] Sales (`/app/sales`) — multi-line sale entry, cash/loan, loan-payment collection, dollar snapshot; warehouse selector (inventory auto-decremented on create); `total_amount` recalculated server-side
+- [x] Companies (`/app/companies`) — supplier CRUD
+- [x] Purchases (`/app/purchases`) — supplier purchases + cash/installment payments, dollar snapshot; warehouse selector for association
+- [x] Expenses (`/app/expenses`) — CRUD, dollar snapshot
+- [x] Dollar rate (`/app/dollar`) — current IQD/USD rate + history
+- [x] Reports (`/app/reports`) — monthly aggregations + bar chart; profit view (sales − expenses − purchases); **Financial Audit** view (full cash-flow equality: sales received vs collected, purchases billed vs paid, expenses, prorated payroll with bonuses/deductions, net balance); print button; currency from `display_currency`
+- [x] Warehouses (`/app/warehouses`) — CRUD; user assignment; per-product inventory with carton/grain display; manual stock adjustment
+- [x] Settings — branding editor (factory name, colors, currency dropdowns for base + display)
+- [x] Settings — user management + permission grid; OWNER-only ADMIN promotion; "Edit my profile" (name + password)
+- [x] Settings — backup config (provider, cron, retention), manual trigger, run history
+- [x] **i18n** — `react-i18next` with cookie-based language detection; Kurdish Sorani (ckb, default), Arabic (ar), English (en); all UI strings wrapped with `t()`
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Done and working |
-| 🚧 | Partially built / in progress |
-| ❌ | Missing — needs to be built |
-| 🐛 | Known bug |
-| 📋 | Planned, not started |
-
----
-
-## Migration History (Next.js → TanStack Start)
-
-Old stack: Next.js + Prisma + MySQL  
-New stack: TanStack Start + self-hosted Supabase (Postgres 15)
-
-| Module | Old | New |
-|--------|-----|-----|
-| Database schema | MySQL via Prisma | Postgres via Supabase migrations |
-| Auth | Custom | Supabase Auth + profiles mirror |
-| All CRUD pages | ✅ had | ✅ rebuilt |
-| RLS policies | ❌ didn't have | ✅ added |
-| Backup system | ❌ didn't have | ✅ built 2026-04-28 |
-| Loan payment history UI | ✅ had | 🚧 data exists, no UI yet |
-| Sale detail view (items) | ✅ had | ❌ missing |
-| Invoices / print receipts | ✅ had | ❌ missing |
-| Money equality dashboard | ✅ had | ❌ missing |
-| Reports page | ✅ had | ❌ missing |
-| Employee pay slips | ✅ had | ❌ missing |
-| Customer account statements | ✅ had | ❌ missing |
-
----
-
-## Pages & Modules — Current State
-
-### `/app/dashboard`
-- ✅ KPI cards: total sales count, total revenue, outstanding loan balance, active customers, USD rate
-- ❌ Expenses & purchases totals missing from dashboard
-- ❌ Money equality section (total in vs total out vs loans outstanding)
-- ❌ Charts / trends
-
-### `/app/customers`
-- ✅ List with search + pagination
-- ✅ Create / edit / soft-delete
-- ❌ Customer statement (all their sales + loan payments, printable)
-- ❌ Customer total loan balance shown in list
-
-### `/app/products`
-- ✅ List with search + pagination
-- ✅ Create / edit / soft-delete
-- ❌ Product image upload
-- ❌ Stock / inventory quantity tracking
-
-### `/app/sales`
-- ✅ List with search + pagination
-- ✅ Create sale (multi-item, CASH / LOAN, customer, discount, dollar snapshot)
-- ✅ Collect loan payment (amount + note saved to `paid_loans`)
-- ✅ **Sale detail drawer** (items + payment history) — added 2026-04-28
-- ✅ **Sale invoice** (printable) — added 2026-04-28
-- ✅ **Loan payment receipt** (printable) — added 2026-04-28
-- 🐛 Stale `database.types.ts` causes TS errors — fix: `bun run gen:types`
-
-### `/app/purchases`
-- ✅ List with search + pagination
-- ✅ Create purchase (CASH / LOAN, company, dollar snapshot)
-- ✅ Pay installment (amount + note)
-- ✅ **Purchase detail drawer** (payment history) — added 2026-04-28
-- ✅ **Purchase payment receipt** (printable) — added 2026-04-28
-
-### `/app/employees`
-- ✅ List with search + pagination
-- ✅ Create / edit / soft-delete (salary + dollar snapshot)
-- ✅ Employee actions: BONUS / PUNISHMENT / ABSENT / OVERTIME
-- ❌ Action history drawer (no UI to see all actions for one employee)
-- ❌ Monthly pay slip (printable)
-
-### `/app/expenses`
-- ✅ List with search + pagination
-- ✅ Create / soft-delete (title, amount, note, dollar snapshot)
-- ❌ Expense receipt (printable)
-- ❌ Category grouping
-
-### `/app/companies`
-- ✅ List with search + pagination
-- ✅ Create / edit / soft-delete
-- ❌ Company purchase history / statement
-
-### `/app/dollar`
-- ✅ Current rate display + update
-- ✅ History log (`dollar_history`)
-- ❌ Rate chart over time
-
-### `/app/reports`
-- 🚧 File exists, no real implementation
-
-### `/app/settings/branding`
-- ✅ Factory name, logo, colors, address, currency, language, fiscal year
-
-### `/app/settings/users`
-- ✅ User list + role management (OWNER / ADMIN / USER)
-- ✅ Granular per-user permissions
-
-### `/app/settings/backups`  ← rewritten 2026-04-28
-- ✅ Provider: R2 / Supabase Storage / Local download / VPS disk
-- ✅ Schedule (cron presets + custom), keep-N, R2 credentials in DB
-- ✅ Manual backup (server-side, no edge-fn)
-- ✅ Restore from history row or uploaded file
-- ✅ Confirmation dialogs before restore
-- ✅ Backup rotation
-- 🐛 Migrations 006 & 007 must be applied (see commands below)
+### Backup pipeline
+- [x] `supabase/functions/backup/index.ts` — logical NDJSON export, gzip, R2 or Supabase Storage upload, rotation
+- [x] pg_cron job `fms-nightly-backup` — default 03:00 UTC, schedule rebuilt by trigger on `site_settings.backup_cron` change
+- [x] `backup_runs` table — tracks status, size, destination, timing per run
 
 ---
 
-## Feature Backlog
+## In progress / partial
 
-### P0 — Fix / apply immediately
-- [x] `saveConfig` crashed with "r2_access_key_id column not found" — **FIXED 2026-04-28**
-- [ ] Apply migration 006 (R2 credential columns)
-- [ ] Apply migration 007 (sequence-reset fn)
-- [ ] `bun run gen:types` — clear ~69 stale TS errors
-
-### P1 — Core MVP (in progress)
-- [x] DataTable: page-size selector — **DONE 2026-04-28**
-- [x] Sales: detail drawer (items + loan payment history) — **DONE 2026-04-28**
-- [x] Sale invoice (printable) — **DONE 2026-04-28**
-- [x] Loan payment receipt (printable) — **DONE 2026-04-28**
-- [x] Purchase: detail drawer (payment history) — **DONE 2026-04-28**
-- [x] Purchase payment receipt (printable) — **DONE 2026-04-28**
-- [ ] **Money equality dashboard section** — total revenue, expenses, purchases, outstanding loans, net cash
-- [ ] **Dashboard: add expenses & purchases totals to KPI cards**
-
-### P2 — High-value additions
-- [ ] Employee action history drawer + monthly pay slip (printable)
-- [ ] Customer statement (all sales + payments, printable)
-- [ ] Expense receipt (printable)
-- [ ] Company purchase history view
-- [ ] Reports page (date-range P&L, top customers, top products)
-
-### P3 — Invoice customization (Settings)
-New tab or card in `/app/settings/`:
-- [ ] Show/hide logo on invoices
-- [ ] Custom header / footer text per invoice type
-- [ ] Custom invoice number prefix
-- [ ] Toggle which fields appear (tax ID, phone, address, note, etc.)
-- [ ] Paper size selector (A4 / Letter / Receipt strip)
-- [ ] Live invoice preview in settings
-
-### P4 — Future
-- [ ] Product image upload (Supabase Storage)
-- [ ] Stock / inventory quantity tracking (new `product_stock` table)
-- [ ] Dollar rate chart
-- [ ] Dashboard charts (revenue trend, loan trend)
-- [ ] Full audit log
-- [ ] Push / email notifications for overdue loans
-- [ ] Supplier performance report
+- [ ] **Backup restore UI** — manual restore documented (download `.ndjson.gz` → decompress → `psql`) but no in-app restore flow.
 
 ---
 
-## Invoice System (how it works now)
+## Planned / not started
 
-Each printable invoice is rendered as a React component inside a `<Dialog>` that has **print-only CSS** applied (`@media print { /* hide everything except invoice div */ }`). Clicking **Print** calls `window.print()` — the browser's native print dialog handles layout and "Save as PDF".
-
-Factory branding (name, logo, address, phone, tax ID) is pulled from `site_settings` passed in via the root loader context.
-
-| Invoice / Receipt | Triggered from | Data loaded |
-|-------------------|---------------|------------|
-| Sale invoice | Sales list → detail drawer → Print | `sales` + `sale_items` + `customers` |
-| Loan payment receipt | After collecting payment | `paid_loans` + `sales` + `customers` |
-| Purchase invoice | Purchases list → detail drawer → Print | `company_purchases` + `companies` |
-| Purchase payment receipt | After paying installment | `purchase_payments` + `company_purchases` + `companies` |
+- [ ] **Mobile-responsive layout** — sidebar collapses on small screens; data tables need horizontal scroll treatment on mobile.
+- [ ] **Sales invoice PDF** — export a printable sale summary.
+- [ ] **Employee payroll summary** — aggregate monthly actions (bonus/punishment/absent/overtime) into a net pay calculation.
+- [ ] **Cloudflare R2 direct uploads** — product/employee images currently go to Supabase Storage; for the CF Workers deployment path they should upload direct to R2.
+- [ ] **End-to-end tests** — no test suite yet; Playwright or Bun test + Supabase local emulator.
 
 ---
 
-## Pending Migrations
+## Known gotchas
 
-Run from repo root against your local Supabase Docker stack:
-
-```bash
-bun run supabase:migrate < supabase/migrations/20260425000006_backup_credentials.sql
-bun run supabase:migrate < supabase/migrations/20260425000007_restore_sequences.sql
-bun run gen:types
-```
-
----
-
-## Key Architectural Decisions
-
-| Decision | Why |
-|----------|-----|
-| `dollar` column on every transactional row | Snapshot of USD rate at record time — must never change retroactively |
-| Soft delete via `deleted_at` | Active-row uniqueness via partial unique indexes (`WHERE deleted_at IS NULL`) |
-| Server fns for all mutations | RLS enforced on every write; no REST API layer |
-| `getSupabaseServer()` for user queries | RLS on — safe for normal reads |
-| `getSupabaseAdmin()` only in trusted server code | Bypasses RLS — service role; used for backups, restore, admin ops only |
-| R2 credentials in `site_settings` | OWNER can update them from UI without touching env vars |
-| Invoices via `window.print()` | No PDF library needed; browser handles layout + "Save as PDF" |
-| Manual backup via server fn (not edge fn) | Edge fn had JSON parse issues with HTTP calls from server fn; direct is simpler |
+- **`supabase/volumes/db/data/` is a bind-mount** — `docker compose down --volumes` does NOT remove it. To fully wipe the DB you must also delete this directory before bringing containers back up.
+- **CRLF on Windows** — files mounted into Linux containers (`kong-entrypoint.sh`, `pooler.exs`, `vector.yml`) must have LF line endings. Editing them in Windows Notepad breaks them.
+- **`gen:types` needs DB running** — `bun run gen:types` connects to `localhost:5432`; the Supabase dev stack must be up first.
+- **`SUPABASE_URL` differs by context** — dev app (outside Docker): `http://localhost:8000`; prod app container (inside Docker): `http://kong:8000`. The setup scripts handle this automatically.

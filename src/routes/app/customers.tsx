@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { can } from '~/lib/auth'
@@ -73,19 +74,20 @@ function CustomersPage() {
   const customers = useQuery({ queryKey: ['customers'], queryFn: list })
   const [editing, setEditing] = useState<Customer | null>(null)
   const [creating, setCreating] = useState(false)
+  const { t } = useTranslation()
 
   const canWrite  = can(permissions, 'customers', 'write')
   const canDelete = can(permissions, 'customers', 'delete')
 
   const columns: ColumnDef<Customer>[] = [
-    { accessorKey: 'name',    header: 'Name' },
-    { accessorKey: 'phone',   header: 'Phone', cell: ({ getValue }) => getValue<string>() || '—' },
-    { accessorKey: 'address', header: 'Address', cell: ({ getValue }) => getValue<string>() || '—' },
+    { accessorKey: 'name',    header: t('customers.name') },
+    { accessorKey: 'phone',   header: t('customers.phone'), cell: ({ getValue }) => getValue<string>() || '—' },
+    { accessorKey: 'address', header: t('customers.address'), cell: ({ getValue }) => getValue<string>() || '—' },
     {
-      accessorKey: 'is_salaried_employee', header: 'Salaried',
+      accessorKey: 'is_salaried_employee', header: t('customers.salaried'),
       cell: ({ getValue }) => (
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getValue() ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-muted text-muted-foreground'}`}>
-          {getValue() ? 'Yes' : 'No'}
+          {getValue() ? t('common.yes') : t('common.no')}
         </span>
       ),
     },
@@ -101,10 +103,10 @@ function CustomersPage() {
           {canDelete && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
               onClick={async () => {
-                if (!confirm(`Remove ${row.original.name}?`)) return
+                if (!confirm(t('customers.confirmRemove', { name: row.original.name }))) return
                 try {
                   await softDelete({ data: { id: row.original.id } })
-                  toast.success('Customer removed')
+                  toast.success(t('customers.customerRemoved'))
                   qc.invalidateQueries({ queryKey: ['customers'] })
                 } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
               }}>
@@ -120,19 +122,19 @@ function CustomersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Customers</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('customers.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {customers.data?.length ?? 0} active customer{customers.data?.length !== 1 ? 's' : ''}
+            {t('customers.subtitle', { count: customers.data?.length ?? 0 })}
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Add customer
+            <Plus className="h-4 w-4" /> {t('customers.addCustomer')}
           </Button>
         )}
       </div>
 
-      <DataTable data={customers.data ?? []} columns={columns} searchKey="name" emptyMessage="No customers found" />
+      <DataTable data={customers.data ?? []} columns={columns} searchKey="name" emptyMessage={t('customers.noCustomers')} />
 
       {(creating || editing) && (
         <CustomerDialog
@@ -148,6 +150,7 @@ function CustomersPage() {
 function CustomerDialog({ customer, onClose, onSaved }: {
   customer: Customer | null; onClose: () => void; onSaved: () => void
 }) {
+  const { t } = useTranslation()
   const form = useForm({
     defaultValues: {
       id: customer?.id,
@@ -159,7 +162,7 @@ function CustomerDialog({ customer, onClose, onSaved }: {
     onSubmit: async ({ value }) => {
       try {
         await upsert({ data: value })
-        toast.success(customer ? 'Customer updated' : 'Customer created')
+        toast.success(customer ? t('customers.customerUpdated') : t('customers.customerCreated'))
         onSaved()
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -169,21 +172,21 @@ function CustomerDialog({ customer, onClose, onSaved }: {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{customer ? 'Edit customer' : 'New customer'}</DialogTitle>
+          <DialogTitle>{customer ? t('customers.editCustomer') : t('customers.newCustomer')}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-          <TextField form={form} name="name" label="Full name" required />
+          <TextField form={form} name="name" label={t('customers.fullName')} required />
           <div className="grid grid-cols-2 gap-3">
-            <TextField form={form} name="phone" label="Phone" required />
-            <TextField form={form} name="address" label="Address" required />
+            <TextField form={form} name="phone" label={t('customers.phone')} required />
+            <TextField form={form} name="address" label={t('customers.address')} required />
           </div>
-          <SelectField form={form} name="is_salaried_employee" label="Salaried employee" options={[
-            { value: 'false', label: 'No' },
-            { value: 'true', label: 'Yes' },
+          <SelectField form={form} name="is_salaried_employee" label={t('customers.salaryEmployee')} options={[
+            { value: 'false', label: t('common.no') },
+            { value: 'true', label: t('common.yes') },
           ]} />
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={form.state.isSubmitting}>Save</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={form.state.isSubmitting}>{t('common.save')}</Button>
           </div>
         </form>
       </DialogContent>

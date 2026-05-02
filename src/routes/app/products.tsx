@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { getSupabaseBrowser } from '~/lib/supabase.browser'
@@ -20,6 +21,7 @@ import { formatCurrency } from '~/lib/utils'
 interface Product {
   id: number; name: string; price: number; dollar: number
   image_url: string | null; unit_type: 'METER' | 'PIECE'
+  grains_per_carton: number | null
 }
 
 // ─── server fns ──────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ const Schema = z.object({
   dollar: z.coerce.number().positive(),
   image_url: z.string().nullish().transform((v) => v || null),
   unit_type: z.enum(['METER', 'PIECE']),
+  grains_per_carton: z.coerce.number().int().positive().nullish().transform((v) => v || null),
 })
 
 const upsert = createServerFn({ method: 'POST' })
@@ -52,7 +55,7 @@ const upsert = createServerFn({ method: 'POST' })
     const sb = getSupabaseServer()
     const { data: ok } = await sb.rpc('has_permission', { p_resource: 'products', p_action: 'write' })
     if (!ok) throw new Error('You do not have permission to manage products')
-    const payload = { name: data.name, price: data.price, dollar: data.dollar, image_url: data.image_url, unit_type: data.unit_type }
+    const payload = { name: data.name, price: data.price, dollar: data.dollar, image_url: data.image_url, unit_type: data.unit_type, grains_per_carton: data.grains_per_carton }
     if (data.id) {
       const { error } = await sb.from('products').update(payload).eq('id', data.id)
       if (error) throw new Error(error.message)
@@ -82,6 +85,7 @@ function ProductsPage() {
   const products = useQuery({ queryKey: ['products'], queryFn: list })
   const [editing, setEditing] = useState<Product | null>(null)
   const [creating, setCreating] = useState(false)
+  const { t } = useTranslation()
 
   const canWrite  = can(permissions, 'products', 'write')
   const canDelete = can(permissions, 'products', 'delete')
@@ -96,10 +100,10 @@ function ProductsPage() {
           : <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-xs">—</div>
       },
     },
-    { accessorKey: 'name', header: 'Name' },
-    { accessorKey: 'price', header: 'Price (IQD)', cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD') },
-    { accessorKey: 'dollar', header: 'Rate (USD)', cell: ({ getValue }) => <span className="font-mono text-sm">{Number(getValue()).toLocaleString()}</span> },
-    { accessorKey: 'unit_type', header: 'Unit', cell: ({ getValue }) => (
+    { accessorKey: 'name', header: t('products.name') },
+    { accessorKey: 'price', header: `${t('products.price')} (IQD)`, cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD') },
+    { accessorKey: 'dollar', header: `${t('common.dollar')} (USD)`, cell: ({ getValue }) => <span className="font-mono text-sm">{Number(getValue()).toLocaleString()}</span> },
+    { accessorKey: 'unit_type', header: t('products.unitType'), cell: ({ getValue }) => (
       <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">{getValue<string>()}</span>
     )},
     {
@@ -114,10 +118,10 @@ function ProductsPage() {
           {canDelete && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
               onClick={async () => {
-                if (!confirm(`Delete ${row.original.name}?`)) return
+                if (!confirm(t('products.confirmRemove', { name: row.original.name }))) return
                 try {
                   await softDelete({ data: { id: row.original.id } })
-                  toast.success('Product removed')
+                  toast.success(t('products.productRemoved'))
                   qc.invalidateQueries({ queryKey: ['products'] })
                 } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
               }}>
@@ -133,19 +137,19 @@ function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('products.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {products.data?.length ?? 0} product{products.data?.length !== 1 ? 's' : ''}
+            {t('products.subtitle', { count: products.data?.length ?? 0 })}
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Add product
+            <Plus className="h-4 w-4" /> {t('products.addProduct')}
           </Button>
         )}
       </div>
 
-      <DataTable data={products.data ?? []} columns={columns} searchKey="name" emptyMessage="No products found" />
+      <DataTable data={products.data ?? []} columns={columns} searchKey="name" emptyMessage={t('products.noProducts')} />
 
       {(creating || editing) && (
         <ProductDialog
@@ -162,6 +166,7 @@ function ProductDialog({ product, onClose, onSaved }: {
   product: Product | null; onClose: () => void; onSaved: () => void
 }) {
   const dollarQ = useQuery({ queryKey: ['dollar-rate'], queryFn: getCurrentDollar })
+  const { t } = useTranslation()
   const form = useForm({
     defaultValues: {
       id: product?.id,
@@ -170,11 +175,12 @@ function ProductDialog({ product, onClose, onSaved }: {
       dollar: product?.dollar ?? dollarQ.data ?? 1500,
       image_url: product?.image_url ?? '',
       unit_type: product?.unit_type ?? 'PIECE' as const,
+      grains_per_carton: product?.grains_per_carton ?? ('' as unknown as number),
     },
     onSubmit: async ({ value }) => {
       try {
         await upsert({ data: value })
-        toast.success(product ? 'Product updated' : 'Product created')
+        toast.success(product ? t('products.productUpdated') : t('products.productCreated'))
         onSaved()
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -187,34 +193,35 @@ function ProductDialog({ product, onClose, onSaved }: {
     if (error) { toast.error(error.message); return }
     const { data } = sb.storage.from('products').getPublicUrl(path)
     form.setFieldValue('image_url', data.publicUrl)
-    toast.success('Image uploaded')
+    toast.success(t('products.uploadImage'))
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{product ? 'Edit product' : 'New product'}</DialogTitle>
+          <DialogTitle>{product ? t('products.editProduct') : t('products.newProduct')}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-          <TextField form={form} name="name" label="Name" required />
+          <TextField form={form} name="name" label={t('products.name')} required />
           <div className="grid grid-cols-2 gap-3">
-            <TextField form={form} name="price"  label="Price (IQD)" type="number" required />
-            <TextField form={form} name="dollar" label="USD rate" type="number" required />
+            <TextField form={form} name="price"  label={`${t('products.price')} (IQD)`} type="number" required />
+            <TextField form={form} name="dollar" label={`${t('common.dollar')} (USD)`} type="number" required />
           </div>
-          <SelectField form={form} name="unit_type" label="Unit" options={[
-            { value: 'PIECE' as const, label: 'Piece' },
-            { value: 'METER' as const, label: 'Meter' },
+          <SelectField form={form} name="unit_type" label={t('products.unitType')} options={[
+            { value: 'PIECE' as const, label: t('products.piece') },
+            { value: 'METER' as const, label: t('products.meter') },
           ]} />
+          <TextField form={form} name="grains_per_carton" label={t('products.grainsPerCarton')} type="number" />
           <label className="flex items-center gap-2 text-sm cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
             <Upload className="h-4 w-4" />
-            {form.getFieldValue('image_url') ? 'Change image' : 'Upload image'}
+            {form.getFieldValue('image_url') ? t('products.currentImage') : t('products.uploadImage')}
             <input type="file" accept="image/*" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f) }} />
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={form.state.isSubmitting}>Save</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={form.state.isSubmitting}>{t('common.save')}</Button>
           </div>
         </form>
       </DialogContent>

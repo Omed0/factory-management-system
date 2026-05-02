@@ -1,108 +1,167 @@
 # Factory Management System
 
-Kurdish-language (Sorani, RTL) factory/sales management app for a real business in Iraq.
+A Kurdish-language (Sorani, RTL) factory and sales management system built for a real business in Iraq. Tracks sales, loans, customers, products, employees (with bonus/punishment/overtime actions), supplier purchases, expenses, and the IQD/USD exchange rate.
 
-**Stack**
-- **TanStack Start** (React 19, file-based router, server functions, SSR)
-- **Self-hosted Supabase** via Docker (Postgres 15, Auth, Storage, Realtime, Edge Functions, pg_cron, pg_net)
-- **Tailwind 4** (CSS-first `@theme`, runtime branding via CSS vars)
-- **shadcn** (latest CLI) + **TanStack Form** + **TanStack Table v8**
-- **Bun** — package manager and runtime
-- **Cloudflare R2** for off-site backups (Supabase Storage as fallback)
+## Stack
 
-## Layout
+| Layer | Technology |
+|-------|-----------|
+| Frontend / SSR | TanStack Start (React 19, file-based routing, server functions) |
+| Database | Self-hosted Supabase — Postgres 15, Auth, Storage, Realtime, Edge Functions, pg_cron |
+| Styling | Tailwind 4 (CSS-first `@theme`), shadcn components |
+| Forms / Tables | TanStack Form · TanStack Table v8 · TanStack Query |
+| Runtime | Bun |
+| Deploy A | VPS — Docker Compose + Caddy (TLS) |
+| Deploy B | Cloudflare Workers + self-hosted Supabase |
+| Backups | Cloudflare R2 (primary) or Supabase Storage (fallback) |
+
+---
+
+## Quick start — development
+
+**Windows (PowerShell):**
+```powershell
+git clone <repo-url> factory-management-system
+cd factory-management-system
+.\scripts\setup.ps1 dev
+bun run dev
+```
+
+**Linux / macOS (bash):**
+```bash
+git clone <repo-url> factory-management-system
+cd factory-management-system
+bash scripts/setup.sh dev
+bun run dev
+```
+
+The setup script installs dependencies, generates JWT keys, writes `.env`, starts the Supabase Docker stack, and applies all migrations. Then open **http://localhost:3000** — the first-run wizard will guide you through factory name, colors, and the owner account.
+
+---
+
+## Daily workflow
+
+```bash
+bun run supabase:up   # start Supabase (if not already running)
+bun run dev           # http://localhost:3000
+```
+
+---
+
+## Production deployment
+
+### Path A — VPS (full stack)
+
+```bash
+# 1. On a fresh Debian/Ubuntu VPS:
+bash /opt/fms/deploy/vps/harden.sh   # UFW, fail2ban, Docker, swap
+
+# 2. Configure + start Supabase:
+bash scripts/setup.sh prod           # Linux/macOS (or .\scripts\setup.ps1 prod on Windows)
+
+# 3. Build and push the Docker image:
+bash scripts/setup.sh deploy:vps
+# then on the VPS:
+docker compose -f supabase/docker-compose.prod.yml pull app
+docker compose -f supabase/docker-compose.prod.yml up -d app
+```
+
+### Path B — Cloudflare Workers
+
+```bash
+# After prod setup (Supabase already running on VPS):
+bash scripts/setup.sh deploy:cf      # Linux/macOS
+.\scripts\setup.ps1 deploy-cf        # Windows
+```
+
+CI builds a Docker image on every `v*` tag push and optionally deploys to Cloudflare Workers when `DEPLOY_CLOUDFLARE=true` is set in repo variables.
+
+---
+
+## All scripts
+
+```bash
+# App
+bun run dev              # Vite dev server with HMR — http://localhost:3000
+bun run build            # production bundle → .output/
+bun run start            # run the built bundle
+bun run typecheck        # tsc --noEmit
+bun run lint             # eslint
+bun run format           # prettier
+
+# Supabase
+bun run supabase:up          # start dev stack (docker compose up -d)
+bun run supabase:down        # stop containers
+bun run supabase:prod:up     # start with Caddy + app prod overlay
+bun run supabase:prod:down   # stop prod stack
+bun run supabase:migrate     # pipe a SQL file: bun run supabase:migrate < file.sql
+bun run supabase:shell       # interactive psql
+
+# Types & deploy
+bun run gen:types        # regenerate src/lib/database.types.ts from live DB
+bun run deploy:cf        # wrangler deploy to Cloudflare Workers
+bun run deploy:vps       # build + push Docker image to ghcr.io (bash)
+
+# Setup scripts (full automation)
+.\scripts\setup.ps1 [dev|prod|deploy-vps|deploy-cf]     # Windows
+bash scripts/setup.sh   [dev|prod|deploy:vps|deploy:cf]  # Linux/macOS
+```
+
+---
+
+## Project structure
 
 ```
 .
-├── app.config.ts          # vinxi/TanStack Start config
-├── components.json        # shadcn CLI config
-├── package.json
-├── tsconfig.json
-├── Dockerfile
-├── src/                   # TanStack Start appDirectory (routes + app code)
-│   ├── routes/            # file-based routing (/setup /login /app/*)
-│   ├── lib/               # supabase clients, auth, site-settings
-│   ├── components/        # shadcn ui/ (CLI-installed) + app components
-│   └── styles/            # Tailwind 4 entry
-├── supabase/              # self-hosted Supabase stack
-│   ├── bootstrap.sh       # vendor supabase/docker tree (run once)
-│   ├── docker-compose.yml         # vendored (do not edit)
-│   ├── docker-compose.prod.yml    # OUR overlay (Caddy+TLS, app, hardening)
-│   ├── Caddyfile
-│   ├── migrations/        # schema, RLS, storage+cron, permissions
-│   └── functions/backup/  # Edge Function: pg_dump → R2/Supabase → rotate
+├── vite.config.ts          # TanStack Start + Vite config (MUST be at root)
+├── components.json         # shadcn CLI config (MUST be at root)
+├── Dockerfile              # multi-stage bun build; non-root; healthcheck
+├── src/
+│   ├── routes/             # file-based routing
+│   │   ├── __root.tsx      # branding tokens, providers, settings cache
+│   │   ├── setup.tsx       # first-run wizard
+│   │   ├── login.tsx       # password sign-in
+│   │   ├── healthz.ts      # liveness probe
+│   │   └── app/            # auth-protected layout + all modules
+│   ├── lib/                # supabase clients, auth, utils, env schema
+│   ├── components/         # shadcn ui/ + data-table, form-fields, permission-grid
+│   └── styles/app.css      # Tailwind v4 @theme tokens
+├── supabase/
+│   ├── docker-compose.yml          # vendored upstream stack
+│   ├── docker-compose.prod.yml     # our overlay: Caddy, app, hardening
+│   ├── Caddyfile                   # TLS + HSTS + Studio basic-auth
+│   ├── migrations/                 # 7 SQL migrations (0001-0007)
+│   └── functions/backup/           # pg_dump Edge Function → R2/Storage
 ├── deploy/
-│   ├── vps/harden.sh      # one-shot Debian/Ubuntu VPS hardening
-│   └── cloudflare/wrangler.toml
-└── docs/                  # architecture, development, deployment guides
+│   ├── vps/harden.sh               # server hardening script
+│   └── cloudflare/wrangler.toml    # CF Workers config + R2 bindings
+├── scripts/
+│   ├── setup.sh                    # bash setup (dev/prod/deploy:vps/deploy:cf)
+│   └── setup.ps1                   # PowerShell setup (Windows)
+├── docs/
+│   ├── architecture.md
+│   ├── development.md
+│   └── deployment.md
+└── .github/workflows/
+    ├── ci.yml                      # typecheck + build + SQL smoke-test on push/PR
+    └── release.yml                 # Docker image → ghcr.io + optional CF deploy on tag
 ```
 
-## First-time setup (local dev)
+---
 
-All commands from **repo root**:
+## Key design decisions
 
-```bash
-cp .env.example .env       # fill in JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY, etc.
-
-# 1) Start Supabase
-cd supabase && ./bootstrap.sh && docker compose --env-file ../.env up -d && cd ..
-supabase db push           # apply migrations
-
-# 2) Install + run app
-bun install
-bunx shadcn@latest init    # reads components.json at root
-bunx shadcn@latest add button input label card dialog select table dropdown-menu tabs form alert-dialog badge tooltip toast
-bun run dev                # → http://localhost:3000
-```
-
-First page load redirects to `/setup` — fill in factory name, branding, and
-OWNER credentials. Subsequent loads go to `/login` → `/app/dashboard`.
-
-## Deploy → VPS
-
-```bash
-# On a fresh Debian 12 / Ubuntu 22.04 VPS, as root:
-git clone <this-repo> /opt/fms
-NEW_USER=fms SSH_PUBKEY="ssh-ed25519 AAAA…" \
-APP_DOMAIN=app.example.com ADMIN_EMAIL=you@example.com \
-bash /opt/fms/deploy/vps/harden.sh
-
-# As the new user:
-cd /opt/fms && cp .env.example .env  # fill in
-cd supabase && ./bootstrap.sh
-docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file ../.env up -d
-supabase db push
-```
-
-`harden.sh`: UFW (22/80/443), fail2ban, key-only SSH, unattended-upgrades,
-Docker, 2 GB swap, `*/5` cron health-check emailing on container failure.
-
-## Deploy → Cloudflare Workers
-
-Supabase stays on a VPS; only the app ships to Workers:
-
-```bash
-DEPLOY_TARGET=cloudflare bun run build
-wrangler secret put PUBLIC_SUPABASE_ANON_KEY
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-wrangler deploy --config deploy/cloudflare/wrangler.toml
-```
-
-## Backups
-
-Driven by `site_settings.backup_*` + `pg_cron`:
-
-| Setting | Default | Meaning |
-|---------|---------|---------|
-| `backup_provider` | `supabase` | `r2` \| `supabase` \| `local` \| `vps` |
-| `backup_keep_n` | `2` | Rotation — keep N latest, drop older |
-| `backup_cron` | `0 3 * * *` | Cron expression; changing it live-reschedules the job |
-
-Manual backups and config are available at `/app/settings/backups` (OWNER only).
+- **Dynamic branding** — factory name, logo, colors, locale, currency all live in the `site_settings` DB row; no rebuild needed to retheme.
+- **Dollar snapshot** — every transactional table records the IQD/USD rate at time-of-record in a `dollar` column; never remove it.
+- **RLS everywhere** — all `public` schema tables use Postgres Row Level Security. Server functions use `getSupabaseServer()` (RLS on) or `getSupabaseAdmin()` (service-role, for trusted ops only).
+- **Roles**: `OWNER` → `ADMIN` → `USER`. Permissions per resource/action stored in `user_permissions`; enforced by `has_permission()` in RLS and mirrored in the UI.
+- **Soft delete** via `deleted_at`; active-row uniqueness via partial indexes.
 
 ## Docs
 
-- [Architecture](docs/architecture.md)
-- [Development](docs/development.md)
-- [Deployment](docs/deployment.md)
-- [Progress](PROGRESS.md)
+| Doc | Content |
+|-----|---------|
+| [docs/architecture.md](docs/architecture.md) | System diagram, code layout, auth model, env vars, backup pipeline |
+| [docs/development.md](docs/development.md) | First-time setup, daily workflow, migrations, RLS debugging |
+| [docs/deployment.md](docs/deployment.md) | VPS and Cloudflare deployment walkthroughs |
+| [progress.md](progress.md) | Feature completion status and known gaps |

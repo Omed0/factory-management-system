@@ -42,7 +42,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      SUPABASE_URL: http://localhost:8000
+      SUPABASE_URL: http://kong:8000
       PUBLIC_SUPABASE_URL: ${PUBLIC_SUPABASE_URL}
       PUBLIC_SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}

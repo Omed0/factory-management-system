@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { CalendarPlus, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { can } from '~/lib/auth'
@@ -124,24 +125,25 @@ function EmployeesPage() {
   const [editing, setEditing] = useState<Employee | null>(null)
   const [creating, setCreating] = useState(false)
   const [actionFor, setActionFor] = useState<Employee | null>(null)
+  const { t } = useTranslation()
 
   const canWrite   = can(permissions, 'employees', 'write')
   const canDelete  = can(permissions, 'employees', 'delete')
   const canActions = can(permissions, 'employees', 'actions')
 
   const columns: ColumnDef<Employee>[] = [
-    { accessorKey: 'name', header: 'Name' },
-    { accessorKey: 'phone', header: 'Phone', cell: ({ getValue }) => getValue<string>() || '—' },
-    { accessorKey: 'month_salary', header: 'Monthly Salary',
+    { accessorKey: 'name', header: t('employees.name') },
+    { accessorKey: 'phone', header: t('employees.phone'), cell: ({ getValue }) => getValue<string>() || '—' },
+    { accessorKey: 'month_salary', header: t('employees.monthlySalary'),
       cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD') },
-    { accessorKey: 'dollar', header: 'Rate (USD)',
+    { accessorKey: 'dollar', header: `${t('common.dollar')} (USD)`,
       cell: ({ getValue }) => <span className="font-mono text-sm">{Number(getValue()).toLocaleString()}</span> },
     {
       id: 'actions', header: '', size: 120,
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
           {canActions && (
-            <Button size="sm" variant="ghost" title="Record action" onClick={() => setActionFor(row.original)}>
+            <Button size="sm" variant="ghost" title={t('employees.addAction')} onClick={() => setActionFor(row.original)}>
               <CalendarPlus className="h-4 w-4" />
             </Button>
           )}
@@ -152,10 +154,10 @@ function EmployeesPage() {
           )}
           {canDelete && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={async () => {
-              if (!confirm(`Remove ${row.original.name}?`)) return
+              if (!confirm(t('employees.confirmRemove', { name: row.original.name }))) return
               try {
                 await softDelete({ data: { id: row.original.id } })
-                toast.success('Employee removed')
+                toast.success(t('employees.employeeRemoved'))
                 qc.invalidateQueries({ queryKey: ['employees'] })
               } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
             }}>
@@ -171,14 +173,14 @@ function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('employees.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {employees.data?.length ?? 0} active employee{employees.data?.length !== 1 ? 's' : ''}
+            {t('employees.subtitle', { count: employees.data?.length ?? 0 })}
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Add employee
+            <Plus className="h-4 w-4" /> {t('employees.addEmployee')}
           </Button>
         )}
       </div>
@@ -187,7 +189,7 @@ function EmployeesPage() {
         data={employees.data ?? []}
         columns={columns}
         searchKey="name"
-        emptyMessage="No employees found"
+        emptyMessage={t('employees.noEmployees')}
       />
 
       {(creating || editing) && (
@@ -212,6 +214,7 @@ function EmployeeDialog({ employee, onClose, onSaved }: {
   employee: Employee | null; onClose: () => void; onSaved: () => void
 }) {
   const dollarQ = useQuery({ queryKey: ['dollar-rate'], queryFn: getCurrentDollar })
+  const { t } = useTranslation()
   const form = useForm({
     defaultValues: {
       id: employee?.id,
@@ -224,7 +227,7 @@ function EmployeeDialog({ employee, onClose, onSaved }: {
     onSubmit: async ({ value }) => {
       try {
         await upsert({ data: value })
-        toast.success(employee ? 'Employee updated' : 'Employee created')
+        toast.success(employee ? t('employees.employeeUpdated') : t('employees.employeeCreated'))
         onSaved()
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -234,21 +237,21 @@ function EmployeeDialog({ employee, onClose, onSaved }: {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{employee ? 'Edit employee' : 'New employee'}</DialogTitle>
+          <DialogTitle>{employee ? t('employees.editEmployee') : t('employees.newEmployee')}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-          <TextField form={form} name="name" label="Full name" required />
+          <TextField form={form} name="name" label={t('employees.name')} required />
           <div className="grid grid-cols-2 gap-3">
-            <TextField form={form} name="phone" label="Phone" />
-            <TextField form={form} name="address" label="Address" />
+            <TextField form={form} name="phone" label={t('employees.phone')} />
+            <TextField form={form} name="address" label={t('employees.address')} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <TextField form={form} name="month_salary" label="Monthly salary (IQD)" type="number" required />
-            <TextField form={form} name="dollar" label="USD rate" type="number" required />
+            <TextField form={form} name="month_salary" label={`${t('employees.monthlySalary')} (IQD)`} type="number" required />
+            <TextField form={form} name="dollar" label={`${t('common.dollar')} (USD)`} type="number" required />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={form.state.isSubmitting}>Save</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
+            <Button type="submit" disabled={form.state.isSubmitting}>{t('common.save')}</Button>
           </div>
         </form>
       </DialogContent>
@@ -260,6 +263,7 @@ function ActionDialog({ employee, onClose, actionTypeColors }: {
   employee: Employee; onClose: () => void; actionTypeColors: Record<string, string>
 }) {
   const qc = useQueryClient()
+  const { t } = useTranslation()
   const actions = useQuery({
     queryKey: ['employee-actions', employee.id],
     queryFn: () => listActions({ data: { employee_id: employee.id } }),
@@ -277,7 +281,7 @@ function ActionDialog({ employee, onClose, actionTypeColors }: {
     onSubmit: async ({ value }) => {
       try {
         await recordAction({ data: { ...value, action_date: new Date(value.action_date).toISOString() } })
-        toast.success('Action recorded')
+        toast.success(t('employees.actionAdded'))
         qc.invalidateQueries({ queryKey: ['employee-actions', employee.id] })
         form.reset()
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
@@ -288,29 +292,29 @@ function ActionDialog({ employee, onClose, actionTypeColors }: {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{employee.name} — Actions</DialogTitle>
+          <DialogTitle>{employee.name} — {t('employees.actions')}</DialogTitle>
         </DialogHeader>
 
         <form className="grid grid-cols-2 gap-3" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-          <SelectField form={form} name="type" label="Type" options={[
-            { value: 'BONUS' as const, label: 'Bonus' },
-            { value: 'PUNISHMENT' as const, label: 'Punishment' },
-            { value: 'ABSENT' as const, label: 'Absent' },
-            { value: 'OVERTIME' as const, label: 'Overtime' },
+          <SelectField form={form} name="type" label={t('employees.actionType')} options={[
+            { value: 'BONUS' as const, label: t('employees.bonus') },
+            { value: 'PUNISHMENT' as const, label: t('employees.punishment') },
+            { value: 'ABSENT' as const, label: t('employees.absent') },
+            { value: 'OVERTIME' as const, label: t('employees.overtime') },
           ]} />
-          <TextField form={form} name="action_date" label="Date" type="date" required />
-          <TextField form={form} name="amount" label="Amount (IQD)" type="number" required />
-          <TextField form={form} name="dollar" label="USD rate" type="number" required />
-          <div className="col-span-2"><TextAreaField form={form} name="note" label="Note" /></div>
+          <TextField form={form} name="action_date" label={t('employees.actionDate')} type="date" required />
+          <TextField form={form} name="amount" label={`${t('employees.amount')} (IQD)`} type="number" required />
+          <TextField form={form} name="dollar" label={`${t('common.dollar')} (USD)`} type="number" required />
+          <div className="col-span-2"><TextAreaField form={form} name="note" label={t('employees.note')} /></div>
           <div className="col-span-2 flex justify-end">
-            <Button type="submit" disabled={form.state.isSubmitting}>Record action</Button>
+            <Button type="submit" disabled={form.state.isSubmitting}>{t('employees.addAction')}</Button>
           </div>
         </form>
 
         {(actions.data?.length ?? 0) > 0 && (
           <>
             <div className="border-t border-border pt-4">
-              <p className="text-sm font-medium mb-3">History</p>
+              <p className="text-sm font-medium mb-3">{t('common.actions')}</p>
               <div className="space-y-2 max-h-52 overflow-y-auto">
                 {actions.data?.map((a) => (
                   <div key={a.id} className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-sm">

@@ -45,9 +45,8 @@
 
 ```
 .                                        # repo root = project root
-├── app.config.ts                        # vinxi config — preset node-server ↔ cloudflare-module
+├── vite.config.ts                       # TanStack Start + Vite config; DEPLOY_TARGET=cloudflare switches preset
 ├── components.json                      # shadcn CLI config (css → src/styles/app.css)
-├── vite.config.ts                       # SWC plugin, supabase/volumes/** watcher exclusion
 ├── package.json                         # bun workspace, scripts
 ├── tsconfig.json                        # baseUrl=. paths ~/* → src/*
 ├── Dockerfile                           # multi-stage bun build; non-root; healthcheck
@@ -95,11 +94,14 @@
 │   ├── docker-compose.prod.yml          # OUR overlay: Caddy+TLS, app, hardening
 │   ├── Caddyfile                        # TLS, HSTS, Studio basic-auth
 │   ├── migrations/
-│   │   ├── 20260425000001_initial_schema.sql
-│   │   ├── 20260425000002_rls_policies.sql
-│   │   ├── 20260425000003_storage_and_cron.sql
-│   │   └── 20260425000004_permissions.sql
-│   └── functions/backup/index.ts        # Edge: pg_dump → R2/Supabase → rotate
+│   │   ├── 20260425000001_initial_schema.sql   # tables, enums, triggers
+│   │   ├── 20260425000002_rls_policies.sql     # RLS + helper functions
+│   │   ├── 20260425000003_storage_and_cron.sql # storage buckets + pg_cron
+│   │   ├── 20260425000004_permissions.sql      # permission_catalog + user_permissions
+│   │   ├── 20260425000005_security_hardening.sql # search_path hardening + tighter policies
+│   │   ├── 20260425000006_backup_credentials.sql # r2_* columns on site_settings
+│   │   └── 20260425000007_restore_sequences.sql  # sequence repair after restore
+│   └── functions/backup/index.ts        # Edge: logical export → R2/Supabase → rotate
 ├── deploy/
 │   ├── vps/harden.sh                    # UFW/fail2ban/Docker/swap/healthcheck cron
 │   └── cloudflare/wrangler.toml

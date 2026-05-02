@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Eye, Loader2, Plus, Printer, Trash2, Wallet } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { getSupabaseServer } from '~/lib/supabase.server'
 import { can } from '~/lib/auth'
@@ -268,6 +269,12 @@ const getCurrentDollar = createServerFn({ method: 'GET' }).handler(async () => {
   return data?.price ?? 1500
 })
 
+const listWarehouses = createServerFn({ method: 'GET' }).handler(async () => {
+  const sb = getSupabaseServer()
+  const { data } = await (sb.from('warehouses') as any).select('id, name').is('deleted_at', null).order('name')
+  return (data ?? []) as { id: number; name: string }[]
+})
+
 const SaleSchema = z.object({
   customer_id: z.number().nullable(),
   sale_number: z.string().min(1),
@@ -275,6 +282,7 @@ const SaleSchema = z.object({
   discount: z.coerce.number().nonnegative().default(0),
   dollar: z.coerce.number().positive(),
   note: z.string().nullish().transform((v) => v || null),
+  warehouse_id: z.number().nullable().optional(),
   items: z.array(z.object({
     product_id: z.number().nullable(),
     name: z.string().min(1),
@@ -293,6 +301,7 @@ const createSale = createServerFn({ method: 'POST' })
     const { data: sale, error } = await (sb.from('sales') as any).insert({
       customer_id: data.customer_id, sale_number: data.sale_number, sale_type: data.sale_type,
       discount: data.discount, dollar: data.dollar, note: data.note,
+      warehouse_id: data.warehouse_id ?? null,
       total_amount: total, total_remaining: data.sale_type === 'LOAN' ? total : 0,
       is_finished: data.sale_type === 'CASH',
     }).select().single()
@@ -301,6 +310,17 @@ const createSale = createServerFn({ method: 'POST' })
       data.items.map((i) => ({ sale_id: sale.id, product_id: i.product_id, name: i.name, price: i.price, quantity: i.quantity })),
     )
     if (itemErr) throw new Error(itemErr.message)
+    if (data.warehouse_id) {
+      for (const item of data.items) {
+        if (item.product_id) {
+          await (sb.rpc as any)('adjust_warehouse_qty', {
+            p_warehouse_id: data.warehouse_id,
+            p_product_id: item.product_id,
+            p_delta: -item.quantity,
+          })
+        }
+      }
+    }
     return { ok: true, id: sale.id }
   })
 
@@ -354,6 +374,7 @@ function SalesPage() {
   const sales = useQuery({ queryKey: ['sales'], queryFn: list })
   const [creating, setCreating] = useState(false)
   const [viewingId, setViewingId] = useState<number | null>(null)
+  const { t } = useTranslation()
 
   const canWrite  = can(permissions, 'sales', 'write')
   const canDelete = can(permissions, 'sales', 'delete')
@@ -361,11 +382,11 @@ function SalesPage() {
   const columns: ColumnDef<Sale>[] = [
     { accessorKey: 'sale_number', header: '#', size: 100 },
     {
-      accessorKey: 'sale_date', header: 'Date', size: 110,
+      accessorKey: 'sale_date', header: t('common.date'), size: 110,
       cell: ({ getValue }) => new Date(String(getValue())).toLocaleDateString(),
     },
     {
-      accessorKey: 'sale_type', header: 'Type', size: 80,
+      accessorKey: 'sale_type', header: t('common.type'), size: 80,
       cell: ({ getValue }) => (
         <Badge variant={getValue() === 'LOAN' ? 'outline' : 'secondary'}>
           {getValue<string>()}
@@ -373,11 +394,11 @@ function SalesPage() {
       ),
     },
     {
-      accessorKey: 'total_amount', header: 'Total',
+      accessorKey: 'total_amount', header: t('common.total'),
       cell: ({ getValue }) => formatCurrency(Number(getValue()), 'IQD'),
     },
     {
-      accessorKey: 'total_remaining', header: 'Remaining',
+      accessorKey: 'total_remaining', header: t('sales.remaining'),
       cell: ({ getValue }) => {
         const v = Number(getValue())
         return (
@@ -388,10 +409,10 @@ function SalesPage() {
       },
     },
     {
-      accessorKey: 'is_finished', header: 'Status', size: 90,
+      accessorKey: 'is_finished', header: t('common.status'), size: 90,
       cell: ({ getValue }) => (
         <Badge variant={getValue() ? 'default' : 'secondary'}>
-          {getValue() ? 'Paid' : 'Pending'}
+          {getValue() ? t('sales.paid') : t('sales.pending')}
         </Badge>
       ),
     },
@@ -399,16 +420,16 @@ function SalesPage() {
       id: 'actions', header: '', size: 80,
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
-          <Button size="sm" variant="ghost" title="View details" onClick={() => setViewingId(row.original.id)}>
+          <Button size="sm" variant="ghost" title={t('sales.viewDetails')} onClick={() => setViewingId(row.original.id)}>
             <Eye className="h-4 w-4" />
           </Button>
           {canDelete && (
             <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
               onClick={async () => {
-                if (!confirm(`Delete sale ${row.original.sale_number}?`)) return
+                if (!confirm(t('sales.confirmDelete', { number: row.original.sale_number }))) return
                 try {
                   await softDelete({ data: { id: row.original.id } })
-                  toast.success('Sale removed')
+                  toast.success(t('sales.saleRemoved'))
                   qc.invalidateQueries({ queryKey: ['sales'] })
                 } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
               }}>
@@ -424,14 +445,14 @@ function SalesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Sales</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('sales.title')}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {sales.data?.length ?? 0} sale{sales.data?.length !== 1 ? 's' : ''}
+            {t('sales.subtitle', { count: sales.data?.length ?? 0 })}
           </p>
         </div>
         {canWrite && (
           <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> New sale
+            <Plus className="h-4 w-4" /> {t('sales.addSale')}
           </Button>
         )}
       </div>
@@ -440,8 +461,8 @@ function SalesPage() {
         data={sales.data ?? []}
         columns={columns}
         searchKey="sale_number"
-        searchPlaceholder="Search by invoice number…"
-        emptyMessage="No sales found"
+        searchPlaceholder={t('sales.searchPlaceholder')}
+        emptyMessage={t('sales.noSales')}
       />
 
       {creating && (
@@ -475,6 +496,7 @@ function SaleDetailDialog({
   onClose: () => void
   onUpdated: () => void
 }) {
+  const { t } = useTranslation()
   const detail = useQuery({
     queryKey: ['sale-detail', saleId],
     queryFn: () => getSaleDetail({ data: { id: saleId } }),
@@ -499,7 +521,7 @@ function SaleDetailDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            {sale ? `Sale ${sale.sale_number}` : 'Loading…'}
+            {sale ? `${t('sales.saleLabel')} ${sale.sale_number}` : t('common.loading')}
             {sale && (
               <Badge variant={sale.sale_type === 'LOAN' ? 'outline' : 'secondary'}>
                 {sale.sale_type}
@@ -507,7 +529,7 @@ function SaleDetailDialog({
             )}
             {sale && (
               <Badge variant={sale.is_finished ? 'default' : 'secondary'}>
-                {sale.is_finished ? 'Paid' : 'Pending'}
+                {sale.is_finished ? t('sales.paid') : t('sales.pending')}
               </Badge>
             )}
           </DialogTitle>
@@ -520,40 +542,38 @@ function SaleDetailDialog({
         )}
 
         {detail.isError && (
-          <p className="text-sm text-destructive py-4">Failed to load sale details.</p>
+          <p className="text-sm text-destructive py-4">{t('sales.loadFailed')}</p>
         )}
 
         {sale && !collecting && !receipt && (
           <div className="space-y-5">
-            {/* Header meta */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
-              <div><span className="text-muted-foreground">Date: </span>{new Date(sale.sale_date).toLocaleDateString()}</div>
-              <div><span className="text-muted-foreground">USD rate: </span>{formatCurrency(sale.dollar, 'USD')}</div>
+              <div><span className="text-muted-foreground">{t('common.date')}: </span>{new Date(sale.sale_date).toLocaleDateString()}</div>
+              <div><span className="text-muted-foreground">{t('sales.usdRate')}: </span>{formatCurrency(sale.dollar, 'USD')}</div>
               {sale.customer_name && (
-                <div><span className="text-muted-foreground">Customer: </span><strong>{sale.customer_name}</strong></div>
+                <div><span className="text-muted-foreground">{t('sales.customer')}: </span><strong>{sale.customer_name}</strong></div>
               )}
               {sale.customer_phone && (
-                <div><span className="text-muted-foreground">Phone: </span>{sale.customer_phone}</div>
+                <div><span className="text-muted-foreground">{t('common.phone')}: </span>{sale.customer_phone}</div>
               )}
               {sale.note && (
                 <div className="col-span-2 rounded-md bg-muted px-3 py-2 text-xs mt-1">
-                  <span className="font-medium">Note: </span>{sale.note}
+                  <span className="font-medium">{t('common.note')}: </span>{sale.note}
                 </div>
               )}
             </div>
 
             <Separator />
 
-            {/* Items */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Items</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('sales.items')}</p>
               <table className="w-full text-sm">
                 <thead className="text-muted-foreground">
                   <tr>
-                    <th className="text-start pb-1 font-medium">Description</th>
-                    <th className="text-center pb-1 font-medium w-14">Qty</th>
-                    <th className="text-end pb-1 font-medium">Unit price</th>
-                    <th className="text-end pb-1 font-medium">Amount</th>
+                    <th className="text-start pb-1 font-medium">{t('common.description')}</th>
+                    <th className="text-center pb-1 font-medium w-14">{t('sales.quantity')}</th>
+                    <th className="text-end pb-1 font-medium">{t('sales.unitPrice')}</th>
+                    <th className="text-end pb-1 font-medium">{t('common.amount')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -569,48 +589,46 @@ function SaleDetailDialog({
               </table>
             </div>
 
-            {/* Totals */}
             <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1 text-sm">
               {sale.discount > 0 && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-muted-foreground">{t('sales.subtotal')}</span>
                     <span>{formatCurrency(sale.total_amount + sale.discount, 'IQD')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Discount</span>
+                    <span className="text-muted-foreground">{t('sales.discount')}</span>
                     <span className="text-destructive">− {formatCurrency(sale.discount, 'IQD')}</span>
                   </div>
                 </>
               )}
               <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
-                <span>Total</span>
+                <span>{t('common.total')}</span>
                 <span>{formatCurrency(sale.total_amount, 'IQD')}</span>
               </div>
               {sale.sale_type === 'LOAN' && (
                 <>
                   <div className="flex justify-between text-green-700 dark:text-green-400">
-                    <span>Paid so far</span>
+                    <span>{t('sales.paidSoFar')}</span>
                     <span>{formatCurrency(sale.total_amount - sale.total_remaining, 'IQD')}</span>
                   </div>
                   <div className={`flex justify-between font-semibold ${sale.total_remaining > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
-                    <span>Remaining</span>
+                    <span>{t('sales.remaining')}</span>
                     <span>{formatCurrency(sale.total_remaining, 'IQD')}</span>
                   </div>
                 </>
               )}
             </div>
 
-            {/* Payment history */}
             {sale.sale_type === 'LOAN' && sale.payments.length > 0 && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Payment history</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{t('sales.paymentHistory')}</p>
                 <table className="w-full text-sm">
                   <thead className="text-muted-foreground">
                     <tr>
-                      <th className="text-start pb-1 font-medium">Date</th>
-                      <th className="text-end pb-1 font-medium">Amount</th>
-                      <th className="text-start pb-1 font-medium pl-3">Note</th>
+                      <th className="text-start pb-1 font-medium">{t('common.date')}</th>
+                      <th className="text-end pb-1 font-medium">{t('common.amount')}</th>
+                      <th className="text-start pb-1 font-medium pl-3">{t('common.note')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -626,20 +644,15 @@ function SaleDetailDialog({
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex items-center justify-between pt-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => printHtml(buildSaleInvoiceHtml(sale, settings))}
-              >
-                <Printer className="h-4 w-4" /> Print invoice
+              <Button variant="outline" size="sm" onClick={() => printHtml(buildSaleInvoiceHtml(sale, settings))}>
+                <Printer className="h-4 w-4" /> {t('sales.printInvoice')}
               </Button>
               <div className="flex gap-2">
-                <Button variant="ghost" onClick={onClose}>Close</Button>
+                <Button variant="ghost" onClick={onClose}>{t('common.close')}</Button>
                 {canCollect && sale.sale_type === 'LOAN' && sale.total_remaining > 0 && (
                   <Button onClick={() => setCollecting(true)}>
-                    <Wallet className="h-4 w-4" /> Collect payment
+                    <Wallet className="h-4 w-4" /> {t('sales.collectPayment')}
                   </Button>
                 )}
               </div>
@@ -647,7 +660,6 @@ function SaleDetailDialog({
           </div>
         )}
 
-        {/* Inline collect payment form */}
         {collecting && sale && (
           <CollectForm
             sale={sale}
@@ -656,7 +668,6 @@ function SaleDetailDialog({
           />
         )}
 
-        {/* Payment receipt */}
         {receipt && sale && (
           <PaymentReceipt
             payment={receipt}
@@ -680,6 +691,7 @@ function CollectForm({
   onCancel: () => void
   onDone: (r: { amount: number; paid_at: string; note: string | null; new_remaining: number }) => void
 }) {
+  const { t } = useTranslation()
   const form = useForm({
     defaultValues: { amount: 0, note: '' },
     onSubmit: async ({ value }) => {
@@ -687,7 +699,7 @@ function CollectForm({
         const result = await collectPayment({
           data: { sale_id: sale.id, amount: value.amount, note: value.note },
         })
-        toast.success('Payment recorded')
+        toast.success(t('sales.paymentCollected'))
         onDone(result)
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -697,18 +709,18 @@ function CollectForm({
     <div className="space-y-4">
       <div className="rounded-lg bg-muted/40 border border-border px-4 py-3">
         <p className="text-sm text-muted-foreground">
-          Sale: <strong className="text-foreground">{sale.sale_number}</strong> &nbsp;·&nbsp;
-          Remaining: <strong className="text-orange-600 dark:text-orange-400">{formatCurrency(sale.total_remaining, 'IQD')}</strong>
+          {t('sales.saleLabel')}: <strong className="text-foreground">{sale.sale_number}</strong> &nbsp;·&nbsp;
+          {t('sales.remaining')}: <strong className="text-orange-600 dark:text-orange-400">{formatCurrency(sale.total_remaining, 'IQD')}</strong>
         </p>
       </div>
       <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
-        <TextField form={form} name="amount" label="Amount paid (IQD)" type="number" required />
-        <TextAreaField form={form} name="note" label="Note (optional)" />
+        <TextField form={form} name="amount" label={`${t('sales.paidAmount')} (IQD)`} type="number" required />
+        <TextAreaField form={form} name="note" label={`${t('common.note')} (${t('common.optional')})`} />
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onCancel}>Back</Button>
+          <Button type="button" variant="ghost" onClick={onCancel}>{t('common.back')}</Button>
           <Button type="submit" disabled={form.state.isSubmitting}>
             {form.state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Record payment
+            {t('sales.collectPayment')}
           </Button>
         </div>
       </form>
@@ -727,45 +739,46 @@ function PaymentReceipt({
   onClose: () => void
   onPrint: () => void
 }) {
+  const { t } = useTranslation()
   const balanceBefore = sale.total_remaining + payment.amount
 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10 p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-muted-foreground">Amount paid</p>
+          <p className="text-sm font-medium text-muted-foreground">{t('sales.paidAmount')}</p>
           <p className="text-2xl font-bold text-green-700 dark:text-green-400">{formatCurrency(payment.amount, 'IQD')}</p>
         </div>
         <Separator />
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <p className="text-muted-foreground text-xs">Invoice</p>
+            <p className="text-muted-foreground text-xs">{t('sales.invoice')}</p>
             <p className="font-medium">{sale.sale_number}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Date</p>
+            <p className="text-muted-foreground text-xs">{t('common.date')}</p>
             <p className="font-medium">{new Date(payment.paid_at).toLocaleDateString()}</p>
           </div>
           {sale.customer_name && (
             <div>
-              <p className="text-muted-foreground text-xs">Customer</p>
+              <p className="text-muted-foreground text-xs">{t('sales.customer')}</p>
               <p className="font-medium">{sale.customer_name}</p>
             </div>
           )}
           <div>
-            <p className="text-muted-foreground text-xs">Balance before</p>
+            <p className="text-muted-foreground text-xs">{t('sales.balanceBefore')}</p>
             <p className="font-medium">{formatCurrency(balanceBefore, 'IQD')}</p>
           </div>
           <div className="col-span-2">
-            <p className="text-muted-foreground text-xs">Remaining balance</p>
+            <p className="text-muted-foreground text-xs">{t('sales.remainingBalance')}</p>
             <p className={`font-semibold text-base ${sale.total_remaining > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
               {formatCurrency(sale.total_remaining, 'IQD')}
-              {sale.total_remaining === 0 && ' — Fully paid!'}
+              {sale.total_remaining === 0 && ` ${t('sales.fullyPaidLabel')}`}
             </p>
           </div>
           {payment.note && (
             <div className="col-span-2 rounded bg-muted px-2 py-1.5 text-xs">
-              <span className="font-medium">Note: </span>{payment.note}
+              <span className="font-medium">{t('common.note')}: </span>{payment.note}
             </div>
           )}
         </div>
@@ -773,9 +786,9 @@ function PaymentReceipt({
 
       <div className="flex items-center justify-between">
         <Button variant="outline" size="sm" onClick={onPrint}>
-          <Printer className="h-4 w-4" /> Print receipt
+          <Printer className="h-4 w-4" /> {t('sales.printReceipt')}
         </Button>
-        <Button onClick={onClose}>Done</Button>
+        <Button onClick={onClose}>{t('common.done')}</Button>
       </div>
     </div>
   )
@@ -784,9 +797,11 @@ function PaymentReceipt({
 // ─── New sale dialog ──────────────────────────────────────────────────────────
 
 function SaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const customers = useQuery({ queryKey: ['customers-mini'], queryFn: listCustomers })
-  const products  = useQuery({ queryKey: ['products-mini'],  queryFn: listProducts })
-  const dollarQ   = useQuery({ queryKey: ['dollar-rate'],    queryFn: getCurrentDollar })
+  const { t } = useTranslation()
+  const customers  = useQuery({ queryKey: ['customers-mini'],  queryFn: listCustomers })
+  const products   = useQuery({ queryKey: ['products-mini'],   queryFn: listProducts })
+  const dollarQ    = useQuery({ queryKey: ['dollar-rate'],     queryFn: getCurrentDollar })
+  const warehousesQ = useQuery({ queryKey: ['warehouses-mini'], queryFn: listWarehouses })
   const [items, setItems] = useState<Item[]>([{ product_id: null, name: '', price: 0, quantity: 1 }])
 
   const form = useForm({
@@ -797,15 +812,16 @@ function SaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
       discount: 0,
       dollar: dollarQ.data ?? 1500,
       note: '',
+      warehouse_id: null as number | null,
     },
     onSubmit: async ({ value }) => {
       if (items.some((i) => !i.name || i.quantity < 1)) {
-        toast.error('Each item needs a name and quantity ≥ 1')
+        toast.error(t('sales.invalidItems'))
         return
       }
       try {
         await createSale({ data: { ...value, items } })
-        toast.success('Sale created')
+        toast.success(t('sales.saleCreated'))
         onSaved()
       } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     },
@@ -818,31 +834,44 @@ function SaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>New sale</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t('sales.newSale')}</DialogTitle></DialogHeader>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
           <div className="grid grid-cols-3 gap-3">
             <form.Field name="customer_id">{(f) => (
               <div className="grid gap-1.5">
-                <label className="text-sm font-medium">Customer</label>
+                <label className="text-sm font-medium">{t('sales.customer')}</label>
                 <Select value={f.state.value ? String(f.state.value) : ''} onValueChange={(v) => f.handleChange(v ? Number(v) : null)}>
-                  <SelectTrigger><SelectValue placeholder="(walk-in)" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('sales.walkIn')} /></SelectTrigger>
                   <SelectContent>
                     {customers.data?.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             )}</form.Field>
-            <TextField form={form} name="sale_number" label="Sale number" required />
-            <SelectField form={form} name="sale_type" label="Type" options={[
-              { value: 'CASH' as const, label: 'Cash' },
-              { value: 'LOAN' as const, label: 'Loan' },
+            <TextField form={form} name="sale_number" label={t('sales.saleNumber')} required />
+            <SelectField form={form} name="sale_type" label={t('common.type')} options={[
+              { value: 'CASH' as const, label: t('sales.cash') },
+              { value: 'LOAN' as const, label: t('sales.loan') },
             ]} />
           </div>
+          {(warehousesQ.data?.length ?? 0) > 0 && (
+            <form.Field name="warehouse_id">{(f) => (
+              <div className="grid gap-1.5">
+                <label className="text-sm font-medium">{t('nav.warehouses')}</label>
+                <Select value={f.state.value ? String(f.state.value) : ''} onValueChange={(v) => f.handleChange(v ? Number(v) : null)}>
+                  <SelectTrigger><SelectValue placeholder={`(${t('purchases.noneOption')})`} /></SelectTrigger>
+                  <SelectContent>
+                    {warehousesQ.data?.map((w) => <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}</form.Field>
+          )}
 
           <div className="space-y-2">
-            <p className="text-sm font-semibold">Items</p>
+            <p className="text-sm font-semibold">{t('sales.items')}</p>
             <div className="grid grid-cols-[1fr_120px_70px_120px_36px] gap-2 text-xs text-muted-foreground px-1">
-              <span>Product / Name</span><span>Name</span><span>Qty</span><span>Price (IQD)</span><span />
+              <span>{t('sales.product')}</span><span>{t('common.name')}</span><span>{t('sales.quantity')}</span><span>{t('sales.unitPrice')} (IQD)</span><span />
             </div>
             {items.map((it, i) => (
               <div key={i} className="grid grid-cols-[1fr_120px_70px_120px_36px] gap-2 items-center">
@@ -851,12 +880,12 @@ function SaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
                     const p = products.data?.find((p) => String(p.id) === v)
                     if (p) updateItem(i, { product_id: p.id, name: p.name, price: p.price })
                   }}>
-                  <SelectTrigger><SelectValue placeholder="Pick product…" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('sales.pickProduct')} /></SelectTrigger>
                   <SelectContent>
                     {products.data?.map((p) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Input value={it.name} onChange={(e) => updateItem(i, { name: e.target.value })} placeholder="Name" />
+                <Input value={it.name} onChange={(e) => updateItem(i, { name: e.target.value })} placeholder={t('common.name')} />
                 <Input type="number" min={1} value={it.quantity} onChange={(e) => updateItem(i, { quantity: Number(e.target.value) })} />
                 <Input type="number" min={0} value={it.price} onChange={(e) => updateItem(i, { price: Number(e.target.value) })} />
                 <Button type="button" size="icon" variant="ghost"
@@ -867,26 +896,26 @@ function SaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
             ))}
             <Button type="button" variant="outline" size="sm"
               onClick={() => setItems((xs) => [...xs, { product_id: null, name: '', price: 0, quantity: 1 }])}>
-              <Plus className="h-3 w-3" /> Add line
+              <Plus className="h-3 w-3" /> {t('sales.addLine')}
             </Button>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <TextField form={form} name="discount" label="Discount (IQD)" type="number" />
-            <TextField form={form} name="dollar"   label="USD rate"        type="number" required />
+            <TextField form={form} name="discount" label={t('sales.discount')} type="number" />
+            <TextField form={form} name="dollar"   label={t('sales.usdRate')}  type="number" required />
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium">Total</label>
+              <label className="text-sm font-medium">{t('common.total')}</label>
               <Input value={formatCurrency(Math.max(0, total), 'IQD')} disabled className="font-mono bg-muted" />
             </div>
           </div>
 
-          <TextAreaField form={form} name="note" label="Note" />
+          <TextAreaField form={form} name="note" label={t('common.note')} />
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
             <Button type="submit" disabled={form.state.isSubmitting}>
               {form.state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create sale
+              {t('sales.createSale')}
             </Button>
           </div>
         </form>

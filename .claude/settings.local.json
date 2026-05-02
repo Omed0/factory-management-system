@@ -41,7 +41,11 @@
       "PowerShell(Get-Content .env | Where-Object { $_ -match \"^\\(JWT_SECRET|ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY_BASE|POSTGRES_PASSWORD\\)=\" })",
       "PowerShell(docker compose -f supabase/docker-compose.yml --env-file .env down --volumes --remove-orphans 2>&1)",
       "Bash(docker volume *)",
-      "Bash(curl -s http://localhost:8000/rest/v1/ -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc3NjMwMTUxLCJleHAiOjIwOTI5OTAxNTF9.zbUENQmIIxk17GoehGnyjzP97DESoyvwoVapBk3QQu8\")"
+      "Bash(curl -s http://localhost:8000/rest/v1/ -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzc3NjMwMTUxLCJleHAiOjIwOTI5OTAxNTF9.zbUENQmIIxk17GoehGnyjzP97DESoyvwoVapBk3QQu8\")",
+      "Bash(Test-Path w:/Development/factory-management-system/README.md)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

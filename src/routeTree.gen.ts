@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWarehousesRouteImport } from './routes/app/warehouses'
 import { Route as AppSalesRouteImport } from './routes/app/sales'
 import { Route as AppReportsRouteImport } from './routes/app/reports'
 import { Route as AppPurchasesRouteImport } from './routes/app/purchases'
@@ -54,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppWarehousesRoute = AppWarehousesRouteImport.update({
+  id: '/warehouses',
+  path: '/warehouses',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppSalesRoute = AppSalesRouteImport.update({
   id: '/sales',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/app/purchases': typeof AppPurchasesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
+  '/app/warehouses': typeof AppWarehousesRoute
   '/app/settings/backups': typeof AppSettingsBackupsRoute
   '/app/settings/branding': typeof AppSettingsBrandingRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/app/purchases': typeof AppPurchasesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
+  '/app/warehouses': typeof AppWarehousesRoute
   '/app/settings/backups': typeof AppSettingsBackupsRoute
   '/app/settings/branding': typeof AppSettingsBrandingRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/app/purchases': typeof AppPurchasesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
+  '/app/warehouses': typeof AppWarehousesRoute
   '/app/settings/backups': typeof AppSettingsBackupsRoute
   '/app/settings/branding': typeof AppSettingsBrandingRoute
   '/app/settings/users': typeof AppSettingsUsersRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/app/purchases'
     | '/app/reports'
     | '/app/sales'
+    | '/app/warehouses'
     | '/app/settings/backups'
     | '/app/settings/branding'
     | '/app/settings/users'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/app/purchases'
     | '/app/reports'
     | '/app/sales'
+    | '/app/warehouses'
     | '/app/settings/backups'
     | '/app/settings/branding'
     | '/app/settings/users'
@@ -259,6 +270,7 @@ export interface FileRouteTypes {
     | '/app/purchases'
     | '/app/reports'
     | '/app/sales'
+    | '/app/warehouses'
     | '/app/settings/backups'
     | '/app/settings/branding'
     | '/app/settings/users'
@@ -309,6 +321,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/warehouses': {
+      id: '/app/warehouses'
+      path: '/warehouses'
+      fullPath: '/app/warehouses'
+      preLoaderRoute: typeof AppWarehousesRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/app/sales': {
       id: '/app/sales'
@@ -447,6 +466,7 @@ interface AppRouteRouteChildren {
   AppPurchasesRoute: typeof AppPurchasesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSalesRoute: typeof AppSalesRoute
+  AppWarehousesRoute: typeof AppWarehousesRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -461,6 +481,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppPurchasesRoute: AppPurchasesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSalesRoute: AppSalesRoute,
+  AppWarehousesRoute: AppWarehousesRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

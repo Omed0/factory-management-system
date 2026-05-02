@@ -5,10 +5,11 @@ import { useForm } from '@tanstack/react-form';
 import { useState } from 'react';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { Loader2, UserPlus, Shield, Trash2 } from 'lucide-react';
+import { Loader2, UserPlus, Shield, Trash2, UserCog } from 'lucide-react';
 
 import { getSupabaseAdmin, getSupabaseServer } from '~/lib/supabase.server';
 import { requireUser } from '~/lib/auth';
+import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
@@ -84,6 +85,7 @@ const changeRole = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     const me = await requireUser();
     if (!['OWNER', 'ADMIN'].includes(me.role)) throw new Error('forbidden');
+    if (data.role === 'ADMIN' && me.role !== 'OWNER') throw new Error('only OWNER may grant ADMIN role');
     const sb = getSupabaseServer()
     const { error } = await sb.from('profiles').update({ role: data.role }).eq('id', data.profile_id);
     if (error) throw new Error(error.message);
@@ -123,6 +125,25 @@ const savePermissions = createServerFn({ method: 'POST' })
     return { ok: true };
   });
 
+const UpdateProfileSchema = z.object({
+  name:     z.string().min(2),
+  password: z.string().min(8).optional().or(z.literal('')),
+});
+const updateOwnProfile = createServerFn({ method: 'POST' })
+  .inputValidator((d: unknown) => UpdateProfileSchema.parse(d))
+  .handler(async ({ data }) => {
+    const me = await requireUser();
+    const sb = getSupabaseServer()
+    const { error } = await sb.from('profiles').update({ name: data.name }).eq('id', me.id);
+    if (error) throw new Error(error.message);
+    if (data.password) {
+      const admin = getSupabaseAdmin();
+      const { error: pwErr } = await admin.auth.admin.updateUserById(me.id, { password: data.password });
+      if (pwErr) throw new Error(pwErr.message);
+    }
+    return { ok: true };
+  });
+
 // ─── route ───────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute('/app/settings/users')({
@@ -140,9 +161,24 @@ function UsersTab() {
   const users = useQuery({ queryKey: ['users'], queryFn: listUsers });
   const [editing, setEditing] = useState<ProfileRow | null>(null);
   const [creating, setCreating] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* My Profile */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">My Profile</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setEditingProfile(true)}>
+            <UserCog className="h-4 w-4" /> Edit profile
+          </Button>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <p><strong>Name:</strong> {me.name}</p>
+          <p><strong>Role:</strong> {me.role}</p>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Team members</h2>
         <Button onClick={() => setCreating(true)}><UserPlus className="h-4 w-4" /> Add user</Button>
@@ -164,15 +200,19 @@ function UsersTab() {
                     <Select
                       value={u.role}
                       onValueChange={async (v) => {
-                        await changeRole({ data: { profile_id: u.id, role: v as 'ADMIN' | 'USER' } });
-                        qc.invalidateQueries({ queryKey: ['users'] });
-                        toast.success('Role updated');
+                        try {
+                          await changeRole({ data: { profile_id: u.id, role: v as 'ADMIN' | 'USER' } });
+                          qc.invalidateQueries({ queryKey: ['users'] });
+                          toast.success('Role updated');
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : 'Failed');
+                        }
                       }}
                       disabled={u.id === me.id}
                     >
                       <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ADMIN">ADMIN</SelectItem>
+                        {me.role === 'OWNER' && <SelectItem value="ADMIN">ADMIN</SelectItem>}
                         <SelectItem value="USER">USER</SelectItem>
                       </SelectContent>
                     </Select>
@@ -202,6 +242,13 @@ function UsersTab() {
 
       {creating && <CreateUserDialog onClose={() => setCreating(false)} />}
       {editing && <PermissionsDialog user={editing} onClose={() => setEditing(null)} />}
+      {editingProfile && (
+        <EditProfileDialog
+          currentName={me.name}
+          onClose={() => setEditingProfile(false)}
+          onSaved={() => { setEditingProfile(false); qc.invalidateQueries({ queryKey: ['users'] }); }}
+        />
+      )}
     </div>
   );
 }
@@ -245,6 +292,47 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
             {form.state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             Create
           </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditProfileDialog({ currentName, onClose, onSaved }: { currentName: string; onClose: () => void; onSaved: () => void }) {
+  const form = useForm({
+    defaultValues: { name: currentName, password: '' },
+    onSubmit: async ({ value }) => {
+      try {
+        await updateOwnProfile({ data: { name: value.name, password: value.password || undefined } });
+        toast.success('Profile updated');
+        onSaved();
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Failed');
+      }
+    },
+  });
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Edit my profile</DialogTitle></DialogHeader>
+        <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-4">
+          <form.Field name="name">{(f) => (
+            <div className="grid gap-1.5"><Label>Name</Label>
+              <Input value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} required minLength={2} />
+            </div>
+          )}</form.Field>
+          <form.Field name="password">{(f) => (
+            <div className="grid gap-1.5"><Label>New password (leave blank to keep current)</Label>
+              <Input type="password" value={f.state.value} onChange={(e) => f.handleChange(e.target.value)} minLength={8} placeholder="8+ characters" />
+            </div>
+          )}</form.Field>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={form.state.isSubmitting}>
+              {form.state.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Save
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
