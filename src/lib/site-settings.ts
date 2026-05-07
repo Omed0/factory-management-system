@@ -1,5 +1,5 @@
-import { createServerFn } from '@tanstack/react-start';
-import { getSupabaseServer } from '~/lib/supabase.server';
+import { createServerFn } from "@tanstack/react-start";
+import { getSupabaseServer } from "~/lib/supabase.server";
 
 export interface SiteSettings {
   id: number;
@@ -17,7 +17,7 @@ export interface SiteSettings {
   email: string | null;
   tax_id: string | null;
   language: string;
-  direction: 'ltr' | 'rtl';
+  direction: "ltr" | "rtl";
   base_currency: string;
   display_currency: string;
   default_dollar_rate: number;
@@ -32,21 +32,23 @@ export interface SiteSettings {
  * Returns `null` if the DB is unreachable (so the first-paint can fall back to
  * defaults instead of crashing the SSR render).
  */
-export const loadSiteSettings = createServerFn({ method: 'GET' }).handler(async (): Promise<SiteSettings | null> => {
-  const sb = getSupabaseServer()
-  const { data, error } = await sb
-    .from('site_settings')
-    .select(
-      'id, factory_name, legal_name, tagline, logo_url, favicon_url, primary_color, accent_color, address, city, country, phone, email, tax_id, language, direction, base_currency, display_currency, default_dollar_rate, setup_completed, fiscal_year_start_month',
-    )
-    .eq('id', 1)
-    .maybeSingle<SiteSettings>();
-  if (error) {
-    console.error('[site-settings] load failed', error);
-    return null;
-  }
-  return data;
-});
+export const loadSiteSettings = createServerFn({ method: "GET" }).handler(
+  async (): Promise<SiteSettings | null> => {
+    const sb = getSupabaseServer();
+    const { data, error } = await sb
+      .from("site_settings")
+      .select(
+        "id, factory_name, legal_name, tagline, logo_url, favicon_url, primary_color, accent_color, address, city, country, phone, email, tax_id, language, direction, base_currency, display_currency, default_dollar_rate, setup_completed, fiscal_year_start_month",
+      )
+      .eq("id", 1)
+      .maybeSingle<SiteSettings>();
+    if (error) {
+      console.error("[site-settings] load failed", error);
+      return null;
+    }
+    return data;
+  },
+);
 
 /**
  * Convert hex (#0ea5e9) to oklch() so we can drop it straight into the

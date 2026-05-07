@@ -141,7 +141,17 @@
     "perTransaction": "بە هەر مامەڵەیەک",
     "usdExchangeRate": "نرخی گۆڕینی دۆلار",
     "per1Usd": "بۆ ١ دۆلار",
-    "monthlyRevenue": "داهاتی مانگانە (٦ مانگی ڕابردوو)"
+    "monthlyRevenue": "داهاتی مانگانە (٦ مانگی ڕابردوو)",
+    "outstandingPayables": "قەرزی کڕین",
+    "owedToSuppliers": "قەرز بۆ فرۆشیار",
+    "recentTransactions": "کردارە دوایینەکان",
+    "noRecentTx": "هیچ مامەڵەیەک نییە",
+    "lowStock": "ئاگاداری کەمی کاڵا",
+    "noLowStock": "هەموو کاڵاکان باشن",
+    "topProductsToday": "باشترین بەرهەمی ئەمڕۆ",
+    "tx_sale": "فرۆشتن",
+    "tx_purchase": "کڕین",
+    "tx_expense": "خەرجی"
   },
   "customers": {
     "title": "کڕیارەکان",
@@ -284,7 +294,9 @@
     "expenseCreated": "خەرجی تۆمارکرا",
     "expenseRemoved": "خەرجی لابرا",
     "confirmRemove": "ئەم خەرجییە لابببرێت؟",
-    "noExpenses": "هیچ خەرجییەک نەدۆزرایەوە"
+    "noExpenses": "هیچ خەرجییەک نەدۆزرایەوە",
+    "category": "بەش",
+    "categoryPlaceholder": "بۆ نموونە: ئاو و کارەبا، کرێ، پێداویستی"
   },
   "dollar": {
     "title": "نرخی دۆلار",
@@ -398,7 +410,19 @@
     "salaryNote": "مووچە بەپێی ماوەی دیاریکراو هژمار دەکرێت. ئەم ژمارانە خوازراوە.",
     "employeeCount": "{{count}} کارمەند",
     "print": "چاپکردن",
-    "noPermission": "ئەرکی بینینی ڕاپۆرت نییەت."
+    "noPermission": "ئەرکی بینینی ڕاپۆرت نییەت.",
+    "quickToday": "ئەمڕۆ",
+    "quickWeek": "ئەم هەفتەیە",
+    "quickMonth": "ئەم مانگە",
+    "quick3Months": "3 مانگی ڕابردوو",
+    "quickYear": "ئەم ساڵە",
+    "topProducts": "باشترین بەرهەمەکان",
+    "topCustomers": "باشترین کڕیارەکان",
+    "expenseBreakdown": "دابەشکردنی خەرجییەکان",
+    "dollarHistory": "مێژووی نرخی دۆلار",
+    "revenue": "داهات",
+    "qty": "ژمارە",
+    "txCount": "مامەڵەکان"
   },
   "warehouses": {
     "title": "کۆگاکان",
@@ -463,5 +487,35 @@
     "runBackup": "پاشگرکردن جێبەجێبکە",
     "backupRunning": "پاشگرکردن دەستپێکرا...",
     "noBackups": "هیچ پاشگرکردنێک نەدۆزرایەوە"
+  },
+  "trash": {
+    "title": "تەنەکەی خۆڵ",
+    "subtitle": "گەڕاندنەوە یان سڕینەوەی هەمیشەیی تۆمارە سڕاوەکان",
+    "noPermission": "ڕێگەت پێنەدراوە بۆ بەڕێوەبردنی تەنەکەی خۆڵ.",
+    "empty": "هیچ تۆمارێکی سڕاو لەم بەشەدا نییە.",
+    "restore": "گەڕاندنەوە",
+    "hardDelete": "سڕینەوەی هەمیشەیی",
+    "restored": "تۆمار گەڕێندرایەوە",
+    "hardDeleted": "تۆمار بە تەواوی سڕایەوە",
+    "confirmRestore": "گەڕاندنەوەی \"{{name}}\"؟",
+    "confirmHardDelete": "سڕینەوەی هەمیشەیی \"{{name}}\"؟ ناتوانرێت بگەڕێنرێتەوە.",
+    "confirmHardDeleteAgain": "بە دڵنیاییت؟ ئەمە تۆمارەکە بۆ هەتاهەتایە دەسڕێتەوە.",
+    "salesRestoreNote": "فرۆشتن گەڕێندرایەوە — کۆگاکە بپشکنە ئەگەر هەر بەرهەمێک کەم بوو.",
+    "col": {
+      "identifier": "تۆمار",
+      "detail": "وردەکاری",
+      "deletedAt": "کاتی سڕینەوە"
+    },
+    "entity": {
+      "sales": "فرۆشتن",
+      "purchases": "کڕین",
+      "customers": "کڕیاران",
+      "products": "بەرهەمەکان",
+      "employees": "کارمەندان",
+      "expenses": "خەرجی",
+      "companies": "کۆمپانیاکان",
+      "warehouses": "کۆگاکان",
+      "profiles": "بەکارهێنەران"
+    }
   }
 }

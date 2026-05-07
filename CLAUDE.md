@@ -132,3 +132,63 @@ See [docs/development.md](docs/development.md) for the full first-time setup wal
 - ❌ Reading `auth.users.user_metadata` for authorization decisions (it's user-editable; use `app_metadata` or DB role)
 - ❌ Putting `service_role` keys in any code that could ship to the browser
 - ❌ Bringing back the Telegram bot
+
+## Soft-delete invariants
+
+Any server function that adjusts `warehouse_products.qty` on **create** MUST reverse that adjustment on **soft-delete** and re-apply it on **restore**. Use the dedicated SECURITY DEFINER RPCs — do not write plain `UPDATE SET deleted_at`:
+
+- Sales: `soft_delete_sale(p_sale_id)`, `restore_sale(p_sale_id)`, `hard_delete_sale(p_sale_id)`
+- Purchases: `soft_delete_purchase(p_purchase_id)`, `restore_purchase(p_purchase_id)`, `hard_delete_purchase(p_purchase_id)`
+- Other entities (no inventory side-effects): `restore_record(table, id)` / `hard_delete_record(table, id)` or UUID variants
+
+## Trash flow rules
+
+- **Restore** is reversible. It clears `deleted_at` and re-applies any inventory changes the original create made.
+- **Hard-delete** is permanent and cascades to child rows. If the record is still active (not already soft-deleted) at hard-delete time, inventory must be reversed first — the `hard_delete_sale` RPC handles this.
+- The Trash UI (`/app/settings/trash`) requires `trash:manage` permission (OWNER and ADMIN only by default via `ESSENTIAL_PERMISSIONS`).
+- When restoring a sale would push warehouse stock negative, the RPC caps stock at 0 (via `GREATEST(0, ...)`) and the UI shows a warning toast to prompt manual verification.
+
+## Audit money-equality rule
+
+Any aggregation over child financial tables (`paid_loans`, `purchase_payments`, `sale_items`) MUST embed-join the parent table using PostgREST `!inner` and filter `parent.deleted_at IS NULL`. Otherwise payments for soft-deleted parents inflate cash totals.
+
+```ts
+// Correct — excludes payments whose sale was soft-deleted
+(sb.from('paid_loans') as any)
+  .select('amount, sales!inner(deleted_at)')
+  .is('sales.deleted_at', null)
+```
+
+Without `!inner`, PostgREST uses a LEFT JOIN, and the `is` filter is silently ignored for non-matching rows.
+
+## Security rules
+
+### Print invoice HTML — always escape user data
+
+Any server-fn or helper that builds an HTML string for `window.open()` / print MUST escape all user-controlled values with `escapeHtml()`. Never interpolate raw user strings into HTML templates.
+
+```ts
+function escapeHtml(s: string | null | undefined): string {
+  if (!s) return ''
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+```
+
+Applies to: customer name/phone, item names, notes, company name/phone, factory name, address.
+
+### Backup restore — never send large files through server functions
+
+Backup file uploads MUST go directly from the browser to Supabase Storage (using `getSupabaseBrowser()`). Sending base64 file bodies through `createServerFn` routes through Kong which has a request body size limit and returns 502 for large files.
+
+Pattern: browser uploads file → gets storage key → calls `restoreFromStorageKey({ storageKey })` server fn → server downloads from storage.
+
+### Server fn authorization
+
+Every `createServerFn` that touches sensitive data MUST check permissions **inside the handler**, not just in `beforeLoad`. Route-level guards protect the UI but not direct server-fn calls.
+
+- Use `has_permission(resource, action)` RPC for data operations.
+- For admin-only operations (backup runs, config): check `me.role` explicitly (`if (!['OWNER', 'ADMIN'].includes(me.role)) throw new Error('forbidden')`).
+
+### Modal overflow
+
+All `<table>` elements inside `DialogContent` MUST be wrapped in `<div className="overflow-x-auto">` to prevent horizontal content overflow on narrow screens. The `SaleDialog` items grid (fixed-column layout) wraps in `<div className="overflow-x-auto"><div className="min-w-140 space-y-1.5">`.

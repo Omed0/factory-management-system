@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from "zod";
 
 const schema = z.object({
   // Supabase — internal URL used for server-to-server calls (inside Docker network)
@@ -15,20 +15,24 @@ const schema = z.object({
   R2_BUCKET: z.string().optional(),
   R2_ENDPOINT: z.string().optional(),
 
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
   PORT: z.coerce.number().default(3000),
-})
+});
 
 function load() {
-  const result = schema.safeParse(process.env)
+  const result = schema.safeParse(process.env);
   if (!result.success) {
-    console.error('[env] Invalid environment variables:')
-    console.error(result.error.flatten().fieldErrors)
-    throw new Error('Missing or invalid environment variables — check .env.example')
+    console.error("[env] Invalid environment variables:");
+    console.error(result.error.flatten().fieldErrors);
+    throw new Error(
+      "Missing or invalid environment variables — check .env.example",
+    );
   }
-  return result.data
+  return result.data;
 }
 
-export const env = load()
+export const env = load();
 
-export const supabaseUrl = env.SUPABASE_URL ?? env.PUBLIC_SUPABASE_URL
+export const supabaseUrl = env.SUPABASE_URL ?? env.PUBLIC_SUPABASE_URL;

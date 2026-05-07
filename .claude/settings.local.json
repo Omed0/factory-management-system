@@ -45,7 +45,13 @@
       "Bash(Test-Path w:/Development/factory-management-system/README.md)",
       "Bash(gh api *)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "PowerShell(Get-ChildItem -Path \"w:\\\\Development\\\\factory-management-system\\\\supabase\\\\migrations\\\\\" | Sort-Object Name -Descending | Select-Object -First 15 | ForEach-Object { $_.Name })",
+      "Bash(git check-ignore *)",
+      "PowerShell(powershell -NoProfile -Command \"& { [System.Management.Automation.Language.Parser]::ParseFile\\('W:\\\\Development\\\\factory-management-system\\\\scripts\\\\migrate.ps1', [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { 'PARSE OK' } else { $errors | ForEach-Object { $_.Message } } }\")",
+      "PowerShell($errors = [System.Collections.Generic.List[System.Management.Automation.Language.ParseError]]::new\\(\\); $tokens = $null; [System.Management.Automation.Language.Parser]::ParseFile\\('W:\\\\Development\\\\factory-management-system\\\\scripts\\\\migrate.ps1', [ref]$tokens, [ref]$errors\\) | Out-Null; if \\($errors.Count -eq 0\\) { Write-Host 'PARSE OK - no syntax errors' -ForegroundColor Green } else { $errors | ForEach-Object { Write-Host $_.Message -ForegroundColor Red } })",
+      "PowerShell(docker exec supabase-db curl -s \"http://meta:8080/generators/typescript?included_schemas=public\" 2>&1)",
+      "PowerShell(Get-Item W:\\\\Development\\\\factory-management-system\\\\src\\\\lib\\\\database.types.ts | Select-Object Name, Length, LastWriteTime; \\(Get-Content W:\\\\Development\\\\factory-management-system\\\\src\\\\lib\\\\database.types.ts -TotalCount 8\\) -join \"`n\")"
     ]
   }
 }

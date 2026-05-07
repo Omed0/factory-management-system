@@ -141,7 +141,17 @@
     "perTransaction": "per transaction",
     "usdExchangeRate": "USD Exchange Rate",
     "per1Usd": "per 1 USD",
-    "monthlyRevenue": "Monthly Revenue (last 6 months)"
+    "monthlyRevenue": "Monthly Revenue (last 6 months)",
+    "outstandingPayables": "Outstanding Payables",
+    "owedToSuppliers": "Owed to suppliers",
+    "recentTransactions": "Recent Activity",
+    "noRecentTx": "No recent transactions",
+    "lowStock": "Low Stock Alerts",
+    "noLowStock": "All stock levels are good",
+    "topProductsToday": "Top Products Today",
+    "tx_sale": "Sale",
+    "tx_purchase": "Purchase",
+    "tx_expense": "Expense"
   },
   "customers": {
     "title": "Customers",
@@ -284,7 +294,9 @@
     "expenseCreated": "Expense recorded",
     "expenseRemoved": "Expense removed",
     "confirmRemove": "Remove this expense?",
-    "noExpenses": "No expenses found"
+    "noExpenses": "No expenses found",
+    "category": "Category",
+    "categoryPlaceholder": "e.g. Utilities, Rent, Supplies"
   },
   "dollar": {
     "title": "Dollar Rate",
@@ -398,7 +410,19 @@
     "salaryNote": "Salary is pro-rated for the selected period. Payroll figures are estimates.",
     "employeeCount": "{{count}} employee(s)",
     "print": "Print",
-    "noPermission": "You don't have permission to view reports."
+    "noPermission": "You don't have permission to view reports.",
+    "quickToday": "Today",
+    "quickWeek": "This week",
+    "quickMonth": "This month",
+    "quick3Months": "Last 3 months",
+    "quickYear": "This year",
+    "topProducts": "Top Products",
+    "topCustomers": "Top Customers",
+    "expenseBreakdown": "Expense Breakdown",
+    "dollarHistory": "Exchange Rate History",
+    "revenue": "Revenue",
+    "qty": "Qty",
+    "txCount": "Transactions"
   },
   "warehouses": {
     "title": "Warehouses",
@@ -463,5 +487,35 @@
     "runBackup": "Run backup",
     "backupRunning": "Running backup...",
     "noBackups": "No backups found"
+  },
+  "trash": {
+    "title": "Trash",
+    "subtitle": "Restore or permanently delete soft-deleted records",
+    "noPermission": "You don't have permission to manage trash.",
+    "empty": "No deleted items in this category.",
+    "restore": "Restore",
+    "hardDelete": "Delete forever",
+    "restored": "Item restored",
+    "hardDeleted": "Item permanently deleted",
+    "confirmRestore": "Restore \"{{name}}\"?",
+    "confirmHardDelete": "Permanently delete \"{{name}}\"? This cannot be undone.",
+    "confirmHardDeleteAgain": "Are you absolutely sure? This deletes the record forever.",
+    "salesRestoreNote": "Sale restored — verify warehouse stock if any product was short.",
+    "col": {
+      "identifier": "Item",
+      "detail": "Detail",
+      "deletedAt": "Deleted at"
+    },
+    "entity": {
+      "sales": "Sales",
+      "purchases": "Purchases",
+      "customers": "Customers",
+      "products": "Products",
+      "employees": "Employees",
+      "expenses": "Expenses",
+      "companies": "Companies",
+      "warehouses": "Warehouses",
+      "profiles": "Users"
+    }
   }
 }

@@ -183,3 +183,15 @@ visible on the next page load with **no rebuild**.
    job — no manual `cron.unschedule` needed.
 5. Manual backups: from `/app/settings/backups` the UI invokes the same Edge
    Function with `{kind:'manual'}`.
+
+## Money-equality invariants and the trash/restore flow
+
+Every transactional entity (`sales`, `company_purchases`, `expenses`, `employee_actions`) snapshots the USD rate in a `dollar` column at creation time — do not normalize this away.
+
+**Soft-delete safety for sales:** `createSale` calls `adjust_warehouse_qty(-qty)` for each item. To keep inventory consistent, any delete of a sale must reverse this (i.e., call `adjust_warehouse_qty(+qty)`). This is done inside the `soft_delete_sale` SECURITY DEFINER RPC (migration 0011). Never soft-delete a sale with a plain `UPDATE SET deleted_at`.
+
+**Restore safety:** `restore_sale` re-deducts inventory using `adjust_warehouse_qty(-qty)` with `GREATEST(0, qty + delta)` guarding against negative stock. If a product was hard-deleted or warehouse removed, those items are silently skipped and a UI warning is shown.
+
+**Hard-delete safety:** If a sale is still active (not soft-deleted) when hard-deleted, the `hard_delete_sale` RPC reverses inventory first, then issues a `DELETE` that cascades to `sale_items` and `paid_loans`.
+
+**Audit query rule:** Any aggregation over child financial tables (`paid_loans`, `purchase_payments`, `sale_items`) must use a PostgREST `!inner` embed-join to the parent and filter `parent.deleted_at IS NULL`. A plain LEFT JOIN silently includes children of soft-deleted parents, inflating totals. See the `runAudit` server function in `src/routes/app/reports.tsx` for the correct pattern.

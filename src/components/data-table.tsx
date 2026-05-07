@@ -7,16 +7,27 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from '@tanstack/react-table';
-import { useState } from 'react';
-import { ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
+} from "@tanstack/react-table";
+import { useState } from "react";
+import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { Button } from '~/components/ui/button';
-import { Input } from '~/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '~/components/ui/table';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 
 interface DataTableProps<T> {
   data: T[];
@@ -33,21 +44,25 @@ export function DataTable<T>({
   data,
   columns,
   searchKey,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = "Search...",
   pageSize = 20,
-  emptyMessage = 'No data',
+  emptyMessage = "No data",
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [globalFilter, setGlobalFilter] = useState("");
   const [currentPageSize, setCurrentPageSize] = useState(pageSize);
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter, pagination: { pageIndex: 0, pageSize: currentPageSize } },
+    state: {
+      sorting,
+      globalFilter,
+      pagination: { pageIndex: 0, pageSize: currentPageSize },
+    },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: 'includesString',
+    globalFilterFn: "includesString",
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -76,17 +91,26 @@ export function DataTable<T>({
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="max-w-xs"
           />
-        ) : <div />}
+        ) : (
+          <div />
+        )}
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Rows per page</span>
-          <Select value={String(currentPageSize)} onValueChange={handlePageSizeChange}>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            Rows per page
+          </span>
+          <Select
+            value={String(currentPageSize)}
+            onValueChange={handlePageSizeChange}
+          >
             <SelectTrigger className="h-8 w-17.5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {PAGE_SIZE_OPTIONS.map((n) => (
-                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -121,13 +145,18 @@ export function DataTable<T>({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((c) => (
-                    <TableCell key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</TableCell>
+                    <TableCell key={c.id}>
+                      {flexRender(c.column.columnDef.cell, c.getContext())}
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center text-sm text-muted-foreground py-8">
+                <TableCell
+                  colSpan={columns.length}
+                  className="text-center text-sm text-muted-foreground py-8"
+                >
                   {emptyMessage}
                 </TableCell>
               </TableRow>
@@ -139,15 +168,25 @@ export function DataTable<T>({
       {/* Footer: count + page nav */}
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          {filteredCount} row{filteredCount !== 1 ? 's' : ''}
+          {filteredCount} row{filteredCount !== 1 ? "s" : ""}
           {totalPages > 1 && ` · page ${currentPage} / ${totalPages}`}
         </p>
         {totalPages > 1 && (
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

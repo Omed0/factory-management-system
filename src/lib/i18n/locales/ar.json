@@ -141,7 +141,17 @@
     "perTransaction": "لكل معاملة",
     "usdExchangeRate": "سعر صرف الدولار",
     "per1Usd": "لكل 1 دولار",
-    "monthlyRevenue": "الإيرادات الشهرية (آخر 6 أشهر)"
+    "monthlyRevenue": "الإيرادات الشهرية (آخر 6 أشهر)",
+    "outstandingPayables": "الديون المستحقة للموردين",
+    "owedToSuppliers": "مستحق للموردين",
+    "recentTransactions": "النشاط الأخير",
+    "noRecentTx": "لا توجد معاملات حديثة",
+    "lowStock": "تنبيهات المخزون المنخفض",
+    "noLowStock": "جميع مستويات المخزون جيدة",
+    "topProductsToday": "أفضل المنتجات اليوم",
+    "tx_sale": "بيع",
+    "tx_purchase": "شراء",
+    "tx_expense": "مصروف"
   },
   "customers": {
     "title": "العملاء",
@@ -284,7 +294,9 @@
     "expenseCreated": "تم تسجيل المصروف",
     "expenseRemoved": "تم حذف المصروف",
     "confirmRemove": "هل تريد حذف هذا المصروف؟",
-    "noExpenses": "لا توجد مصروفات"
+    "noExpenses": "لا توجد مصروفات",
+    "category": "الفئة",
+    "categoryPlaceholder": "مثلاً: مرافق، إيجار، مستلزمات"
   },
   "dollar": {
     "title": "سعر الدولار",
@@ -398,7 +410,19 @@
     "salaryNote": "الراتب محسوب تناسبيًا للفترة المحددة. هذه الأرقام تقديرية.",
     "employeeCount": "{{count}} موظف",
     "print": "طباعة",
-    "noPermission": "ليس لديك صلاحية عرض التقارير."
+    "noPermission": "ليس لديك صلاحية عرض التقارير.",
+    "quickToday": "اليوم",
+    "quickWeek": "هذا الأسبوع",
+    "quickMonth": "هذا الشهر",
+    "quick3Months": "آخر 3 أشهر",
+    "quickYear": "هذه السنة",
+    "topProducts": "أفضل المنتجات",
+    "topCustomers": "أفضل العملاء",
+    "expenseBreakdown": "توزيع المصروفات",
+    "dollarHistory": "تاريخ سعر الصرف",
+    "revenue": "الإيرادات",
+    "qty": "الكمية",
+    "txCount": "المعاملات"
   },
   "warehouses": {
     "title": "المستودعات",
@@ -463,5 +487,35 @@
     "runBackup": "تشغيل النسخ الاحتياطي",
     "backupRunning": "جارٍ تشغيل النسخ الاحتياطي...",
     "noBackups": "لا توجد نسخ احتياطية"
+  },
+  "trash": {
+    "title": "سلة المحذوفات",
+    "subtitle": "استعادة أو حذف نهائي للسجلات المحذوفة",
+    "noPermission": "ليس لديك صلاحية إدارة سلة المحذوفات.",
+    "empty": "لا توجد عناصر محذوفة في هذه الفئة.",
+    "restore": "استعادة",
+    "hardDelete": "حذف نهائي",
+    "restored": "تمت الاستعادة",
+    "hardDeleted": "تم الحذف النهائي",
+    "confirmRestore": "استعادة \"{{name}}\"؟",
+    "confirmHardDelete": "حذف \"{{name}}\" نهائيًا؟ لا يمكن التراجع.",
+    "confirmHardDeleteAgain": "هل أنت متأكد تمامًا؟ هذا يحذف السجل للأبد.",
+    "salesRestoreNote": "تمت استعادة المبيعة — تحقق من المخزون إذا كان أي منتج ناقصًا.",
+    "col": {
+      "identifier": "العنصر",
+      "detail": "التفاصيل",
+      "deletedAt": "تاريخ الحذف"
+    },
+    "entity": {
+      "sales": "المبيعات",
+      "purchases": "المشتريات",
+      "customers": "العملاء",
+      "products": "المنتجات",
+      "employees": "الموظفون",
+      "expenses": "المصروفات",
+      "companies": "الشركات",
+      "warehouses": "المستودعات",
+      "profiles": "المستخدمون"
+    }
   }
 }

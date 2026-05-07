@@ -1,6 +1,6 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 import path from "path";
@@ -20,7 +20,12 @@ export default defineConfig(async () => {
   return {
     plugins: [
       ...cloudflarePlugins,
-      tanstackStart(),
+      tanstackStart({
+        router: {
+          enableRouteGeneration: true,
+          generatedRouteTree: "./routeTree.ts",
+        },
+      }),
       tsconfigPaths(),
       react(),
       tailwindcss(),

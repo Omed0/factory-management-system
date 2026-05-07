@@ -11,28 +11,32 @@ import { env, supabaseUrl } from "~/lib/env.server";
  * Use inside createServerFn handlers and route loaders (RLS enforced).
  */
 export function getSupabaseServer() {
-  return createServerClient<Database, "public", Database["public"]>(supabaseUrl, env.PUBLIC_SUPABASE_ANON_KEY, {
-    cookies: {
-      getAll() {
-        const cookies = getCookies();
-        return Object.entries(cookies).map(([name, value]) => ({
-          name,
-          value,
-        }));
-      },
-      setAll(
-        cookiesToSet: Array<{
-          name: string;
-          value: string;
-          options: CookieOptions;
-        }>,
-      ) {
-        for (const { name, value, options } of cookiesToSet) {
-          setCookie(name, value, options as CookieSerializeOptions);
-        }
+  return createServerClient<Database, "public", Database["public"]>(
+    supabaseUrl,
+    env.PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          const cookies = getCookies();
+          return Object.entries(cookies).map(([name, value]) => ({
+            name,
+            value,
+          }));
+        },
+        setAll(
+          cookiesToSet: Array<{
+            name: string;
+            value: string;
+            options: CookieOptions;
+          }>,
+        ) {
+          for (const { name, value, options } of cookiesToSet) {
+            setCookie(name, value, options as CookieSerializeOptions);
+          }
+        },
       },
     },
-  });
+  );
 }
 
 /**
@@ -40,8 +44,11 @@ export function getSupabaseServer() {
  * Never expose to the browser.
  */
 export function getSupabaseAdmin() {
-  return createClient<Database, "public", "public">(supabaseUrl, env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  return createClient<Database, "public", "public">(
+    supabaseUrl,
+    env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+    },
+  );
 }
-
