@@ -44,6 +44,8 @@ A Kurdish-language (Sorani, RTL) factory/sales management system used by a real 
 6. **Backups** are config-driven via `site_settings.backup_*`. The cron schedule is rebuilt by trigger when `backup_cron` changes — don't hard-code schedules elsewhere.
 7. **`dollar` snapshot pattern.** Don't normalize away the `dollar` column from sales / purchases / employee_actions / expenses / products — historical records must reflect the rate at time-of-record.
 8. **Telegram is gone.** The legacy `telegramToken` model and `node-telegram-bot-api` integration are **not** part of this codebase and will not be added back.
+9. **TERMINATE employee action.** The `TERMINATE` value in `employee_action_type` always stores `amount = 0` and is excluded from `deduction_total` in `runAudit` (it's an event marker, not a monetary deduction). After inserting a TERMINATE action, the app also calls the soft-delete server fn on the employee — one action both documents the reason/date and deactivates the employee. Never count TERMINATE in payroll deductions.
+10. **User profile edit permissions.** `updateUserProfile` enforces: OWNER can edit any user (name, phone, email, password). ADMIN can edit USER-role profiles only (name, phone) — ADMIN cannot edit the OWNER's profile or another ADMIN's profile. Any signed-in user can edit their own profile (name, phone, password). Never allow ADMIN to reset the OWNER's password or change the OWNER's role.
 
 ## Docs
 

@@ -9,7 +9,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";
-import { ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -85,12 +85,23 @@ export function DataTable<T>({
       {/* Search + page size */}
       <div className="flex items-center justify-between gap-3">
         {searchKey ? (
-          <Input
-            placeholder={searchPlaceholder}
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            className="max-w-xs"
-          />
+          <div className="relative max-w-xs">
+            <Input
+              placeholder={searchPlaceholder}
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="pe-8"
+            />
+            {globalFilter && (
+              <button
+                type="button"
+                onClick={() => setGlobalFilter("")}
+                className="absolute inset-y-0 end-0 flex items-center pe-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         ) : (
           <div />
         )}

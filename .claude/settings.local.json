@@ -51,7 +51,22 @@
       "PowerShell(powershell -NoProfile -Command \"& { [System.Management.Automation.Language.Parser]::ParseFile\\('W:\\\\Development\\\\factory-management-system\\\\scripts\\\\migrate.ps1', [ref]$null, [ref]$errors\\); if \\($errors.Count -eq 0\\) { 'PARSE OK' } else { $errors | ForEach-Object { $_.Message } } }\")",
       "PowerShell($errors = [System.Collections.Generic.List[System.Management.Automation.Language.ParseError]]::new\\(\\); $tokens = $null; [System.Management.Automation.Language.Parser]::ParseFile\\('W:\\\\Development\\\\factory-management-system\\\\scripts\\\\migrate.ps1', [ref]$tokens, [ref]$errors\\) | Out-Null; if \\($errors.Count -eq 0\\) { Write-Host 'PARSE OK - no syntax errors' -ForegroundColor Green } else { $errors | ForEach-Object { Write-Host $_.Message -ForegroundColor Red } })",
       "PowerShell(docker exec supabase-db curl -s \"http://meta:8080/generators/typescript?included_schemas=public\" 2>&1)",
-      "PowerShell(Get-Item W:\\\\Development\\\\factory-management-system\\\\src\\\\lib\\\\database.types.ts | Select-Object Name, Length, LastWriteTime; \\(Get-Content W:\\\\Development\\\\factory-management-system\\\\src\\\\lib\\\\database.types.ts -TotalCount 8\\) -join \"`n\")"
+      "PowerShell(Get-Item W:\\\\Development\\\\factory-management-system\\\\src\\\\lib\\\\database.types.ts | Select-Object Name, Length, LastWriteTime; \\(Get-Content W:\\\\Development\\\\factory-management-system\\\\src\\\\lib\\\\database.types.ts -TotalCount 8\\) -join \"`n\")",
+      "Bash(Sort-Object)",
+      "Bash(node -e \"const {useStore} = require\\('@tanstack/react-store'\\); console.log\\(typeof useStore\\)\")",
+      "Bash(node -e \"const tf = require\\('@tanstack/react-form'\\); console.log\\(Object.keys\\(tf\\).filter\\(k => k.toLowerCase\\(\\).includes\\('store'\\)\\)\\)\")",
+      "Bash(Get-Content \"supabase/migrations/20260508000014_fix_storage_policies.sql\")",
+      "Bash(cd /mnt/w/Development/factory-management-system && bun run typecheck 2>&1)",
+      "Read(//mnt/w/Development/**)",
+      "Bash(Get-ChildItem -Path \"w:\\\\Development\\\\factory-management-system\" -Recurse -Depth 2)",
+      "Bash(Select-Object -Property Name, FullName)",
+      "Bash(node_modules/.bin/supabase gen *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(git checkout *)",
+      "Bash(Get-ChildItem -Path \"w:\\\\Development\\\\factory-management-system\" -Recurse -Directory -Name)",
+      "Bash(Select-Object -First 30)",
+      "Bash(ls -la \"w:\\\\Development\\\\factory-management-system\\\\\" | head -30)",
+      "Read(//w/Development/**)"
     ]
   }
 }

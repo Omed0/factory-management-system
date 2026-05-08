@@ -16,6 +16,8 @@ export interface RouterContext {
   profile?: RouterProfile;
   permissions?: string[];
   catalogCount?: number;
+  warehouseIds?: number[];
+  dollarRate?: number;
 }
 
 export function createRouter() {

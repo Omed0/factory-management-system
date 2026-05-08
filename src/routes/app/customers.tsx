@@ -1,4 +1,4 @@
-import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouteContext } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
@@ -6,7 +6,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { z } from "zod";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
@@ -115,6 +115,7 @@ function CustomersPage() {
 
   const canWrite = can(permissions, "customers", "write");
   const canDelete = can(permissions, "customers", "delete");
+  const canViewSales = can(permissions, "sales", "view");
 
   const columns: ColumnDef<Customer>[] = [
     { accessorKey: "name", header: t("customers.name") },
@@ -145,6 +146,21 @@ function CustomersPage() {
       size: 100,
       cell: ({ row }) => (
         <div className="flex justify-end gap-1">
+          {canViewSales && (
+            <Button
+              size="sm"
+              variant="ghost"
+              title={t("sales.title")}
+              asChild
+            >
+              <Link
+                to="/app/sales"
+                search={{ company: row.original.id } as any}
+              >
+                <Receipt className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           {canWrite && (
             <Button
               size="sm"

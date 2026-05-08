@@ -57,7 +57,8 @@
     "fullName": "Full name",
     "description": "Description",
     "done": "Done",
-    "create": "Create"
+    "create": "Create",
+    "filteredBy": "Filtered by"
   },
   "errors": {
     "unexpectedError": "An unexpected error occurred",
@@ -151,7 +152,9 @@
     "topProductsToday": "Top Products Today",
     "tx_sale": "Sale",
     "tx_purchase": "Purchase",
-    "tx_expense": "Expense"
+    "tx_expense": "Expense",
+    "outstandingComparison": "Outstanding: Loans vs Payables",
+    "cashVsLoan": "Cash vs Loan Sales (all time)"
   },
   "customers": {
     "title": "Customers",
@@ -191,7 +194,8 @@
     "confirmRemove": "Remove {{name}}?",
     "noProducts": "No products found",
     "uploadImage": "Upload image",
-    "currentImage": "Current image"
+    "currentImage": "Current image",
+    "stock": "Stock"
   },
   "employees": {
     "title": "Employees",
@@ -220,7 +224,13 @@
     "actionAdded": "Action added",
     "confirmRemove": "Remove {{name}}?",
     "noEmployees": "No employees found",
-    "noActions": "No actions found"
+    "noActions": "No actions found",
+    "terminate": "Terminate",
+    "terminated": "Employee terminated",
+    "terminateReason": "Reason for termination",
+    "terminateWarning": "This will record a termination event and deactivate {{name}}'s account.",
+    "confirmDeleteAction": "Delete this action record?",
+    "actionDeleted": "Action deleted"
   },
   "companies": {
     "title": "Companies",
@@ -277,7 +287,10 @@
     "printReceipt": "Print receipt",
     "supplierCompany": "Supplier (company)",
     "noneOption": "(none)",
-    "purchaseLabel": "Purchase"
+    "purchaseLabel": "Purchase",
+    "product": "Product",
+    "qty": "Quantity",
+    "stockHint": "Current stock: {{stock}}"
   },
   "expenses": {
     "title": "Expenses",
@@ -309,7 +322,7 @@
     "rateUpdated": "Rate updated",
     "rateCreated": "Rate recorded",
     "noDollarHistory": "No history found",
-    "perUsd": "per 1 USD"
+    "perUsd": "per 100 USD"
   },
   "sales": {
     "title": "Sales",
@@ -360,7 +373,12 @@
     "pickProduct": "Pick product…",
     "createSale": "Create sale",
     "discount": "Discount (IQD)",
-    "invalidItems": "Each item needs a name and quantity ≥ 1"
+    "invalidItems": "Each item needs a name and quantity ≥ 1",
+    "discountExceedsTotal": "Discount cannot exceed the sale total",
+    "discountPct": "%",
+    "insufficientStock": "Insufficient stock",
+    "needs": "needs",
+    "has": "has"
   },
   "reports": {
     "title": "Reports",
@@ -422,7 +440,10 @@
     "dollarHistory": "Exchange Rate History",
     "revenue": "Revenue",
     "qty": "Qty",
-    "txCount": "Transactions"
+    "txCount": "Transactions",
+    "cashProfit": "Cash Profit",
+    "accrualProfit": "Accrual Profit",
+    "proratedDays": "{{days}} days"
   },
   "warehouses": {
     "title": "Warehouses",
@@ -487,6 +508,30 @@
     "runBackup": "Run backup",
     "backupRunning": "Running backup...",
     "noBackups": "No backups found"
+  },
+  "users": {
+    "myProfile": "My Profile",
+    "editProfile": "Edit Profile",
+    "teamMembers": "Team Members",
+    "addUser": "Add User",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New Password",
+    "passwordOptional": "Leave blank to keep current",
+    "phonePlaceholder": "e.g. +964 7xx xxx xxxx",
+    "role": "Role",
+    "permissions": "Permissions",
+    "editUser": "Edit User",
+    "roleUpdated": "Role updated",
+    "userCreated": "User created",
+    "userUpdated": "User updated",
+    "userRemoved": "User removed",
+    "profileUpdated": "Profile updated",
+    "confirmRemove": "Remove {{name}}?",
+    "permissionsUpdated": "Permissions updated",
+    "emailOptional": "Leave blank to keep current"
   },
   "trash": {
     "title": "Trash",

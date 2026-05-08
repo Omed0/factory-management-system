@@ -20,7 +20,7 @@ import {
 } from "~/components/ui/dialog";
 import { DataTable } from "~/components/data-table";
 import { TextField, TextAreaField } from "~/components/form-fields";
-import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
 
 interface Expense {
   id: number;
@@ -122,7 +122,9 @@ export const Route = createFileRoute("/app/expenses")({
 });
 
 function ExpensesPage() {
-  const { permissions = [] } = Route.useRouteContext();
+  const { permissions = [], settings, dollarRate = 1 } = Route.useRouteContext() as any;
+  const currency = (settings as any)?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const qc = useQueryClient();
   const expenses = useQuery({ queryKey: ["expenses"], queryFn: list });
   const [editing, setEditing] = useState<Expense | null>(null);
@@ -137,7 +139,7 @@ function ExpensesPage() {
     {
       accessorKey: "amount",
       header: t("expenses.amount"),
-      cell: ({ getValue }) => formatCurrency(Number(getValue()), "IQD"),
+      cell: ({ getValue }) => fmt(Number(getValue())),
     },
     {
       accessorKey: "dollar",

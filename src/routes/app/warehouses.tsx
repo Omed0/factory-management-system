@@ -10,7 +10,7 @@ import { Pencil, Plus, Trash2, Users, Package, Boxes } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
-import { can } from "~/lib/auth";
+import { can, requireUser, warehouseFilter } from "~/lib/auth";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -31,7 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
+import { qtyDisplay } from "~/lib/inventory";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -76,13 +77,17 @@ const listWarehouses = createServerFn({ method: "GET" }).handler(
       p_action: "view",
     });
     if (!ok) throw new Error("Forbidden");
-    const { data, error } = await sb
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    let q = sb
       .from("warehouses")
       .select(
         "id, name, description, location, warehouse_users(count), warehouse_products(count)",
       )
       .is("deleted_at", null)
       .order("name");
+    if (wf) q = (q as any).in("id", wf);
+    const { data, error } = await q;
     if (error) throw new Error(error.message);
     return (data ?? []).map((w: any) => ({
       id: w.id,
@@ -273,16 +278,6 @@ const adjustInventory = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/app/warehouses")({
   component: WarehousesPage,
 });
-
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
-function qtyDisplay(qty: number, gpc: number | null): string {
-  if (!gpc || gpc <= 0) return qty.toLocaleString();
-  const cartons = Math.floor(qty / gpc);
-  const grains = qty % gpc;
-  if (grains === 0) return `${cartons} کارتۆن`;
-  return `${cartons} کارتۆن + ${grains} دانە`;
-}
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
@@ -532,8 +527,8 @@ function WarehouseDetailDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const { settings } = Route.useRouteContext();
-  const currency = settings?.display_currency ?? "IQD";
+  const { settings, dollarRate = 1 } = Route.useRouteContext();
+  const currency = settings?.base_currency ?? "IQD";
   const qc = useQueryClient();
 
   const users = useQuery({
@@ -589,7 +584,7 @@ function WarehouseDetailDialog({
           <TabsContent value="inventory" className="space-y-3 mt-4">
             <p className="text-sm text-muted-foreground">
               {t("warehouses.totalValue")}:{" "}
-              <strong>{formatCurrency(totalValue, currency)}</strong> —{" "}
+              <strong>{formatMoney(totalValue, currency, dollarRate)}</strong> —{" "}
               {(inventory.data ?? []).length} {t("warehouses.productLines")}
             </p>
             {(inventory.data ?? []).length === 0 ? (

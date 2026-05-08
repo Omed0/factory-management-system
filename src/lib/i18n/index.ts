@@ -11,7 +11,7 @@ const i18nCookieName = "i18nextLng";
 export const LANG_META = Object.keys(Translations).map(
   (key) => Translations[key as keyof typeof Translations].translation.setting,
 );
-const defaultLng = LANG_META[0].code;
+const defaultLng = LANG_META[0]!.code;
 
 i18n
   .use(LanguageDetector)

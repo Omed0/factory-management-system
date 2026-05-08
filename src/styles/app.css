@@ -188,3 +188,39 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Remove scroll containers so all content prints */
+  .overflow-y-auto,
+  .overflow-y-scroll,
+  .overflow-x-auto,
+  .overflow-x-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  /* Remove Tailwind max-h-* clipping */
+  [class*="max-h-"] {
+    max-height: none !important;
+  }
+  /* Hide dialog overlay/backdrop */
+  [data-slot="dialog-overlay"],
+  [role="dialog"] ~ [data-slot="dialog-overlay"] {
+    display: none !important;
+  }
+  /* Dialog itself: full width, no shadow */
+  [role="dialog"] {
+    box-shadow: none !important;
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  /* Hide UI chrome */
+  aside,
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+}

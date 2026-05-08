@@ -1,4 +1,4 @@
-import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
@@ -13,7 +13,6 @@ import { can } from "~/lib/auth";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { TextField } from "~/components/form-fields";
-import { formatCurrency } from "~/lib/utils";
 
 // ─── server fns ──────────────────────────────────────────────────────────────
 
@@ -75,17 +74,12 @@ function DollarPage() {
   const canWrite = can(permissions, "dollar", "write");
   const { t } = useTranslation();
 
-  useEffect(() => {
-    if (current.data?.price !== undefined) {
-      form.setFieldValue("price", current.data.price);
-    }
-  }, [current.data?.price]);
-
+  // Form stores per-100-USD value for display; server stores per-1-USD
   const form = useForm({
-    defaultValues: { price: 1500 },
+    defaultValues: { price100: 150000 },
     onSubmit: async ({ value }) => {
       try {
-        await update({ data: value });
+        await update({ data: { price: value.price100 / 100 } });
         toast.success(t("dollar.rateUpdated"));
         qc.invalidateQueries({ queryKey: ["dollar"] });
         qc.invalidateQueries({ queryKey: ["dollar-history"] });
@@ -95,10 +89,17 @@ function DollarPage() {
     },
   });
 
+  useEffect(() => {
+    if (current.data?.price !== undefined) {
+      form.setFieldValue("price100", current.data.price * 100);
+    }
+  }, [current.data?.price]);
+
   const historyData = history.data ?? [];
   const prevPrice = historyData[0]?.price;
   const currentPrice = current.data?.price;
-  const diff = currentPrice && prevPrice ? currentPrice - prevPrice : null;
+  // diff in per-100-USD units for display
+  const diff = currentPrice && prevPrice ? (currentPrice - prevPrice) * 100 : null;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -118,7 +119,9 @@ function DollarPage() {
         <CardContent className="space-y-4">
           <div className="flex items-baseline gap-3">
             <p className="text-4xl font-bold font-mono">
-              {currentPrice ? formatCurrency(currentPrice, "IQD") : "—"}
+              {currentPrice
+                ? `${(currentPrice * 100).toLocaleString()} IQD`
+                : "—"}
             </p>
             {diff !== null && (
               <span
@@ -150,8 +153,8 @@ function DollarPage() {
               <div className="flex-1">
                 <TextField
                   form={form}
-                  name="price"
-                  label={`${t("dollar.updateRate")} (IQD)`}
+                  name="price100"
+                  label={`${t("dollar.updateRate")} (100 USD → IQD)`}
                   type="number"
                   required
                 />
@@ -177,7 +180,7 @@ function DollarPage() {
             <div className="divide-y divide-border">
               {historyData.map((h, i) => {
                 const next = historyData[i + 1];
-                const delta = next ? h.price - next.price : null;
+                const delta = next ? (h.price - next.price) * 100 : null;
                 return (
                   <div
                     key={h.id}
@@ -196,7 +199,7 @@ function DollarPage() {
                         </span>
                       )}
                       <span className="font-mono font-medium">
-                        {h.price.toLocaleString()}
+                        {(h.price * 100).toLocaleString()}
                       </span>
                     </div>
                   </div>

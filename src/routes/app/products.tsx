@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
 import { getSupabaseBrowser } from "~/lib/supabase.browser";
-import { can } from "~/lib/auth";
+import { can, requireUser, warehouseFilter } from "~/lib/auth";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -21,7 +21,8 @@ import {
 } from "~/components/ui/dialog";
 import { DataTable } from "~/components/data-table";
 import { TextField, SelectField } from "~/components/form-fields";
-import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
+import { qtyDisplay } from "~/lib/inventory";
 
 interface Product {
   id: number;
@@ -38,6 +39,23 @@ interface Product {
 const list = createServerFn({ method: "GET" }).handler(
   async (): Promise<Product[]> => {
     const sb = getSupabaseServer();
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    if (wf) {
+      const { data: wp } = await (sb.from("warehouse_products") as any)
+        .select("product_id")
+        .in("warehouse_id", wf);
+      const ids = ((wp ?? []) as any[]).map((r) => r.product_id);
+      if (ids.length === 0) return [];
+      const { data, error } = await sb
+        .from("products")
+        .select("*")
+        .in("id", ids)
+        .is("deleted_at", null)
+        .order("name");
+      if (error) throw new Error(error.message);
+      return data as Product[];
+    }
     const { data, error } = await sb
       .from("products")
       .select("*")
@@ -45,6 +63,20 @@ const list = createServerFn({ method: "GET" }).handler(
       .order("name");
     if (error) throw new Error(error.message);
     return data as Product[];
+  },
+);
+
+const listProductStock = createServerFn({ method: "GET" }).handler(
+  async (): Promise<Record<number, number>> => {
+    const sb = getSupabaseServer();
+    const { data } = await (sb.from("warehouse_products") as any).select(
+      "product_id, qty",
+    );
+    const totals: Record<number, number> = {};
+    for (const row of (data ?? []) as { product_id: number; qty: number }[]) {
+      totals[row.product_id] = (totals[row.product_id] ?? 0) + row.qty;
+    }
+    return totals;
   },
 );
 
@@ -128,9 +160,12 @@ export const Route = createFileRoute("/app/products")({
 });
 
 function ProductsPage() {
-  const { permissions = [] } = Route.useRouteContext();
+  const { permissions = [], settings, dollarRate = 1 } = Route.useRouteContext() as any;
+  const currency = (settings as any)?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const qc = useQueryClient();
   const products = useQuery({ queryKey: ["products"], queryFn: list });
+  const stockQ = useQuery({ queryKey: ["product-stock"], queryFn: listProductStock });
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
   const { t } = useTranslation();
@@ -158,7 +193,7 @@ function ProductsPage() {
     {
       accessorKey: "price",
       header: `${t("products.price")} (IQD)`,
-      cell: ({ getValue }) => formatCurrency(Number(getValue()), "IQD"),
+      cell: ({ getValue }) => fmt(Number(getValue())),
     },
     {
       accessorKey: "dollar",
@@ -177,6 +212,20 @@ function ProductsPage() {
           {getValue<string>()}
         </span>
       ),
+    },
+    {
+      id: "stock",
+      header: t("products.stock"),
+      cell: ({ row }) => {
+        const total = stockQ.data?.[row.original.id] ?? 0;
+        if (total === 0)
+          return <span className="text-muted-foreground text-xs">—</span>;
+        return (
+          <span className="text-sm font-mono">
+            {qtyDisplay(total, row.original.grains_per_carton)}
+          </span>
+        );
+      },
     },
     {
       id: "actions",
@@ -209,6 +258,7 @@ function ProductsPage() {
                   await softDelete({ data: { id: row.original.id } });
                   toast.success(t("products.productRemoved"));
                   qc.invalidateQueries({ queryKey: ["products"] });
+                  qc.invalidateQueries({ queryKey: ["product-stock"] });
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Failed");
                 }

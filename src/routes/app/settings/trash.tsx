@@ -119,7 +119,7 @@ const listTrashed = createServerFn({ method: "POST" })
     if (!ok) throw new Error("You do not have permission to view trash");
 
     const cfg = ENTITIES[data.entity];
-    const { data: rows, error } = await (sb.from(cfg.table) as any)
+    const { data: rows, error } = await (sb as any).from(cfg.table)
       .select(cfg.selectCols)
       .not("deleted_at", "is", null)
       .order("deleted_at", { ascending: false })

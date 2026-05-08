@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
@@ -10,7 +10,9 @@ import { Eye, Loader2, Plus, Printer, Trash2, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
-import { can } from "~/lib/auth";
+import { can, requireUser, warehouseFilter } from "~/lib/auth";
+import { qtyDisplay } from "~/lib/inventory";
+import type { UserRole } from "~/lib/auth";
 import type { SiteSettings } from "~/lib/site-settings";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -36,6 +38,7 @@ import {
   TextAreaField,
 } from "~/components/form-fields";
 import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -43,12 +46,16 @@ interface Purchase {
   id: number;
   name: string;
   company_id: number | null;
+  warehouse_id: number | null;
   total_amount: number;
   total_remaining: number;
   type: "CASH" | "LOAN";
   note: string | null;
   purchase_date: string;
   dollar: number;
+  product_id: number | null;
+  quantity: number | null;
+  products: { name: string; grains_per_carton: number | null } | null;
 }
 
 interface PurchasePayment {
@@ -62,6 +69,8 @@ interface PurchaseDetail extends Purchase {
   company_name: string | null;
   company_phone: string | null;
   payments: PurchasePayment[];
+  product_name: string | null;
+  product_grains_per_carton: number | null;
 }
 
 // ─── print helpers ────────────────────────────────────────────────────────────
@@ -84,7 +93,7 @@ function escapeHtml(s: string | null | undefined): string {
 }
 
 function printHtml(html: string) {
-  const w = window.open("", "_blank", "width=860,height=1100");
+  const w = window.open("", "_blank", "width=900");
   if (!w) {
     toast.error("Enable pop-ups in your browser to print");
     return;
@@ -92,7 +101,8 @@ function printHtml(html: string) {
   w.document.write(html);
   w.document.close();
   w.focus();
-  setTimeout(() => w.print(), 300);
+  if (w.document.readyState === "complete") w.print();
+  else w.onload = () => w.print();
 }
 
 function buildPurchaseInvoiceHtml(
@@ -141,7 +151,8 @@ td{padding:6px 10px;border:1px solid #ddd}
 .note-box{background:#f9f9f9;border:1px solid #ddd;border-radius:4px;padding:8px 12px;font-size:12px;margin-top:12px}
 .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#666;margin:18px 0 6px}
 .footer{margin-top:30px;text-align:center;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}
-@media print{body{padding:10mm 14mm}button{display:none!important}}
+@page{size:A4;margin:15mm}
+@media print{body{overflow:visible!important;height:auto!important;padding:10mm 14mm}button{display:none!important}}
 </style></head><body>
 <div class="hd">
   <h1>${factory}</h1>
@@ -237,7 +248,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#111;padding:1
 .balance-box{background:#f9f9f9;border:1px solid #ddd;border-radius:4px;padding:10px 14px;margin:14px 0}
 .note-box{background:#fff3e0;border:1px solid #ffe0b2;border-radius:4px;padding:8px 12px;font-size:12px;margin-top:12px}
 .footer{margin-top:24px;text-align:center;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}
-@media print{body{padding:8mm 12mm}button{display:none!important}}
+@page{size:A4;margin:15mm}
+@media print{body{overflow:visible!important;height:auto!important;padding:8mm 12mm}button{display:none!important}}
 </style></head><body>
 <div class="hd">
   <h1>${factory}</h1>
@@ -271,11 +283,14 @@ ${payment.note ? `<div class="note-box"><strong>Note:</strong> ${e(payment.note)
 const list = createServerFn({ method: "GET" }).handler(
   async (): Promise<Purchase[]> => {
     const sb = getSupabaseServer();
-    const { data, error } = await sb
-      .from("company_purchases" as any)
-      .select("*")
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    let q = (sb.from("company_purchases") as any)
+      .select("*, products(name, grains_per_carton)")
       .is("deleted_at", null)
       .order("purchase_date", { ascending: false });
+    if (wf) q = q.in("warehouse_id", wf);
+    const { data, error } = await q;
     if (error) throw new Error(error.message);
     return data as Purchase[];
   },
@@ -293,7 +308,7 @@ const getPurchaseDetail = createServerFn({ method: "GET" })
 
     const [purchaseRes, paymentsRes] = await Promise.all([
       (sb.from("company_purchases") as any)
-        .select("*, companies(name, phone)")
+        .select("*, companies(name, phone), products(name, grains_per_carton)")
         .eq("id", data.id)
         .single(),
       (sb.from("purchase_payments") as any)
@@ -309,6 +324,9 @@ const getPurchaseDetail = createServerFn({ method: "GET" })
       company_name: p.companies?.name ?? null,
       company_phone: p.companies?.phone ?? null,
       payments: (paymentsRes.data ?? []) as PurchasePayment[],
+      product_name: p.products?.name ?? null,
+      product_grains_per_carton: p.products?.grains_per_carton ?? null,
+      products: p.products ?? null,
     };
   });
 
@@ -334,12 +352,57 @@ const getCurrentDollar = createServerFn({ method: "GET" }).handler(async () => {
 
 const listWarehouses = createServerFn({ method: "GET" }).handler(async () => {
   const sb = getSupabaseServer();
-  const { data } = await (sb.from("warehouses") as any)
+  const me = await requireUser();
+  const wf = warehouseFilter(me);
+  let q = (sb.from("warehouses") as any)
     .select("id, name")
     .is("deleted_at", null)
     .order("name");
+  if (wf) q = q.in("id", wf);
+  const { data } = await q;
   return (data ?? []) as { id: number; name: string }[];
 });
+
+const listProductsByWarehouse = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) =>
+    z.object({ warehouse_id: z.number().nullable().optional() }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    const sb = getSupabaseServer();
+    if (data?.warehouse_id) {
+      const { data: wp } = await (sb.from("warehouse_products") as any)
+        .select("product_id, qty")
+        .eq("warehouse_id", data.warehouse_id);
+      const ids = ((wp ?? []) as any[]).map((r) => r.product_id);
+      if (ids.length === 0) return [] as { id: number; name: string; grains_per_carton: number | null; qty: number }[];
+      const { data: prods } = await sb
+        .from("products")
+        .select("id, name, grains_per_carton")
+        .in("id", ids)
+        .is("deleted_at", null)
+        .order("name");
+      const qtyMap: Record<number, number> = Object.fromEntries(
+        ((wp ?? []) as any[]).map((r) => [r.product_id, r.qty]),
+      );
+      return ((prods ?? []) as any[]).map((p) => ({
+        id: p.id as number,
+        name: p.name as string,
+        grains_per_carton: p.grains_per_carton as number | null,
+        qty: qtyMap[p.id] ?? 0,
+      }));
+    }
+    const { data: prods } = await sb
+      .from("products")
+      .select("id, name, grains_per_carton")
+      .is("deleted_at", null)
+      .order("name");
+    return ((prods ?? []) as any[]).map((p) => ({
+      id: p.id as number,
+      name: p.name as string,
+      grains_per_carton: p.grains_per_carton as number | null,
+      qty: null as number | null,
+    }));
+  });
 
 const PurchaseSchema = z.object({
   id: z.number().optional(),
@@ -354,6 +417,14 @@ const PurchaseSchema = z.object({
   purchase_date: z.string(),
   dollar: z.coerce.number().positive(),
   warehouse_id: z.number().nullable().optional(),
+  product_id: z.number().nullable().optional(),
+  quantity: z.coerce
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional()
+    .transform((v) => v || null),
 });
 
 const upsert = createServerFn({ method: "POST" })
@@ -374,6 +445,8 @@ const upsert = createServerFn({ method: "POST" })
       purchase_date: new Date(data.purchase_date).toISOString(),
       dollar: data.dollar,
       warehouse_id: data.warehouse_id ?? null,
+      product_id: data.product_id ?? null,
+      quantity: data.quantity ?? null,
     };
     if (data.id) {
       const { error } = await (sb.from("company_purchases") as any)
@@ -386,6 +459,14 @@ const upsert = createServerFn({ method: "POST" })
         total_remaining: data.type === "LOAN" ? data.total_amount : 0,
       });
       if (error) throw new Error(error.message);
+      if (data.warehouse_id && data.product_id && data.quantity) {
+        const { error: adjErr } = await (sb.rpc as any)("adjust_warehouse_qty", {
+          p_warehouse_id: data.warehouse_id,
+          p_product_id: data.product_id,
+          p_delta: data.quantity,
+        });
+        if (adjErr) throw new Error(adjErr.message);
+      }
     }
   });
 
@@ -460,21 +541,40 @@ const softDelete = createServerFn({ method: "POST" })
 // ─── route ───────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/app/purchases")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    company: search.company ? Number(search.company) : undefined,
+  }),
   component: PurchasesPage,
 });
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function PurchasesPage() {
-  const { permissions = [], settings } = Route.useRouteContext() as {
-    permissions: string[];
-    settings: SiteSettings | null;
-  };
+  const { permissions = [], settings, profile, warehouseIds = [], dollarRate = 1 } =
+    Route.useRouteContext() as {
+      permissions: string[];
+      settings: SiteSettings | null;
+      profile: { role: UserRole } | undefined;
+      warehouseIds: number[];
+      dollarRate: number;
+    };
+  const currency = settings?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const qc = useQueryClient();
   const purchases = useQuery({ queryKey: ["purchases"], queryFn: list });
   const [creating, setCreating] = useState(false);
   const [viewingId, setViewingId] = useState<number | null>(null);
   const { t } = useTranslation();
+  const { company: companyFilter } = Route.useSearch();
+  const navigate = useNavigate();
+  const companiesQ = useQuery({ queryKey: ["companies-mini"], queryFn: listCompanies });
+  const activeCompany = companyFilter
+    ? companiesQ.data?.find((c) => c.id === companyFilter)
+    : null;
+
+  const filtered = companyFilter
+    ? (purchases.data ?? []).filter((p) => p.company_id === companyFilter)
+    : (purchases.data ?? []);
 
   const canWrite = can(permissions, "purchases", "write");
   const canDelete = can(permissions, "purchases", "delete");
@@ -499,9 +599,25 @@ function PurchasesPage() {
       ),
     },
     {
+      id: "product_qty",
+      header: t("purchases.product"),
+      cell: ({ row }) => {
+        const p = row.original;
+        if (!p.products || !p.quantity) return <span className="text-muted-foreground">—</span>;
+        return (
+          <span className="text-sm">
+            {p.products.name}
+            <span className="text-muted-foreground ms-1">
+              ({qtyDisplay(p.quantity, p.products.grains_per_carton)})
+            </span>
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: "total_amount",
       header: t("common.total"),
-      cell: ({ getValue }) => formatCurrency(Number(getValue()), "IQD"),
+      cell: ({ getValue }) => fmt(Number(getValue())),
     },
     {
       accessorKey: "total_remaining",
@@ -516,7 +632,7 @@ function PurchasesPage() {
                 : "text-green-600 dark:text-green-400"
             }
           >
-            {formatCurrency(v, "IQD")}
+            {fmt(v)}
           </span>
         );
       },
@@ -582,8 +698,24 @@ function PurchasesPage() {
         )}
       </div>
 
+      {activeCompany && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">{t("common.filteredBy")}:</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-xs px-2 py-1 font-medium">
+            {activeCompany.name}
+            <button
+              className="hover:text-destructive transition-colors"
+              onClick={() => navigate({ to: "/app/purchases", search: { company: undefined } })}
+              aria-label="Clear filter"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
+
       <DataTable
-        data={purchases.data ?? []}
+        data={filtered}
         columns={columns}
         searchKey="name"
         searchPlaceholder={t("purchases.searchPlaceholder")}
@@ -597,6 +729,8 @@ function PurchasesPage() {
             qc.invalidateQueries({ queryKey: ["purchases"] });
             setCreating(false);
           }}
+          userWarehouseIds={warehouseIds}
+          userRole={profile?.role ?? "OWNER"}
         />
       )}
 
@@ -729,6 +863,15 @@ function PurchaseDetailDialog({
                   {p.company_phone}
                 </div>
               )}
+              {p.product_name && p.quantity && (
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">{t("purchases.product")}: </span>
+                  <strong>{p.product_name}</strong>
+                  <span className="text-muted-foreground ms-1">
+                    ({qtyDisplay(p.quantity, p.product_grains_per_carton)})
+                  </span>
+                </div>
+              )}
               {p.note && (
                 <div className="col-span-2 rounded-md bg-muted px-3 py-2 text-xs mt-1">
                   <span className="font-medium">{t("common.note")}: </span>
@@ -742,24 +885,21 @@ function PurchaseDetailDialog({
             <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1 text-sm">
               <div className="flex justify-between font-semibold text-base">
                 <span>{t("purchases.totalAmount")}</span>
-                <span>{formatCurrency(p.total_amount, "IQD")}</span>
+                <span>{fmt(p.total_amount)}</span>
               </div>
               {p.type === "LOAN" && (
                 <>
                   <div className="flex justify-between text-green-700 dark:text-green-400">
                     <span>{t("purchases.paidSoFar")}</span>
                     <span>
-                      {formatCurrency(
-                        p.total_amount - p.total_remaining,
-                        "IQD",
-                      )}
+                      {fmt(p.total_amount - p.total_remaining)}
                     </span>
                   </div>
                   <div
                     className={`flex justify-between font-semibold ${p.total_remaining > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}
                   >
                     <span>{t("purchases.remaining")}</span>
-                    <span>{formatCurrency(p.total_remaining, "IQD")}</span>
+                    <span>{fmt(p.total_remaining)}</span>
                   </div>
                 </>
               )}
@@ -792,7 +932,7 @@ function PurchaseDetailDialog({
                             {new Date(pay.paid_at).toLocaleDateString()}
                           </td>
                           <td className="py-1.5 text-end font-medium text-green-700 dark:text-green-400">
-                            {formatCurrency(pay.amount, "IQD")}
+                            {fmt(pay.amount)}
                           </td>
                           <td className="py-1.5 pl-3 text-muted-foreground">
                             {pay.note ?? "—"}
@@ -897,7 +1037,7 @@ function PurchasePayForm({
           &nbsp;·&nbsp;
           {t("purchases.remaining")}:{" "}
           <strong className="text-orange-600 dark:text-orange-400">
-            {formatCurrency(purchase.total_remaining, "IQD")}
+            {fmt(purchase.total_remaining)}
           </strong>
         </p>
       </div>
@@ -965,7 +1105,7 @@ function PurchaseReceipt({
             {t("purchases.paidAmount")}
           </p>
           <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-            {formatCurrency(payment.amount, "IQD")}
+            {fmt(payment.amount)}
           </p>
         </div>
         <Separator />
@@ -995,7 +1135,7 @@ function PurchaseReceipt({
               {t("purchases.balanceBefore")}
             </p>
             <p className="font-medium">
-              {formatCurrency(balanceBefore, "IQD")}
+              {fmt(balanceBefore)}
             </p>
           </div>
           <div className="col-span-2">
@@ -1005,7 +1145,7 @@ function PurchaseReceipt({
             <p
               className={`font-semibold text-base ${purchase.total_remaining > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}
             >
-              {formatCurrency(purchase.total_remaining, "IQD")}
+              {fmt(purchase.total_remaining)}
               {purchase.total_remaining === 0 &&
                 ` ${t("purchases.fullyPaidLabel")}`}
             </p>
@@ -1034,11 +1174,22 @@ function PurchaseReceipt({
 function PurchaseDialog({
   onClose,
   onSaved,
+  userWarehouseIds = [],
+  userRole = "OWNER",
 }: {
   onClose: () => void;
   onSaved: () => void;
+  userWarehouseIds?: number[];
+  userRole?: UserRole;
 }) {
   const { t } = useTranslation();
+  const defaultWarehouseId =
+    userRole === "USER" && userWarehouseIds.length === 1
+      ? userWarehouseIds[0]
+      : null;
+  const hideWarehouseSelector =
+    userRole === "USER" && userWarehouseIds.length === 1;
+
   const companies = useQuery({
     queryKey: ["companies-mini"],
     queryFn: listCompanies,
@@ -1052,6 +1203,13 @@ function PurchaseDialog({
     queryFn: listWarehouses,
   });
 
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(defaultWarehouseId ?? null);
+
+  const productsQ = useQuery({
+    queryKey: ["products-by-warehouse", selectedWarehouseId],
+    queryFn: () => listProductsByWarehouse({ data: { warehouse_id: selectedWarehouseId } }),
+  });
+
   const form = useForm({
     defaultValues: {
       name: "",
@@ -1061,7 +1219,9 @@ function PurchaseDialog({
       note: "",
       purchase_date: new Date().toISOString().slice(0, 10),
       dollar: dollarQ.data ?? 1500,
-      warehouse_id: null as number | null,
+      warehouse_id: defaultWarehouseId as number | null,
+      product_id: null as number | null,
+      quantity: "" as unknown as number | null,
     },
     onSubmit: async ({ value }) => {
       try {
@@ -1076,7 +1236,7 @@ function PurchaseDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("purchases.newPurchase")}</DialogTitle>
         </DialogHeader>
@@ -1150,7 +1310,7 @@ function PurchaseDialog({
             />
           </div>
           <TextAreaField form={form} name="note" label={t("common.note")} />
-          {(warehousesQ.data?.length ?? 0) > 0 && (
+          {!hideWarehouseSelector && (warehousesQ.data?.length ?? 0) > 0 && (
             <form.Field name="warehouse_id">
               {(f) => (
                 <div className="grid gap-1.5">
@@ -1159,7 +1319,13 @@ function PurchaseDialog({
                   </label>
                   <Select
                     value={f.state.value ? String(f.state.value) : ""}
-                    onValueChange={(v) => f.handleChange(v ? Number(v) : null)}
+                    onValueChange={(v) => {
+                      const wid = v ? Number(v) : null;
+                      f.handleChange(wid);
+                      setSelectedWarehouseId(wid);
+                      form.setFieldValue("product_id", null);
+                      form.setFieldValue("quantity", null);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue
@@ -1177,6 +1343,73 @@ function PurchaseDialog({
                 </div>
               )}
             </form.Field>
+          )}
+
+          {selectedWarehouseId && (productsQ.data?.length ?? 0) > 0 && (
+            <>
+              <form.Field name="product_id">
+                {(f) => (
+                  <div className="grid gap-1.5">
+                    <label className="text-sm font-medium">
+                      {t("purchases.product")} ({t("common.optional")})
+                    </label>
+                    <Select
+                      value={f.state.value ? String(f.state.value) : ""}
+                      onValueChange={(v) => f.handleChange(v ? Number(v) : null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={`(${t("purchases.noneOption")})`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {productsQ.data?.map((p) => (
+                          <SelectItem key={p.id} value={String(p.id)}>
+                            {p.name}
+                            {p.qty != null && (
+                              <span className="text-muted-foreground ml-1 text-xs">
+                                — {qtyDisplay(p.qty, p.grains_per_carton)}
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Subscribe selector={(s) => s.values.product_id}>
+                {(productId) =>
+                  productId ? (
+                    <form.Field name="quantity">
+                      {(f) => {
+                        const prod = productsQ.data?.find((p) => p.id === productId);
+                        return (
+                          <div className="grid gap-1.5">
+                            <label className="text-sm font-medium">
+                              {t("purchases.qty")}
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              value={f.state.value ?? ""}
+                              onChange={(e) => f.handleChange(e.target.value ? Number(e.target.value) : null)}
+                            />
+                            {prod && f.state.value && (
+                              <p className="text-xs text-muted-foreground">
+                                {t("purchases.stockHint", {
+                                  stock: qtyDisplay(prod.qty ?? 0, prod.grains_per_carton),
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }}
+                    </form.Field>
+                  ) : null
+                }
+              </form.Subscribe>
+            </>
           )}
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={onClose}>

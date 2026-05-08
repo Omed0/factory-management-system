@@ -9,6 +9,16 @@ export interface AuthedUser {
   email: string;
   name: string;
   role: UserRole;
+  warehouse_ids: number[];
+}
+
+/**
+ * Returns the warehouse IDs to filter by for a USER-role account,
+ * or null for OWNER/ADMIN (no restriction).
+ */
+export function warehouseFilter(me: AuthedUser): number[] | null {
+  if (me.role !== "USER") return null;
+  return me.warehouse_ids.length > 0 ? me.warehouse_ids : null;
 }
 
 /**
@@ -95,11 +105,19 @@ export const requireUser = createServerFn({ method: "GET" }).handler(
       .maybeSingle<{ id: string; name: string; role: UserRole }>();
     if (pErr || !profile) throw redirect({ to: "/login" });
 
+    const { data: wuRows } = await (sb.from("warehouse_users") as any)
+      .select("warehouse_id")
+      .eq("profile_id", profile.id);
+    const warehouse_ids = ((wuRows ?? []) as any[]).map((r) =>
+      Number(r.warehouse_id),
+    );
+
     return {
       id: profile.id,
       email: user.email ?? "",
       name: profile.name,
       role: profile.role,
+      warehouse_ids,
     };
   },
 );

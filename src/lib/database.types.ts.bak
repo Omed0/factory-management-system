@@ -94,9 +94,7 @@ export type Database = {
           id: number
           name: string
           note: string | null
-          product_id: number | null
           purchase_date: string
-          quantity: number | null
           total_amount: number
           total_remaining: number
           type: Database["public"]["Enums"]["company_purchase_type"]
@@ -111,9 +109,7 @@ export type Database = {
           id?: number
           name: string
           note?: string | null
-          product_id?: number | null
           purchase_date: string
-          quantity?: number | null
           total_amount: number
           total_remaining?: number
           type?: Database["public"]["Enums"]["company_purchase_type"]
@@ -128,9 +124,7 @@ export type Database = {
           id?: number
           name?: string
           note?: string | null
-          product_id?: number | null
           purchase_date?: string
-          quantity?: number | null
           total_amount?: number
           total_remaining?: number
           type?: Database["public"]["Enums"]["company_purchase_type"]
@@ -142,12 +136,6 @@ export type Database = {
             foreignKeyName: "company_purchases_company_id_fkey"
             columns: ["company_id"]
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_purchases_product_id_fkey"
-            columns: ["product_id"]
-            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -325,7 +313,6 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
-          category: string | null
           created_at: string
           deleted_at: string | null
           dollar: number
@@ -337,7 +324,6 @@ export type Database = {
         }
         Insert: {
           amount: number
-          category?: string | null
           created_at?: string
           deleted_at?: string | null
           dollar: number
@@ -349,7 +335,6 @@ export type Database = {
         }
         Update: {
           amount?: number
-          category?: string | null
           created_at?: string
           deleted_at?: string | null
           dollar?: number
@@ -966,12 +951,7 @@ export type Database = {
     }
     Enums: {
       company_purchase_type: "CASH" | "LOAN"
-      employee_action_type:
-        | "PUNISHMENT"
-        | "BONUS"
-        | "ABSENT"
-        | "OVERTIME"
-        | "TERMINATE"
+      employee_action_type: "PUNISHMENT" | "BONUS" | "ABSENT" | "OVERTIME"
       sale_type: "CASH" | "LOAN"
       unit_type: "METER" | "PIECE"
       user_role: "OWNER" | "ADMIN" | "USER"
@@ -1103,13 +1083,7 @@ export const Constants = {
   public: {
     Enums: {
       company_purchase_type: ["CASH", "LOAN"],
-      employee_action_type: [
-        "PUNISHMENT",
-        "BONUS",
-        "ABSENT",
-        "OVERTIME",
-        "TERMINATE",
-      ],
+      employee_action_type: ["PUNISHMENT", "BONUS", "ABSENT", "OVERTIME"],
       sale_type: ["CASH", "LOAN"],
       unit_type: ["METER", "PIECE"],
       user_role: ["OWNER", "ADMIN", "USER"],

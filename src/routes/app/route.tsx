@@ -31,6 +31,7 @@ import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
 import { can, ownerPermissions, adminPermissions } from "~/lib/auth";
+import { invalidateSettingsCache } from "~/routes/__root";
 import { cn } from "~/lib/utils";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
@@ -62,6 +63,20 @@ const bootstrap = createServerFn({ method: "GET" }).handler(async () => {
 
   if (pErr || !profile) throw new Error("profile not found");
 
+  const { data: wuRows } = await (sb.from("warehouse_users") as any)
+    .select("warehouse_id")
+    .eq("profile_id", profile.id);
+  const warehouseIds = ((wuRows ?? []) as any[]).map((r) =>
+    Number(r.warehouse_id),
+  );
+
+  const { data: dollarRow } = await sb
+    .from("dollar")
+    .select("price")
+    .eq("id", 1)
+    .single();
+  const dollarRate = (dollarRow as any)?.price ?? 1;
+
   const { data: catalog } = await (sb.from("permission_catalog") as any).select(
     "resource, action",
   );
@@ -84,7 +99,7 @@ const bootstrap = createServerFn({ method: "GET" }).handler(async () => {
     );
   }
 
-  return { profile, permissions, catalogCount };
+  return { profile, permissions, catalogCount, warehouseIds, dollarRate };
 });
 
 const logout = createServerFn({ method: "POST" }).handler(async () => {
@@ -99,6 +114,10 @@ export const Route = createFileRoute("/app")({
     try {
       return await bootstrap();
     } catch {
+      // Bust the in-memory settings cache so the next request reads fresh data
+      // from the DB. This handles the post-reset case where setup_completed
+      // flipped back to false but the cached value still says true.
+      invalidateSettingsCache();
       throw redirect({ to: "/login" });
     }
   },
@@ -107,6 +126,8 @@ export const Route = createFileRoute("/app")({
     permissions: context.permissions ?? [],
     settings: context.settings,
     catalogCount: context.catalogCount ?? 0,
+    warehouseIds: context.warehouseIds ?? [],
+    dollarRate: context.dollarRate ?? 1,
   }),
   component: AppLayout,
 });
@@ -177,7 +198,7 @@ function useDarkMode() {
     document.documentElement.classList.toggle("dark", next);
     try {
       localStorage.setItem("theme", next ? "dark" : "light");
-    } catch {}
+    } catch { }
   };
 
   return { dark, toggle };
@@ -250,11 +271,11 @@ function AppLayout() {
 
   const initials = profile?.name
     ? profile.name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : "??";
 
   const factoryName = settings?.factory_name ?? "Factory";

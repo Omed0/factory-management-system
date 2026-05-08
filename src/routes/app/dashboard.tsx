@@ -11,6 +11,9 @@ import {
   CartesianGrid,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
   AlertTriangle,
@@ -24,7 +27,8 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
-import { formatCurrency } from "~/lib/utils";
+import { requireUser, warehouseFilter } from "~/lib/auth";
+import { formatMoney } from "~/lib/currency";
 import { cn } from "~/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
@@ -69,6 +73,9 @@ interface TopProduct {
 const getDashboardStats = createServerFn({ method: "GET" }).handler(
   async (): Promise<DashboardStats> => {
     const sb = getSupabaseServer();
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+
     const { data: dollar } = await sb
       .from("dollar")
       .select("price")
@@ -76,32 +83,42 @@ const getDashboardStats = createServerFn({ method: "GET" }).handler(
       .single<{ price: number }>();
     const dollarRate = dollar?.price ?? 1500;
 
+    const buildSalesQ = () => {
+      let q = sb.from("sales").select("*", { count: "exact", head: true }).is("deleted_at", null);
+      if (wf) q = (q as any).in("warehouse_id", wf);
+      return q;
+    };
+    const buildRevenueQ = () => {
+      let q = sb.from("sales").select("total_amount").is("deleted_at", null);
+      if (wf) q = (q as any).in("warehouse_id", wf);
+      return q;
+    };
+    const buildLoansQ = () => {
+      let q = sb.from("sales").select("total_remaining").gt("total_remaining", 0).is("deleted_at", null);
+      if (wf) q = (q as any).in("warehouse_id", wf);
+      return q;
+    };
+    const buildPayablesQ = () => {
+      let q = (sb.from("company_purchases") as any).select("total_remaining").gt("total_remaining", 0).is("deleted_at", null);
+      if (wf) q = q.in("warehouse_id", wf);
+      return q;
+    };
+
     const [
       { count: totalSales },
       { data: revenue },
       { data: loans },
       { count: customers },
     ] = await Promise.all([
-      sb
-        .from("sales")
-        .select("*", { count: "exact", head: true })
-        .is("deleted_at", null),
-      sb.from("sales").select("total_amount").is("deleted_at", null),
-      sb
-        .from("sales")
-        .select("total_remaining")
-        .gt("total_remaining", 0)
-        .is("deleted_at", null),
+      buildSalesQ(),
+      buildRevenueQ(),
+      buildLoansQ(),
       sb
         .from("customers")
         .select("*", { count: "exact", head: true })
         .is("deleted_at", null),
     ]);
-    const { data: payables } = await sb
-      .from("company_purchases")
-      .select("total_remaining")
-      .gt("total_remaining", 0)
-      .is("deleted_at", null);
+    const { data: payables } = await buildPayablesQ();
 
     const totalRevenue = ((revenue ?? []) as any[]).reduce(
       (sum, r) => sum + Number(r.total_amount),
@@ -133,12 +150,16 @@ const getDashboardStats = createServerFn({ method: "GET" }).handler(
 const getMonthlyRevenue = createServerFn({ method: "GET" }).handler(
   async (): Promise<MonthlyPoint[]> => {
     const sb = getSupabaseServer();
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
     const sixMonthsAgo = new Date(Date.now() - 180 * 86400_000).toISOString();
-    const { data } = await sb
+    let q = sb
       .from("sales")
       .select("total_amount, sale_date")
       .gte("sale_date", sixMonthsAgo)
       .is("deleted_at", null);
+    if (wf) q = (q as any).in("warehouse_id", wf);
+    const { data } = await q;
 
     const byMonth = new Map<string, number>();
     for (const r of (data ?? []) as Array<{
@@ -225,16 +246,20 @@ const getLowStockItems = createServerFn({ method: "GET" }).handler(
 const getTopProductsToday = createServerFn({ method: "GET" }).handler(
   async (): Promise<TopProduct[]> => {
     const sb = getSupabaseServer();
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const { data: salesData } = await (sb.from("sales") as any)
+    let salesQ = (sb.from("sales") as any)
       .select("sale_items(quantity, unit_price, products(name))")
       .gte("sale_date", todayStart.toISOString())
       .lte("sale_date", todayEnd.toISOString())
       .is("deleted_at", null);
+    if (wf) salesQ = salesQ.in("warehouse_id", wf);
+    const { data: salesData } = await salesQ;
 
     const productMap = new Map<string, TopProduct>();
     for (const sale of (salesData ?? []) as any[]) {
@@ -253,6 +278,31 @@ const getTopProductsToday = createServerFn({ method: "GET" }).handler(
     return [...productMap.values()]
       .sort((a, b) => b.total_revenue - a.total_revenue)
       .slice(0, 5);
+  },
+);
+
+interface CashVsLoan {
+  cash: number;
+  loan: number;
+}
+
+const getCashVsLoan = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CashVsLoan> => {
+    const sb = getSupabaseServer();
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    let q = (sb.from("sales") as any)
+      .select("total_amount, sale_type")
+      .is("deleted_at", null);
+    if (wf) q = q.in("warehouse_id", wf);
+    const { data } = await q;
+    let cash = 0;
+    let loan = 0;
+    for (const r of (data ?? []) as any[]) {
+      if (r.sale_type === "CASH") cash += Number(r.total_amount);
+      else loan += Number(r.total_amount);
+    }
+    return { cash, loan };
   },
 );
 
@@ -315,9 +365,15 @@ function Dashboard() {
     queryFn: getTopProductsToday,
     refetchInterval: 60_000,
   });
+  const { data: cashVsLoan } = useQuery({
+    queryKey: ["dashboard-cash-vs-loan"],
+    queryFn: getCashVsLoan,
+    refetchInterval: 60_000,
+  });
 
-  const { settings } = Route.useRouteContext();
-  const currency = settings?.display_currency ?? "IQD";
+  const { settings, dollarRate = 1 } = Route.useRouteContext();
+  const currency = settings?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const { t } = useTranslation();
 
   if (isLoading) {
@@ -355,18 +411,15 @@ function Dashboard() {
     },
     {
       label: t("dashboard.totalRevenue"),
-      value: formatCurrency(stats.total_revenue, currency),
-      sub:
-        currency !== "USD"
-          ? `≈ $${Math.round(stats.total_revenue / stats.current_dollar).toLocaleString()} USD`
-          : undefined,
+      value: fmt(stats.total_revenue),
+      sub: undefined,
       icon: TrendingUp,
       color:
         "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
     },
     {
       label: t("dashboard.outstandingLoans"),
-      value: formatCurrency(stats.outstanding_loans, currency),
+      value: fmt(stats.outstanding_loans),
       sub: t("dashboard.unpaidBalances"),
       icon: Wallet,
       color:
@@ -374,7 +427,7 @@ function Dashboard() {
     },
     {
       label: t("dashboard.outstandingPayables"),
-      value: formatCurrency(stats.outstanding_payables, currency),
+      value: fmt(stats.outstanding_payables),
       sub: t("dashboard.owedToSuppliers"),
       icon: Wallet,
       color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -388,7 +441,7 @@ function Dashboard() {
     },
     {
       label: t("dashboard.avgSaleValue"),
-      value: formatCurrency(stats.average_sale_value, currency),
+      value: fmt(stats.average_sale_value),
       sub: t("dashboard.perTransaction"),
       icon: BarChart3,
       color:
@@ -396,7 +449,7 @@ function Dashboard() {
     },
     {
       label: t("dashboard.usdExchangeRate"),
-      value: formatCurrency(stats.current_dollar, currency),
+      value: `${(stats.current_dollar * 100).toLocaleString()} IQD`,
       sub: t("dashboard.per1Usd"),
       icon: DollarSign,
       color:
@@ -464,13 +517,13 @@ function Dashboard() {
                 <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                 <YAxis
                   tick={{ fontSize: 11 }}
-                  tickFormatter={(v: number) => formatCurrency(v, currency)}
+                  tickFormatter={(v: number) => fmt(v)}
                   width={90}
                 />
                 <ChartTooltip
                   formatter={(value: unknown) =>
                     [
-                      formatCurrency(Number(value), currency),
+                      fmt(Number(value)),
                       t("dashboard.totalRevenue"),
                     ] as [string, string]
                   }
@@ -522,7 +575,7 @@ function Dashboard() {
                     </div>
                     <div className="shrink-0 text-end">
                       <p className="text-sm font-mono font-medium">
-                        {formatCurrency(tx.amount, currency)}
+                        {fmt(tx.amount)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(tx.date).toLocaleDateString()}
@@ -611,7 +664,7 @@ function Dashboard() {
                 <XAxis
                   type="number"
                   tick={{ fontSize: 10 }}
-                  tickFormatter={(v: number) => formatCurrency(v, currency)}
+                  tickFormatter={(v: number) => fmt(v)}
                   width={80}
                 />
                 <YAxis
@@ -622,7 +675,7 @@ function Dashboard() {
                 />
                 <ChartTooltip
                   formatter={(value: unknown) => [
-                    formatCurrency(Number(value), currency),
+                    fmt(Number(value)),
                     t("dashboard.totalRevenue"),
                   ]}
                   contentStyle={{ fontSize: 12 }}
@@ -637,6 +690,97 @@ function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Outstanding comparison + Cash vs Loan pie */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {t("dashboard.outstandingComparison")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart
+                data={[
+                  {
+                    name: t("dashboard.outstandingLoans"),
+                    value: stats.outstanding_loans,
+                  },
+                  {
+                    name: t("dashboard.outstandingPayables"),
+                    value: stats.outstanding_payables,
+                  },
+                ]}
+                margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(v: number) => fmt(v)}
+                  width={90}
+                />
+                <ChartTooltip
+                  formatter={(value: unknown) => [
+                    fmt(Number(value)),
+                  ]}
+                  contentStyle={{ fontSize: 12 }}
+                />
+                <Bar
+                  dataKey="value"
+                  fill="#f97316"
+                  radius={[3, 3, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {cashVsLoan && (cashVsLoan.cash > 0 || cashVsLoan.loan > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                {t("dashboard.cashVsLoan")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: t("sales.cash"), value: cashVsLoan.cash },
+                      { name: t("sales.loan"), value: cashVsLoan.loan },
+                    ]}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    label={
+                      ((props: any) =>
+                        `${props.name} ${((props.percent ?? 0) * 100).toFixed(0)}%`) as any
+                    }
+                    labelLine={false}
+                  >
+                    <Cell fill="var(--color-primary)" />
+                    <Cell fill="#f97316" />
+                  </Pie>
+                  <ChartTooltip
+                    formatter={(value: unknown) => [
+                      fmt(Number(value)),
+                    ]}
+                    contentStyle={{ fontSize: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

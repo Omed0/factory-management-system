@@ -62,7 +62,7 @@
 │   │       ├── dashboard.tsx            # KPI cards
 │   │       ├── customers.tsx            # CRUD module
 │   │       ├── products.tsx             # CRUD + image upload
-│   │       ├── employees.tsx            # CRUD + actions (bonus/punishment/absent/overtime)
+│   │       ├── employees.tsx            # CRUD + actions (bonus/punishment/absent/overtime/TERMINATE)
 │   │       ├── sales.tsx                # Multi-line sale + loan-payment collection
 │   │       ├── companies.tsx            # Supplier CRUD
 │   │       ├── purchases.tsx            # Company purchases + payments
@@ -99,8 +99,17 @@
 │   │   ├── 20260425000003_storage_and_cron.sql # storage buckets + pg_cron
 │   │   ├── 20260425000004_permissions.sql      # permission_catalog + user_permissions
 │   │   ├── 20260425000005_security_hardening.sql # search_path hardening + tighter policies
-│   │   ├── 20260425000006_backup_credentials.sql # r2_* columns on site_settings
-│   │   └── 20260425000007_restore_sequences.sql  # sequence repair after restore
+│   │   ├── 20260425000006_backup_credentials.sql   # r2_* columns on site_settings
+│   │   ├── 20260425000007_restore_sequences.sql   # sequence repair after restore
+│   │   ├── 20260425000008_fix_backup_default.sql  # backup_provider default + employees storage policy
+│   │   ├── 20260425000009_warehouse_system.sql    # warehouses, warehouse_users, warehouse_products + RPCs
+│   │   ├── 20260425000010_warehouse_permissions.sql # 5 warehouse/inventory permission_catalog entries
+│   │   ├── 20260425000011_safe_soft_delete.sql    # SECURITY DEFINER RPCs for transactional soft-delete/restore
+│   │   ├── 20260425000012_trash_permissions.sql   # trash:manage permission_catalog entry
+│   │   ├── 20260425000013_categories_and_history.sql # expenses.category + dollar_history table
+│   │   ├── 20260508000014_fix_storage_policies.sql # products/branding INSERT → auth.uid() IS NOT NULL
+│   │   ├── 20260508000015_employee_terminate_action.sql # ADD VALUE 'TERMINATE' to employee_action_type
+│   │   └── 20260508000016_profile_phone.sql       # ALTER TABLE profiles ADD COLUMN phone text
 │   └── functions/backup/index.ts        # Edge: logical export → R2/Supabase → rotate
 ├── deploy/
 │   ├── vps/harden.sh                    # UFW/fail2ban/Docker/swap/healthcheck cron
@@ -129,15 +138,19 @@ build time. Server fn files use the `.server.ts` naming convention.
 OWNER  ─► singleton (DB-enforced unique partial index + trigger)
          · transfer_ownership() RPC swaps roles atomically
          · only OWNER may change backup_provider/keep_n/cron
+         · can edit any user's profile (name, phone, email, password)
 
 ADMIN  ─► created by OWNER/ADMIN
          · full data access EXCEPT backup config
          · grants/revokes USER permissions
+         · can edit USER-role profiles; cannot edit OWNER's profile
 
 USER   ─► default role on signup (after the first user)
          · access only via explicit (resource, action) grants in user_permissions
          · resources: customers, products, sales, employees, expenses, companies,
                       purchases, dollar, reports, settings, backups
+
+profiles table columns: id, email, name, role, phone (optional), deleted_at
 ```
 
 `has_permission(resource, action)` is the helper used in every RLS policy. The

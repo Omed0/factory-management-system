@@ -257,16 +257,31 @@ function BrandingTab() {
               </div>
             )}
           </form.Field>
-          <CurrencySelect
-            form={form}
-            name="base_currency"
-            label="Base currency"
-          />
-          <CurrencySelect
-            form={form}
-            name="display_currency"
-            label="Display currency"
-          />
+          <form.Field name="base_currency">
+            {(f) => (
+              <div className="grid gap-1.5">
+                <Label>Currency</Label>
+                <Select
+                  value={f.state.value}
+                  onValueChange={(v) => {
+                    f.handleChange(v);
+                    form.setFieldValue("display_currency" as any, v);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </form.Field>
           <Field
             form={form}
             name="default_dollar_rate"

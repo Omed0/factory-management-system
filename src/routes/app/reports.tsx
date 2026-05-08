@@ -18,6 +18,8 @@ import {
   LineChart,
   Line,
   Legend,
+  AreaChart,
+  Area,
 } from "recharts";
 import { Printer } from "lucide-react";
 
@@ -35,13 +37,14 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
-import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
 
 type ReportKind = "sales" | "expenses" | "purchases" | "profit" | "audit";
+type SimpleKind = "sales" | "expenses" | "purchases";
 
 const DateRangeSchema = z.object({ from: z.string(), to: z.string() });
 const Schema = z.object({
-  kind: z.enum(["sales", "expenses", "purchases", "profit", "audit"]),
+  kind: z.enum(["sales", "expenses", "purchases"]),
   from: z.string(),
   to: z.string(),
 });
@@ -70,6 +73,20 @@ interface DollarPoint {
   price: number;
 }
 
+interface ProfitRow {
+  period: string;
+  accrual: number;
+  cash: number;
+  count: number;
+}
+
+interface PayrollEmployee {
+  name: string;
+  days: number;
+  monthly_salary: number;
+  prorated: number;
+}
+
 interface AuditResult {
   sales_count: number;
   sales_billed: number;
@@ -89,6 +106,7 @@ interface AuditResult {
   cash_in: number;
   cash_out: number;
   net_balance: number;
+  payroll_employees: PayrollEmployee[];
 }
 
 // ─── server fns ───────────────────────────────────────────────────────────────
@@ -145,7 +163,7 @@ const runAudit = createServerFn({ method: "POST" })
         .lte("created_at", toISO)
         .is("deleted_at", null),
       (sb.from("employees") as any).select(
-        "month_salary, created_at, deleted_at",
+        "name, month_salary, created_at, deleted_at",
       ),
       (sb.from("employee_actions") as any)
         .select("type, amount")
@@ -192,12 +210,14 @@ const runAudit = createServerFn({ method: "POST" })
     );
 
     const employees = (employeesRes.data ?? []) as Array<{
+      name: string;
       month_salary: number;
       created_at: string;
       deleted_at: string | null;
     }>;
     let salary_total = 0;
     let employee_count = 0;
+    const payroll_employees: PayrollEmployee[] = [];
     for (const emp of employees) {
       const empStart = new Date(emp.created_at);
       const empEnd = emp.deleted_at ? new Date(emp.deleted_at) : to;
@@ -205,8 +225,17 @@ const runAudit = createServerFn({ method: "POST" })
       employee_count++;
       const overlapStart = empStart > from ? empStart : from;
       const overlapEnd = empEnd < to ? empEnd : to;
-      const days = (overlapEnd.getTime() - overlapStart.getTime()) / 86_400_000;
-      salary_total += (days / 30.44) * Number(emp.month_salary);
+      const days = Math.round(
+        (overlapEnd.getTime() - overlapStart.getTime()) / 86_400_000,
+      );
+      const prorated = (days / 30.44) * Number(emp.month_salary);
+      salary_total += prorated;
+      payroll_employees.push({
+        name: emp.name,
+        days,
+        monthly_salary: Number(emp.month_salary),
+        prorated,
+      });
     }
 
     const actions = (actionsRes.data ?? []) as Array<{
@@ -218,7 +247,8 @@ const runAudit = createServerFn({ method: "POST" })
     for (const a of actions) {
       if (a.type === "BONUS" || a.type === "OVERTIME")
         bonus_total += Number(a.amount);
-      else deduction_total += Number(a.amount);
+      else if (a.type !== "TERMINATE")
+        deduction_total += Number(a.amount);
     }
 
     const payroll_net = salary_total + bonus_total - deduction_total;
@@ -244,6 +274,7 @@ const runAudit = createServerFn({ method: "POST" })
       cash_in,
       cash_out,
       net_balance: cash_in - cash_out,
+      payroll_employees,
     };
   });
 
@@ -259,72 +290,6 @@ const runReport = createServerFn({ method: "POST" })
 
     const fromISO = new Date(data.from).toISOString();
     const toISO = new Date(data.to + "T23:59:59").toISOString();
-
-    if (data.kind === "profit") {
-      const [salesRes, expRes, purRes] = await Promise.all([
-        (sb.from("sales") as any)
-          .select("total_amount, sale_date")
-          .gte("sale_date", fromISO)
-          .lte("sale_date", toISO)
-          .is("deleted_at", null),
-        (sb.from("expenses") as any)
-          .select("amount, created_at")
-          .gte("created_at", fromISO)
-          .lte("created_at", toISO)
-          .is("deleted_at", null),
-        (sb.from("company_purchases") as any)
-          .select("total_amount, purchase_date")
-          .gte("purchase_date", fromISO)
-          .lte("purchase_date", toISO)
-          .is("deleted_at", null),
-      ]);
-
-      type Acc = {
-        sales: number;
-        expenses: number;
-        purchases: number;
-        count: number;
-      };
-      const byMonth = new Map<string, Acc>();
-      const toKey = (d: string) => {
-        const dt = new Date(d);
-        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-      };
-      const init = (): Acc => ({
-        sales: 0,
-        expenses: 0,
-        purchases: 0,
-        count: 0,
-      });
-
-      for (const r of (salesRes.data ?? []) as any[]) {
-        const k = toKey(r.sale_date);
-        const cur = byMonth.get(k) ?? init();
-        cur.sales += Number(r.total_amount);
-        cur.count++;
-        byMonth.set(k, cur);
-      }
-      for (const r of (expRes.data ?? []) as any[]) {
-        const k = toKey(r.created_at);
-        const cur = byMonth.get(k) ?? init();
-        cur.expenses += Number(r.amount);
-        byMonth.set(k, cur);
-      }
-      for (const r of (purRes.data ?? []) as any[]) {
-        const k = toKey(r.purchase_date);
-        const cur = byMonth.get(k) ?? init();
-        cur.purchases += Number(r.total_amount);
-        byMonth.set(k, cur);
-      }
-
-      return [...byMonth.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([period, v]) => ({
-          period,
-          total: v.sales - v.expenses - v.purchases,
-          count: v.count,
-        }));
-    }
 
     const table =
       data.kind === "sales"
@@ -349,8 +314,7 @@ const runReport = createServerFn({ method: "POST" })
 
     const byMonth = new Map<string, { total: number; count: number }>();
     for (const r of rows ?? []) {
-      const dt = new Date((r as any)[dateCol]);
-      const k = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      const k = ((r as any)[dateCol] as string).slice(0, 7);
       const cur = byMonth.get(k) ?? { total: 0, count: 0 };
       cur.total += Number((r as any)[amountCol]);
       cur.count += 1;
@@ -359,6 +323,106 @@ const runReport = createServerFn({ method: "POST" })
     return [...byMonth.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([period, v]) => ({ period, total: v.total, count: v.count }));
+  });
+
+const runProfitReport = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => DateRangeSchema.parse(d))
+  .handler(async ({ data }): Promise<ProfitRow[]> => {
+    const sb = getSupabaseServer();
+    const { data: ok } = await (sb.rpc as any)("has_permission", {
+      p_resource: "reports",
+      p_action: "view",
+    });
+    if (!ok) throw new Error("Forbidden");
+
+    const fromISO = new Date(data.from).toISOString();
+    const toISO = new Date(data.to + "T23:59:59").toISOString();
+
+    const [salesRes, paidLoansRes, expRes, purRes, purchPayRes] =
+      await Promise.all([
+        (sb.from("sales") as any)
+          .select("total_amount, sale_type, sale_date")
+          .gte("sale_date", fromISO)
+          .lte("sale_date", toISO)
+          .is("deleted_at", null),
+        (sb.from("paid_loans") as any)
+          .select("amount, paid_at, sales!inner(deleted_at)")
+          .gte("paid_at", fromISO)
+          .lte("paid_at", toISO)
+          .is("sales.deleted_at", null),
+        (sb.from("expenses") as any)
+          .select("amount, created_at")
+          .gte("created_at", fromISO)
+          .lte("created_at", toISO)
+          .is("deleted_at", null),
+        (sb.from("company_purchases") as any)
+          .select("total_amount, type, purchase_date")
+          .gte("purchase_date", fromISO)
+          .lte("purchase_date", toISO)
+          .is("deleted_at", null),
+        (sb.from("purchase_payments") as any)
+          .select("amount, paid_at, company_purchases!inner(deleted_at)")
+          .gte("paid_at", fromISO)
+          .lte("paid_at", toISO)
+          .is("company_purchases.deleted_at", null),
+      ]);
+
+    type ProfitAcc = {
+      accrual_in: number;
+      accrual_out: number;
+      cash_in: number;
+      cash_out: number;
+      count: number;
+    };
+    const byMonth = new Map<string, ProfitAcc>();
+    const getOrInit = (k: string): ProfitAcc => {
+      if (!byMonth.has(k))
+        byMonth.set(k, {
+          accrual_in: 0,
+          accrual_out: 0,
+          cash_in: 0,
+          cash_out: 0,
+          count: 0,
+        });
+      return byMonth.get(k)!;
+    };
+
+    for (const r of (salesRes.data ?? []) as any[]) {
+      const k = (r.sale_date as string).slice(0, 7);
+      const cur = getOrInit(k);
+      cur.accrual_in += Number(r.total_amount);
+      if (r.sale_type === "CASH") cur.cash_in += Number(r.total_amount);
+      cur.count++;
+    }
+    for (const r of (paidLoansRes.data ?? []) as any[]) {
+      const k = (r.paid_at as string).slice(0, 7);
+      getOrInit(k).cash_in += Number(r.amount);
+    }
+    for (const r of (expRes.data ?? []) as any[]) {
+      const k = (r.created_at as string).slice(0, 7);
+      const cur = getOrInit(k);
+      cur.accrual_out += Number(r.amount);
+      cur.cash_out += Number(r.amount);
+    }
+    for (const r of (purRes.data ?? []) as any[]) {
+      const k = (r.purchase_date as string).slice(0, 7);
+      const cur = getOrInit(k);
+      cur.accrual_out += Number(r.total_amount);
+      if (r.type === "CASH") cur.cash_out += Number(r.total_amount);
+    }
+    for (const r of (purchPayRes.data ?? []) as any[]) {
+      const k = (r.paid_at as string).slice(0, 7);
+      getOrInit(k).cash_out += Number(r.amount);
+    }
+
+    return [...byMonth.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, v]) => ({
+        period,
+        accrual: v.accrual_in - v.accrual_out,
+        cash: v.cash_in - v.cash_out,
+        count: v.count,
+      }));
   });
 
 const getTopProducts = createServerFn({ method: "POST" })
@@ -513,10 +577,11 @@ function daysAgo(n: number) {
 }
 
 function ReportsPage() {
-  const { permissions, settings } = Route.useRouteContext();
+  const { permissions, settings, dollarRate = 1 } = Route.useRouteContext();
   const { t } = useTranslation();
   const canView = can(permissions, "reports", "view");
-  const currency = settings?.display_currency ?? "IQD";
+  const currency = settings?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
 
   const [params, setParams] = useState<{
     kind: ReportKind;
@@ -526,11 +591,22 @@ function ReportsPage() {
   const [submitted, setSubmitted] = useState(params);
 
   const isAudit = submitted.kind === "audit";
+  const isProfit = submitted.kind === "profit";
 
   const report = useQuery({
     queryKey: ["report", submitted.kind, submitted.from, submitted.to],
-    queryFn: () => runReport({ data: submitted }),
-    enabled: canView && !isAudit,
+    queryFn: () =>
+      runReport({
+        data: { ...submitted, kind: submitted.kind as SimpleKind },
+      }),
+    enabled: canView && !isAudit && !isProfit,
+  });
+
+  const profitQ = useQuery({
+    queryKey: ["profit-report", submitted.from, submitted.to],
+    queryFn: () =>
+      runProfitReport({ data: { from: submitted.from, to: submitted.to } }),
+    enabled: canView && isProfit,
   });
 
   const auditQ = useQuery({
@@ -583,8 +659,11 @@ function ReportsPage() {
   const rows = report.data ?? [];
   const grandTotal = rows.reduce((s, r) => s + r.total, 0);
   const grandCount = rows.reduce((s, r) => s + r.count, 0);
-  const isProfit = submitted.kind === "profit";
-  const isFetching = isAudit ? auditQ.isFetching : report.isFetching;
+  const isFetching = isAudit
+    ? auditQ.isFetching
+    : isProfit
+      ? profitQ.isFetching
+      : report.isFetching;
 
   const QUICK_RANGES = [
     { label: t("reports.quickToday"), from: today(), to: today() },
@@ -706,12 +785,132 @@ function ReportsPage() {
             <AuditView
               data={auditQ.data}
               currency={currency}
+              dollarRate={dollarRate}
               t={t}
               from={submitted.from}
               to={submitted.to}
             />
           ) : null}
         </div>
+      ) : isProfit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {t("reports.result")} — {t("reports.profitOption")} (
+              {submitted.from} → {submitted.to})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profitQ.isFetching ? (
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : profitQ.isError ? (
+              <p className="text-sm text-destructive">
+                {(profitQ.error as Error).message}
+              </p>
+            ) : !profitQ.data?.length ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                {t("reports.noRecords")}
+              </p>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={240} className="mb-6">
+                  <AreaChart
+                    data={profitQ.data}
+                    margin={{ top: 4, right: 8, left: 0, bottom: 4 }}
+                  >
+                    <defs>
+                      <linearGradient id="accrualGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.25} />
+                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="hsl(var(--border))"
+                    />
+                    <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v: number) => fmt(v)}
+                      width={90}
+                    />
+                    <ChartTooltip
+                      formatter={(value: unknown, name: unknown) => [
+                        fmt(Number(value)),
+                        name === "accrual"
+                          ? t("reports.accrualProfit")
+                          : t("reports.cashProfit"),
+                      ]}
+                      contentStyle={{ fontSize: 12 }}
+                    />
+                    <Legend
+                      formatter={(value: string) =>
+                        value === "accrual"
+                          ? t("reports.accrualProfit")
+                          : t("reports.cashProfit")
+                      }
+                      wrapperStyle={{ fontSize: 11 }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="accrual"
+                      stroke="var(--color-primary)"
+                      fill="url(#accrualGrad)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="cash"
+                      stroke="#22c55e"
+                      fill="url(#cashGrad)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+                <table className="w-full text-sm">
+                  <thead className="text-muted-foreground">
+                    <tr>
+                      <th className="text-start p-2">{t("reports.month")}</th>
+                      <th className="text-start p-2">
+                        {t("reports.accrualProfit")}
+                      </th>
+                      <th className="text-start p-2">
+                        {t("reports.cashProfit")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {profitQ.data.map((r) => (
+                      <tr key={r.period} className="border-t border-border">
+                        <td className="p-2">{r.period}</td>
+                        <td
+                          className={`p-2 font-mono ${r.accrual < 0 ? "text-destructive" : ""}`}
+                        >
+                          {fmt(r.accrual)}
+                        </td>
+                        <td
+                          className={`p-2 font-mono ${r.cash < 0 ? "text-destructive" : ""}`}
+                        >
+                          {fmt(r.cash)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <Card>
           <CardHeader>
@@ -739,16 +938,11 @@ function ReportsPage() {
               <>
                 <p className="text-sm text-muted-foreground mb-4">
                   {t("reports.grandTotal")}:{" "}
-                  <strong>{formatCurrency(grandTotal, currency)}</strong>
-                  {!isProfit && (
-                    <>
-                      {" "}
-                      — {grandCount} {t("reports.records")}
-                    </>
-                  )}
+                  <strong>{fmt(grandTotal)}</strong>{" "}
+                  — {grandCount} {t("reports.records")}
                 </p>
                 <ResponsiveContainer width="100%" height={220} className="mb-6">
-                  <BarChart
+                  <LineChart
                     data={rows}
                     margin={{ top: 4, right: 4, left: 0, bottom: 4 }}
                   >
@@ -759,36 +953,32 @@ function ReportsPage() {
                     <XAxis dataKey="period" tick={{ fontSize: 11 }} />
                     <YAxis
                       tick={{ fontSize: 11 }}
-                      tickFormatter={(v: number) => formatCurrency(v, currency)}
+                      tickFormatter={(v: number) => fmt(v)}
                       width={90}
                     />
                     <ChartTooltip
                       formatter={(value: unknown) => [
-                        formatCurrency(Number(value), currency),
-                        isProfit
-                          ? t("reports.profitOption")
-                          : t(`reports.${submitted.kind}Option`),
+                        fmt(Number(value)),
+                        t(`reports.${submitted.kind}Option`),
                       ]}
                       contentStyle={{ fontSize: 12 }}
                     />
-                    <Bar
+                    <Line
+                      type="monotone"
                       dataKey="total"
-                      fill="var(--color-primary)"
-                      radius={[3, 3, 0, 0]}
+                      stroke="var(--color-primary)"
+                      strokeWidth={2}
+                      dot={false}
                     />
-                  </BarChart>
+                  </LineChart>
                 </ResponsiveContainer>
                 <table className="w-full text-sm">
                   <thead className="text-muted-foreground">
                     <tr>
                       <th className="text-start p-2">{t("reports.month")}</th>
-                      {!isProfit && (
-                        <th className="text-start p-2">{t("reports.count")}</th>
-                      )}
+                      <th className="text-start p-2">{t("reports.count")}</th>
                       <th className="text-start p-2">
-                        {isProfit
-                          ? t("reports.profitOption")
-                          : t("reports.totalIqd")}
+                        {t("reports.totalIqd")}
                       </th>
                     </tr>
                   </thead>
@@ -796,11 +986,9 @@ function ReportsPage() {
                     {rows.map((r) => (
                       <tr key={r.period} className="border-t border-border">
                         <td className="p-2">{r.period}</td>
-                        {!isProfit && <td className="p-2">{r.count}</td>}
-                        <td
-                          className={`p-2 font-mono ${r.total < 0 ? "text-destructive" : ""}`}
-                        >
-                          {formatCurrency(r.total, currency)}
+                        <td className="p-2">{r.count}</td>
+                        <td className="p-2 font-mono">
+                          {fmt(r.total)}
                         </td>
                       </tr>
                     ))}
@@ -846,7 +1034,7 @@ function ReportsPage() {
                   <XAxis
                     type="number"
                     tick={{ fontSize: 10 }}
-                    tickFormatter={(v: number) => formatCurrency(v, currency)}
+                    tickFormatter={(v: number) => fmt(v)}
                     width={80}
                   />
                   <YAxis
@@ -858,7 +1046,7 @@ function ReportsPage() {
                   <ChartTooltip
                     formatter={(value: unknown) =>
                       [
-                        formatCurrency(Number(value), currency),
+                        fmt(Number(value)),
                         t("reports.revenue"),
                       ] as [string, string]
                     }
@@ -907,7 +1095,7 @@ function ReportsPage() {
                   <XAxis
                     type="number"
                     tick={{ fontSize: 10 }}
-                    tickFormatter={(v: number) => formatCurrency(v, currency)}
+                    tickFormatter={(v: number) => fmt(v)}
                     width={80}
                   />
                   <YAxis
@@ -919,7 +1107,7 @@ function ReportsPage() {
                   <ChartTooltip
                     formatter={(value: unknown) =>
                       [
-                        formatCurrency(Number(value), currency),
+                        fmt(Number(value)),
                         t("reports.revenue"),
                       ] as [string, string]
                     }
@@ -972,7 +1160,7 @@ function ReportsPage() {
                   />
                   <ChartTooltip
                     formatter={(value: unknown) => [
-                      formatCurrency(Number(value), currency),
+                      fmt(Number(value)),
                     ]}
                     contentStyle={{ fontSize: 12 }}
                   />
@@ -1050,6 +1238,7 @@ function AuditRow({
   label,
   value,
   currency,
+  dollarRate = 1,
   sub,
   positive,
   negative,
@@ -1058,6 +1247,7 @@ function AuditRow({
   label: string;
   value: number;
   currency: string;
+  dollarRate?: number;
   sub?: boolean;
   positive?: boolean;
   negative?: boolean;
@@ -1074,7 +1264,7 @@ function AuditRow({
     >
       <span className={cls || (sub ? "" : "text-foreground")}>{label}</span>
       <span className={`font-mono text-sm ${cls}`}>
-        {formatCurrency(Math.abs(value), currency)}
+        {formatMoney(Math.abs(value), currency, dollarRate)}
       </span>
     </div>
   );
@@ -1083,13 +1273,15 @@ function AuditRow({
 function AuditView({
   data: d,
   currency,
+  dollarRate = 1,
   t,
   from,
   to,
 }: {
   data: AuditResult;
   currency: string;
-  t: (k: string, o?: Record<string, unknown>) => string;
+  dollarRate?: number;
+  t: (k: string, opts?: Record<string, unknown>) => string;
   from: string;
   to: string;
 }) {
@@ -1111,11 +1303,13 @@ function AuditView({
               label={`${t("reports.salesBilled")} (${d.sales_count})`}
               value={d.sales_billed}
               currency={currency}
+              dollarRate={dollarRate}
             />
             <AuditRow
               label={t("reports.salesReceived")}
               value={d.sales_cash_collected}
               currency={currency}
+              dollarRate={dollarRate}
               sub
               positive
             />
@@ -1123,6 +1317,7 @@ function AuditView({
               label={t("reports.salesOutstanding")}
               value={d.sales_outstanding}
               currency={currency}
+              dollarRate={dollarRate}
               sub
             />
           </CardContent>
@@ -1139,11 +1334,13 @@ function AuditView({
               label={`${t("reports.purchasesBilled")} (${d.purchases_count})`}
               value={d.purchases_billed}
               currency={currency}
+              dollarRate={dollarRate}
             />
             <AuditRow
               label={t("reports.purchasesPaid")}
               value={d.purchases_cash_paid}
               currency={currency}
+              dollarRate={dollarRate}
               sub
               negative
             />
@@ -1151,6 +1348,7 @@ function AuditView({
               label={t("reports.purchasesOwed")}
               value={d.purchases_outstanding}
               currency={currency}
+              dollarRate={dollarRate}
               sub
             />
             <AuditRow
@@ -1169,24 +1367,44 @@ function AuditView({
               label={t("reports.salaryEst")}
               value={d.salary_total}
               currency={currency}
+              dollarRate={dollarRate}
               sub
             />
+            {d.payroll_employees.map((e, i) => (
+              <div
+                key={i}
+                className="flex justify-between items-center py-1 ps-8 text-xs text-muted-foreground"
+              >
+                <span>
+                  {e.name}{" "}
+                  <span className="opacity-60">
+                    ({t("reports.proratedDays", { days: e.days })})
+                  </span>
+                </span>
+                <span className="font-mono">
+                  {formatMoney(e.prorated, currency, dollarRate)}
+                </span>
+              </div>
+            ))}
             <AuditRow
               label={t("reports.bonuses")}
               value={d.bonus_total}
               currency={currency}
+              dollarRate={dollarRate}
               sub
             />
             <AuditRow
               label={t("reports.deductions")}
               value={d.deduction_total}
               currency={currency}
+              dollarRate={dollarRate}
               sub
             />
             <AuditRow
               label={t("reports.payrollNet")}
               value={d.payroll_net}
               currency={currency}
+              dollarRate={dollarRate}
               sub
               bold
             />
@@ -1222,7 +1440,7 @@ function AuditView({
           >
             <span>{t("reports.netBalance")}</span>
             <span className="font-mono">
-              {formatCurrency(d.net_balance, currency)}
+              {formatMoney(d.net_balance, currency, dollarRate)}
             </span>
           </div>
         </CardContent>

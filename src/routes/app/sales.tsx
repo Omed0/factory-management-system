@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { type ColumnDef } from "@tanstack/react-table";
 import { z } from "zod";
 import { useState } from "react";
@@ -10,7 +10,8 @@ import { Eye, Loader2, Plus, Printer, Trash2, Wallet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
-import { can } from "~/lib/auth";
+import { can, requireUser, warehouseFilter } from "~/lib/auth";
+import type { UserRole } from "~/lib/auth";
 import type { SiteSettings } from "~/lib/site-settings";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -36,6 +37,8 @@ import {
   TextAreaField,
 } from "~/components/form-fields";
 import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
+import { qtyDisplay } from "~/lib/inventory";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -104,7 +107,7 @@ function escapeHtml(s: string | null | undefined): string {
 }
 
 function printHtml(html: string) {
-  const w = window.open("", "_blank", "width=860,height=1100");
+  const w = window.open("", "_blank", "width=900");
   if (!w) {
     toast.error("Enable pop-ups in your browser to print");
     return;
@@ -112,7 +115,8 @@ function printHtml(html: string) {
   w.document.write(html);
   w.document.close();
   w.focus();
-  setTimeout(() => w.print(), 300);
+  if (w.document.readyState === "complete") w.print();
+  else w.onload = () => w.print();
 }
 
 function buildSaleInvoiceHtml(
@@ -177,7 +181,8 @@ td{padding:6px 10px;border:1px solid #ddd}
 .footer{margin-top:30px;text-align:center;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}
 .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600}
 .badge-loan{background:#fff3e0;color:#e65100}.badge-cash{background:#e8f5e9;color:#1b5e20}
-@media print{body{padding:10mm 14mm}button{display:none!important}}
+@page{size:A4;margin:15mm}
+@media print{body{overflow:visible!important;height:auto!important;padding:10mm 14mm}button{display:none!important}}
 </style></head><body>
 <div class="hd">
   <h1>${factory}</h1>
@@ -285,7 +290,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#111;padding:1
 .balance-box{background:#f9f9f9;border:1px solid #ddd;border-radius:4px;padding:10px 14px;margin:14px 0}
 .note-box{background:#fff3e0;border:1px solid #ffe0b2;border-radius:4px;padding:8px 12px;font-size:12px;margin-top:12px}
 .footer{margin-top:24px;text-align:center;font-size:11px;color:#999;border-top:1px solid #ddd;padding-top:10px}
-@media print{body{padding:8mm 12mm}button{display:none!important}}
+@page{size:A4;margin:15mm}
+@media print{body{overflow:visible!important;height:auto!important;padding:8mm 12mm}button{display:none!important}}
 </style></head><body>
 <div class="hd">
   <h1>${factory}</h1>
@@ -321,11 +327,15 @@ ${payment.note ? `<div class="note-box"><strong>Note:</strong> ${e(payment.note)
 const list = createServerFn({ method: "GET" }).handler(
   async (): Promise<Sale[]> => {
     const sb = getSupabaseServer();
-    const { data, error } = await sb
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    let q = sb
       .from("sales")
       .select("*")
       .is("deleted_at", null)
       .order("sale_date", { ascending: false });
+    if (wf) q = (q as any).in("warehouse_id", wf);
+    const { data, error } = await q;
     if (error) throw new Error(error.message);
     return data as Sale[];
   },
@@ -365,8 +375,8 @@ const getSaleDetail = createServerFn({ method: "GET" })
       ...s,
       customer_name: s.customers?.name ?? null,
       customer_phone: s.customers?.phone ?? null,
-      items: (itemsRes.data ?? []) as SaleItem[],
-      payments: (loansRes.data ?? []) as PaidLoan[],
+      items: (itemsRes.data ?? []) as unknown as SaleItem[],
+      payments: (loansRes.data ?? []) as unknown as PaidLoan[],
     };
   });
 
@@ -380,15 +390,56 @@ const listCustomers = createServerFn({ method: "GET" }).handler(async () => {
   return (data ?? []) as { id: number; name: string }[];
 });
 
-const listProducts = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = getSupabaseServer();
-  const { data } = await sb
-    .from("products")
-    .select("id, name, price")
-    .is("deleted_at", null)
-    .order("name");
-  return (data ?? []) as { id: number; name: string; price: number }[];
+const ListProductsInput = z.object({
+  warehouse_id: z.number().nullable().optional(),
 });
+const listProducts = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) => ListProductsInput.parse(d))
+  .handler(async ({ data }) => {
+    const sb = getSupabaseServer();
+    if (data?.warehouse_id) {
+      const { data: wp } = await (sb.from("warehouse_products") as any)
+        .select("product_id, qty")
+        .eq("warehouse_id", data.warehouse_id);
+      const ids = ((wp ?? []) as any[]).map((r) => r.product_id);
+      if (ids.length === 0)
+        return [] as {
+          id: number;
+          name: string;
+          price: number;
+          grains_per_carton: number | null;
+          qty: number | null;
+        }[];
+      const { data: prods } = await sb
+        .from("products")
+        .select("id, name, price, grains_per_carton")
+        .in("id", ids)
+        .is("deleted_at", null)
+        .order("name");
+      const qtyMap: Record<number, number> = Object.fromEntries(
+        ((wp ?? []) as any[]).map((r) => [r.product_id, r.qty]),
+      );
+      return ((prods ?? []) as any[]).map((p) => ({
+        id: p.id as number,
+        name: p.name as string,
+        price: p.price as number,
+        grains_per_carton: p.grains_per_carton as number | null,
+        qty: qtyMap[p.id] ?? 0,
+      }));
+    }
+    const { data: prods } = await sb
+      .from("products")
+      .select("id, name, price, grains_per_carton")
+      .is("deleted_at", null)
+      .order("name");
+    return ((prods ?? []) as any[]).map((p) => ({
+      id: p.id as number,
+      name: p.name as string,
+      price: p.price as number,
+      grains_per_carton: p.grains_per_carton as number | null,
+      qty: null as number | null,
+    }));
+  });
 
 const getCurrentDollar = createServerFn({ method: "GET" }).handler(async () => {
   const sb = getSupabaseServer();
@@ -402,10 +453,14 @@ const getCurrentDollar = createServerFn({ method: "GET" }).handler(async () => {
 
 const listWarehouses = createServerFn({ method: "GET" }).handler(async () => {
   const sb = getSupabaseServer();
-  const { data } = await (sb.from("warehouses") as any)
+  const me = await requireUser();
+  const wf = warehouseFilter(me);
+  let q = (sb.from("warehouses") as any)
     .select("id, name")
     .is("deleted_at", null)
     .order("name");
+  if (wf) q = q.in("id", wf);
+  const { data } = await q;
   return (data ?? []) as { id: number; name: string }[];
 });
 
@@ -441,8 +496,30 @@ const createSale = createServerFn({ method: "POST" })
       p_action: "write",
     });
     if (!ok) throw new Error("You do not have permission to create sales");
-    const total =
-      data.items.reduce((s, i) => s + i.price * i.quantity, 0) - data.discount;
+    const subtotal = data.items.reduce((s, i) => s + i.price * i.quantity, 0);
+    if (data.discount > subtotal)
+      throw new Error("Discount cannot exceed the sale total");
+    const total = subtotal - data.discount;
+    if (data.warehouse_id) {
+      const shortfalls: string[] = [];
+      for (const item of data.items) {
+        if (!item.product_id) continue;
+        const { data: wp } = await (sb.from("warehouse_products") as any)
+          .select("qty")
+          .eq("warehouse_id", data.warehouse_id)
+          .eq("product_id", item.product_id)
+          .maybeSingle();
+        const available = (wp as any)?.qty ?? 0;
+        if (available < item.quantity)
+          shortfalls.push(
+            `${item.name}: needs ${item.quantity}, has ${available}`,
+          );
+      }
+      if (shortfalls.length > 0)
+        throw new Error(
+          `Insufficient stock:\n${shortfalls.join("\n")}`,
+        );
+    }
     const { data: sale, error } = await (sb.from("sales") as any)
       .insert({
         customer_id: data.customer_id,
@@ -561,10 +638,16 @@ export const Route = createFileRoute("/app/sales")({ component: SalesPage });
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function SalesPage() {
-  const { permissions = [], settings } = Route.useRouteContext() as {
-    permissions: string[];
-    settings: SiteSettings | null;
-  };
+  const { permissions = [], settings, profile, warehouseIds = [], dollarRate = 1 } =
+    Route.useRouteContext() as {
+      permissions: string[];
+      settings: SiteSettings | null;
+      profile: { role: UserRole } | undefined;
+      warehouseIds: number[];
+      dollarRate: number;
+    };
+  const currency = settings?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const qc = useQueryClient();
   const sales = useQuery({ queryKey: ["sales"], queryFn: list });
   const [creating, setCreating] = useState(false);
@@ -595,7 +678,7 @@ function SalesPage() {
     {
       accessorKey: "total_amount",
       header: t("common.total"),
-      cell: ({ getValue }) => formatCurrency(Number(getValue()), "IQD"),
+      cell: ({ getValue }) => fmt(Number(getValue())),
     },
     {
       accessorKey: "total_remaining",
@@ -610,7 +693,7 @@ function SalesPage() {
                 : "text-green-600 dark:text-green-400"
             }
           >
-            {formatCurrency(v, "IQD")}
+            {fmt(v)}
           </span>
         );
       },
@@ -703,6 +786,8 @@ function SalesPage() {
             qc.invalidateQueries({ queryKey: ["sales"] });
             setCreating(false);
           }}
+          userWarehouseIds={warehouseIds}
+          userRole={profile?.role ?? "OWNER"}
         />
       )}
 
@@ -874,10 +959,10 @@ function SaleDetailDialog({
                         <td className="py-1.5">{it.name}</td>
                         <td className="py-1.5 text-center">{it.quantity}</td>
                         <td className="py-1.5 text-end">
-                          {formatCurrency(it.price, "IQD")}
+                          {fmt(it.price)}
                         </td>
                         <td className="py-1.5 text-end">
-                          {formatCurrency(it.price * it.quantity, "IQD")}
+                          {fmt(it.price * it.quantity)}
                         </td>
                       </tr>
                     ))}
@@ -894,7 +979,7 @@ function SaleDetailDialog({
                       {t("sales.subtotal")}
                     </span>
                     <span>
-                      {formatCurrency(sale.total_amount + sale.discount, "IQD")}
+                      {fmt(sale.total_amount + sale.discount)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -902,31 +987,28 @@ function SaleDetailDialog({
                       {t("sales.discount")}
                     </span>
                     <span className="text-destructive">
-                      − {formatCurrency(sale.discount, "IQD")}
+                      − {fmt(sale.discount)}
                     </span>
                   </div>
                 </>
               )}
               <div className="flex justify-between font-semibold text-base pt-1 border-t border-border">
                 <span>{t("common.total")}</span>
-                <span>{formatCurrency(sale.total_amount, "IQD")}</span>
+                <span>{fmt(sale.total_amount)}</span>
               </div>
               {sale.sale_type === "LOAN" && (
                 <>
                   <div className="flex justify-between text-green-700 dark:text-green-400">
                     <span>{t("sales.paidSoFar")}</span>
                     <span>
-                      {formatCurrency(
-                        sale.total_amount - sale.total_remaining,
-                        "IQD",
-                      )}
+                      {fmt(sale.total_amount - sale.total_remaining)}
                     </span>
                   </div>
                   <div
                     className={`flex justify-between font-semibold ${sale.total_remaining > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}
                   >
                     <span>{t("sales.remaining")}</span>
-                    <span>{formatCurrency(sale.total_remaining, "IQD")}</span>
+                    <span>{fmt(sale.total_remaining)}</span>
                   </div>
                 </>
               )}
@@ -959,7 +1041,7 @@ function SaleDetailDialog({
                             {new Date(p.paid_at).toLocaleDateString()}
                           </td>
                           <td className="py-1.5 text-end font-medium text-green-700 dark:text-green-400">
-                            {formatCurrency(p.amount, "IQD")}
+                            {fmt(p.amount)}
                           </td>
                           <td className="py-1.5 pl-3 text-muted-foreground">
                             {p.note ?? "—"}
@@ -1061,7 +1143,7 @@ function CollectForm({
           &nbsp;·&nbsp;
           {t("sales.remaining")}:{" "}
           <strong className="text-orange-600 dark:text-orange-400">
-            {formatCurrency(sale.total_remaining, "IQD")}
+            {fmt(sale.total_remaining)}
           </strong>
         </p>
       </div>
@@ -1133,7 +1215,7 @@ function PaymentReceipt({
             {t("sales.paidAmount")}
           </p>
           <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-            {formatCurrency(payment.amount, "IQD")}
+            {fmt(payment.amount)}
           </p>
         </div>
         <Separator />
@@ -1163,7 +1245,7 @@ function PaymentReceipt({
               {t("sales.balanceBefore")}
             </p>
             <p className="font-medium">
-              {formatCurrency(balanceBefore, "IQD")}
+              {fmt(balanceBefore)}
             </p>
           </div>
           <div className="col-span-2">
@@ -1173,7 +1255,7 @@ function PaymentReceipt({
             <p
               className={`font-semibold text-base ${sale.total_remaining > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}
             >
-              {formatCurrency(sale.total_remaining, "IQD")}
+              {fmt(sale.total_remaining)}
               {sale.total_remaining === 0 && ` ${t("sales.fullyPaidLabel")}`}
             </p>
           </div>
@@ -1201,18 +1283,25 @@ function PaymentReceipt({
 function SaleDialog({
   onClose,
   onSaved,
+  userWarehouseIds = [],
+  userRole = "OWNER",
 }: {
   onClose: () => void;
   onSaved: () => void;
+  userWarehouseIds?: number[];
+  userRole?: UserRole;
 }) {
   const { t } = useTranslation();
+  const defaultWarehouseId =
+    userRole === "USER" && userWarehouseIds.length === 1
+      ? userWarehouseIds[0]
+      : null;
+  const hideWarehouseSelector =
+    userRole === "USER" && userWarehouseIds.length === 1;
+
   const customers = useQuery({
     queryKey: ["customers-mini"],
     queryFn: listCustomers,
-  });
-  const products = useQuery({
-    queryKey: ["products-mini"],
-    queryFn: listProducts,
   });
   const dollarQ = useQuery({
     queryKey: ["dollar-rate"],
@@ -1225,6 +1314,8 @@ function SaleDialog({
   const [items, setItems] = useState<Item[]>([
     { product_id: null, name: "", price: 0, quantity: 1 },
   ]);
+  const [discountMode, setDiscountMode] = useState<"IQD" | "PCT">("IQD");
+  const [pctValue, setPctValue] = useState(0);
 
   const form = useForm({
     defaultValues: {
@@ -1234,7 +1325,7 @@ function SaleDialog({
       discount: 0,
       dollar: dollarQ.data ?? 1500,
       note: "",
-      warehouse_id: null as number | null,
+      warehouse_id: defaultWarehouseId as number | null,
     },
     onSubmit: async ({ value }) => {
       if (items.some((i) => !i.name || i.quantity < 1)) {
@@ -1251,9 +1342,24 @@ function SaleDialog({
     },
   });
 
-  const total =
-    items.reduce((s, i) => s + i.price * i.quantity, 0) -
-    form.state.values.discount;
+  const selectedWarehouseId = useStore(
+    form.store,
+    (s) => s.values.warehouse_id,
+  );
+  const products = useQuery({
+    queryKey: ["products-mini", selectedWarehouseId],
+    queryFn: () =>
+      listProducts({
+        data: { warehouse_id: selectedWarehouseId ?? undefined },
+      }),
+  });
+
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const total = subtotal - form.state.values.discount;
+  const discountError =
+    subtotal > 0 && form.state.values.discount > subtotal
+      ? t("sales.discountExceedsTotal")
+      : null;
   const updateItem = (i: number, patch: Partial<Item>) =>
     setItems((xs) => xs.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
 
@@ -1311,7 +1417,7 @@ function SaleDialog({
               ]}
             />
           </div>
-          {(warehousesQ.data?.length ?? 0) > 0 && (
+          {!hideWarehouseSelector && (warehousesQ.data?.length ?? 0) > 0 && (
             <form.Field name="warehouse_id">
               {(f) => (
                 <div className="grid gap-1.5">
@@ -1377,6 +1483,11 @@ function SaleDialog({
                         {products.data?.map((p) => (
                           <SelectItem key={p.id} value={String(p.id)}>
                             {p.name}
+                            {p.qty != null && (
+                              <span className="text-muted-foreground ms-1 text-xs">
+                                — {qtyDisplay(p.qty, p.grains_per_carton)}
+                              </span>
+                            )}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1433,13 +1544,69 @@ function SaleDialog({
             </Button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <TextField
-              form={form}
-              name="discount"
-              label={t("sales.discount")}
-              type="number"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">
+                  {t("sales.discount")}
+                </label>
+                <div className="flex overflow-hidden rounded border border-input text-xs">
+                  <button
+                    type="button"
+                    className={`px-2 py-0.5 transition-colors ${discountMode === "IQD" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                    onClick={() => {
+                      setDiscountMode("IQD");
+                      setPctValue(0);
+                      form.setFieldValue("discount", 0);
+                    }}
+                  >
+                    IQD
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-2 py-0.5 transition-colors ${discountMode === "PCT" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                    onClick={() => setDiscountMode("PCT")}
+                  >
+                    %
+                  </button>
+                </div>
+              </div>
+              {discountMode === "PCT" ? (
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={pctValue}
+                  onChange={(e) => {
+                    const pct = Math.min(
+                      100,
+                      Math.max(0, Number(e.target.value)),
+                    );
+                    setPctValue(pct);
+                    form.setFieldValue(
+                      "discount",
+                      Math.round((pct / 100) * subtotal),
+                    );
+                  }}
+                  placeholder="0"
+                />
+              ) : (
+                <form.Field name="discount">
+                  {(f) => (
+                    <Input
+                      type="number"
+                      min={0}
+                      value={f.state.value}
+                      onChange={(e) => f.handleChange(Number(e.target.value))}
+                    />
+                  )}
+                </form.Field>
+              )}
+              {discountError && (
+                <p className="text-xs text-destructive">{discountError}</p>
+              )}
+            </div>
             <TextField
               form={form}
               name="dollar"
@@ -1447,14 +1614,30 @@ function SaleDialog({
               type="number"
               required
             />
-            <div className="grid gap-1.5">
-              <label className="text-sm font-medium">{t("common.total")}</label>
-              <Input
-                value={formatCurrency(Math.max(0, total), "IQD")}
-                disabled
-                className="font-mono bg-muted"
-              />
+          </div>
+
+          {form.state.values.discount > 0 && subtotal > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-muted/40 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">
+                {t("sales.subtotal")}:
+              </span>
+              <span className="font-medium">{fmt(subtotal)}</span>
+              <span className="text-muted-foreground">→</span>
+              <span className="font-medium text-destructive">
+                − {fmt(form.state.values.discount)}
+              </span>
+              <span className="text-muted-foreground">→</span>
+              <span className="font-semibold">{fmt(Math.max(0, total))}</span>
             </div>
+          )}
+
+          <div className="grid gap-1.5">
+            <label className="text-sm font-medium">{t("common.total")}</label>
+            <Input
+              value={fmt(Math.max(0, total))}
+              disabled
+              className="bg-muted font-mono text-base font-semibold"
+            />
           </div>
 
           <TextAreaField form={form} name="note" label={t("common.note")} />
@@ -1463,7 +1646,10 @@ function SaleDialog({
             <Button type="button" variant="ghost" onClick={onClose}>
               {t("common.cancel")}
             </Button>
-            <Button type="submit" disabled={form.state.isSubmitting}>
+            <Button
+              type="submit"
+              disabled={form.state.isSubmitting || !!discountError}
+            >
               {form.state.isSubmitting && (
                 <Loader2 className="h-4 w-4 animate-spin" />
               )}

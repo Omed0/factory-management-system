@@ -57,7 +57,8 @@
     "fullName": "ناوی تەواو",
     "description": "وەسف",
     "done": "تەواو",
-    "create": "دروستکردن"
+    "create": "دروستکردن",
+    "filteredBy": "فلتەر بە"
   },
   "errors": {
     "unexpectedError": "هەڵەیەکی چاوەڕوان نەکراو",
@@ -151,7 +152,9 @@
     "topProductsToday": "باشترین بەرهەمی ئەمڕۆ",
     "tx_sale": "فرۆشتن",
     "tx_purchase": "کڕین",
-    "tx_expense": "خەرجی"
+    "tx_expense": "خەرجی",
+    "outstandingComparison": "قەرزی کڕیاران و فرۆشیاران",
+    "cashVsLoan": "فرۆشتنی کاش و قەرز (هەموو ماوە)"
   },
   "customers": {
     "title": "کڕیارەکان",
@@ -191,7 +194,8 @@
     "confirmRemove": "{{name}} لابببرێت؟",
     "noProducts": "هیچ بەرهەمێک نەدۆزرایەوە",
     "uploadImage": "وێنە بارکە",
-    "currentImage": "وێنەی ئێستا"
+    "currentImage": "وێنەی ئێستا",
+    "stock": "ستۆک"
   },
   "employees": {
     "title": "کارمەندەکان",
@@ -220,7 +224,13 @@
     "actionAdded": "کردار زیادکرا",
     "confirmRemove": "{{name}} لابببرێت؟",
     "noEmployees": "هیچ کارمەندێک نەدۆزرایەوە",
-    "noActions": "هیچ کردارێک نەدۆزرایەوە"
+    "noActions": "هیچ کردارێک نەدۆزرایەوە",
+    "terminate": "کۆتایی کار",
+    "terminated": "کارمەند کۆتایی کارەکەی هات",
+    "terminateReason": "هۆکاری کۆتایی کار",
+    "terminateWarning": "ئەمە تۆماری کۆتایی کار دروست دەکات و ئەکاونتی {{name}} ناچالاک دەکات.",
+    "confirmDeleteAction": "ئەم تۆماری کردارە بسڕێتەوە؟",
+    "actionDeleted": "کردار سڕایەوە"
   },
   "companies": {
     "title": "کۆمپانیاکان",
@@ -277,7 +287,10 @@
     "printReceipt": "چاپکردنی وەصل",
     "supplierCompany": "دابینکەر (کۆمپانیا)",
     "noneOption": "(هیچ)",
-    "purchaseLabel": "کڕین"
+    "purchaseLabel": "کڕین",
+    "product": "بەرهەم",
+    "qty": "بڕ",
+    "stockHint": "ستۆکی ئێستا: {{stock}}"
   },
   "expenses": {
     "title": "خەرجیەکان",
@@ -309,7 +322,7 @@
     "rateUpdated": "نرخ نوێکرایەوە",
     "rateCreated": "نرخ تۆمارکرا",
     "noDollarHistory": "هیچ مێژووێک نەدۆزرایەوە",
-    "perUsd": "بۆ ١ دۆلار"
+    "perUsd": "بۆ ١٠٠ دۆلار"
   },
   "sales": {
     "title": "فرۆشتن",
@@ -360,7 +373,12 @@
     "pickProduct": "بەرهەم هەڵبژێرە…",
     "createSale": "فرۆشتن دروستبکە",
     "discount": "داشکاندن (دینار)",
-    "invalidItems": "هەر کاڵایەک پێویستی بە ناو و بڕی کەمترین ١ هەیە"
+    "invalidItems": "هەر کاڵایەک پێویستی بە ناو و بڕی کەمترین ١ هەیە",
+    "discountExceedsTotal": "داشکاندن نابێت زیاتر بێت لە کۆی فرۆشتن",
+    "discountPct": "%",
+    "insufficientStock": "ستۆک پێویستی نییە",
+    "needs": "پێویستە",
+    "has": "هەیە"
   },
   "reports": {
     "title": "ڕاپۆرتەکان",
@@ -422,7 +440,10 @@
     "dollarHistory": "مێژووی نرخی دۆلار",
     "revenue": "داهات",
     "qty": "ژمارە",
-    "txCount": "مامەڵەکان"
+    "txCount": "مامەڵەکان",
+    "cashProfit": "قازانجی کاش",
+    "accrualProfit": "قازانجی کۆکراوە",
+    "proratedDays": "{{days}} ڕۆژ"
   },
   "warehouses": {
     "title": "کۆگاکان",
@@ -487,6 +508,30 @@
     "runBackup": "پاشگرکردن جێبەجێبکە",
     "backupRunning": "پاشگرکردن دەستپێکرا...",
     "noBackups": "هیچ پاشگرکردنێک نەدۆزرایەوە"
+  },
+  "users": {
+    "myProfile": "پرۆفایلی من",
+    "editProfile": "دەستکاری پرۆفایل",
+    "teamMembers": "ئەندامانی تیم",
+    "addUser": "بەکارهێنەر زیادبکە",
+    "name": "ناو",
+    "phone": "ژمارەی تەلەفۆن",
+    "email": "ئیمەیڵ",
+    "password": "وشەی نهێنی",
+    "newPassword": "وشەی نهێنی نوێ",
+    "passwordOptional": "بەتاڵ بهێڵەوە بۆ ماندنی ئەوی ئێستا",
+    "phonePlaceholder": "نموونە: ‎+964 7xx xxx xxxx",
+    "role": "ئەرک",
+    "permissions": "مافەکان",
+    "editUser": "دەستکاریکردنی بەکارهێنەر",
+    "roleUpdated": "ئەرک نوێکرایەوە",
+    "userCreated": "بەکارهێنەر دروستکرا",
+    "userUpdated": "بەکارهێنەر نوێکرایەوە",
+    "userRemoved": "بەکارهێنەر لابرا",
+    "profileUpdated": "پرۆفایل نوێکرایەوە",
+    "confirmRemove": "{{name}} لابببرێت؟",
+    "permissionsUpdated": "مافەکان نوێکرایەوە",
+    "emailOptional": "بەتاڵ بهێڵەوە بۆ ئەوەی نەگۆڕێت"
   },
   "trash": {
     "title": "تەنەکەی خۆڵ",

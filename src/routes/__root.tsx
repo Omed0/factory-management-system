@@ -88,9 +88,9 @@ function RootComponent() {
 
   const bodyStyle = settings
     ? ({
-        "--color-primary": colorToOklch(settings.primary_color),
-        "--color-accent": colorToOklch(settings.accent_color),
-      } as React.CSSProperties)
+      "--color-primary": colorToOklch(settings.primary_color),
+      "--color-accent": colorToOklch(settings.accent_color),
+    } as React.CSSProperties)
     : undefined;
 
   const lang = i18n.language || settings?.language || "ckb";

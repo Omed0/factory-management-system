@@ -57,7 +57,8 @@
     "fullName": "الاسم الكامل",
     "description": "الوصف",
     "done": "تم",
-    "create": "إنشاء"
+    "create": "إنشاء",
+    "filteredBy": "مصفى بـ"
   },
   "errors": {
     "unexpectedError": "حدث خطأ غير متوقع",
@@ -151,7 +152,9 @@
     "topProductsToday": "أفضل المنتجات اليوم",
     "tx_sale": "بيع",
     "tx_purchase": "شراء",
-    "tx_expense": "مصروف"
+    "tx_expense": "مصروف",
+    "outstandingComparison": "المستحقات: قروض العملاء مقابل ديون الموردين",
+    "cashVsLoan": "مبيعات نقدية مقابل آجل (كل الوقت)"
   },
   "customers": {
     "title": "العملاء",
@@ -191,7 +194,8 @@
     "confirmRemove": "هل تريد حذف {{name}}؟",
     "noProducts": "لا توجد منتجات",
     "uploadImage": "رفع صورة",
-    "currentImage": "الصورة الحالية"
+    "currentImage": "الصورة الحالية",
+    "stock": "المخزون"
   },
   "employees": {
     "title": "الموظفون",
@@ -220,7 +224,13 @@
     "actionAdded": "تم إضافة الإجراء",
     "confirmRemove": "هل تريد حذف {{name}}؟",
     "noEmployees": "لا يوجد موظفون",
-    "noActions": "لا توجد إجراءات"
+    "noActions": "لا توجد إجراءات",
+    "terminate": "إنهاء الخدمة",
+    "terminated": "تم إنهاء خدمة الموظف",
+    "terminateReason": "سبب إنهاء الخدمة",
+    "terminateWarning": "سيؤدي هذا إلى تسجيل إنهاء الخدمة وتعطيل حساب {{name}}.",
+    "confirmDeleteAction": "هل تريد حذف هذا الإجراء؟",
+    "actionDeleted": "تم حذف الإجراء"
   },
   "companies": {
     "title": "الشركات",
@@ -277,7 +287,10 @@
     "printReceipt": "طباعة الإيصال",
     "supplierCompany": "المورد (الشركة)",
     "noneOption": "(لا شيء)",
-    "purchaseLabel": "شراء"
+    "purchaseLabel": "شراء",
+    "product": "المنتج",
+    "qty": "الكمية",
+    "stockHint": "المخزون الحالي: {{stock}}"
   },
   "expenses": {
     "title": "المصروفات",
@@ -309,7 +322,7 @@
     "rateUpdated": "تم تحديث السعر",
     "rateCreated": "تم تسجيل السعر",
     "noDollarHistory": "لا يوجد تاريخ",
-    "perUsd": "لكل 1 دولار"
+    "perUsd": "لكل 100 دولار"
   },
   "sales": {
     "title": "المبيعات",
@@ -360,7 +373,12 @@
     "pickProduct": "اختر منتجًا…",
     "createSale": "إنشاء المبيعة",
     "discount": "الخصم (دينار)",
-    "invalidItems": "كل عنصر يحتاج اسمًا وكمية ≥ 1"
+    "invalidItems": "كل عنصر يحتاج اسمًا وكمية ≥ 1",
+    "discountExceedsTotal": "لا يمكن أن يتجاوز الخصم إجمالي المبيعة",
+    "discountPct": "%",
+    "insufficientStock": "المخزون غير كافٍ",
+    "needs": "يحتاج",
+    "has": "متوفر"
   },
   "reports": {
     "title": "التقارير",
@@ -422,7 +440,10 @@
     "dollarHistory": "تاريخ سعر الصرف",
     "revenue": "الإيرادات",
     "qty": "الكمية",
-    "txCount": "المعاملات"
+    "txCount": "المعاملات",
+    "cashProfit": "الربح النقدي",
+    "accrualProfit": "الربح الاستحقاقي",
+    "proratedDays": "{{days}} أيام"
   },
   "warehouses": {
     "title": "المستودعات",
@@ -487,6 +508,30 @@
     "runBackup": "تشغيل النسخ الاحتياطي",
     "backupRunning": "جارٍ تشغيل النسخ الاحتياطي...",
     "noBackups": "لا توجد نسخ احتياطية"
+  },
+  "users": {
+    "myProfile": "ملفي الشخصي",
+    "editProfile": "تعديل الملف الشخصي",
+    "teamMembers": "أعضاء الفريق",
+    "addUser": "إضافة مستخدم",
+    "name": "الاسم",
+    "phone": "رقم الهاتف",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "newPassword": "كلمة مرور جديدة",
+    "passwordOptional": "اتركه فارغًا للإبقاء على كلمة المرور الحالية",
+    "phonePlaceholder": "مثلاً: ‎+964 7xx xxx xxxx",
+    "role": "الدور",
+    "permissions": "الصلاحيات",
+    "editUser": "تعديل المستخدم",
+    "roleUpdated": "تم تحديث الدور",
+    "userCreated": "تم إنشاء المستخدم",
+    "userUpdated": "تم تحديث المستخدم",
+    "userRemoved": "تم حذف المستخدم",
+    "profileUpdated": "تم تحديث الملف الشخصي",
+    "confirmRemove": "هل تريد حذف {{name}}؟",
+    "permissionsUpdated": "تم تحديث الصلاحيات",
+    "emailOptional": "اتركه فارغاً للإبقاء على الحالي"
   },
   "trash": {
     "title": "سلة المحذوفات",

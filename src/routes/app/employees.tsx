@@ -1,12 +1,12 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useStore } from "@tanstack/react-form";
 import { type ColumnDef } from "@tanstack/react-table";
 import { z } from "zod";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CalendarPlus, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarPlus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { getSupabaseServer } from "~/lib/supabase.server";
@@ -24,7 +24,7 @@ import {
   SelectField,
   TextAreaField,
 } from "~/components/form-fields";
-import { formatCurrency } from "~/lib/utils";
+import { formatMoney } from "~/lib/currency";
 import { Badge } from "~/components/ui/badge";
 
 interface Employee {
@@ -39,7 +39,7 @@ interface Employee {
 interface EmployeeAction {
   id: number;
   employee_id: number;
-  type: "PUNISHMENT" | "BONUS" | "ABSENT" | "OVERTIME";
+  type: "PUNISHMENT" | "BONUS" | "ABSENT" | "OVERTIME" | "TERMINATE";
   amount: number;
   dollar: number;
   note: string | null;
@@ -147,7 +147,7 @@ const softDelete = createServerFn({ method: "POST" })
 
 const ActionSchema = z.object({
   employee_id: z.number(),
-  type: z.enum(["PUNISHMENT", "BONUS", "ABSENT", "OVERTIME"]),
+  type: z.enum(["PUNISHMENT", "BONUS", "ABSENT", "OVERTIME", "TERMINATE"]),
   amount: z.coerce.number().nonnegative(),
   dollar: z.coerce.number().positive(),
   note: z
@@ -167,7 +167,40 @@ const recordAction = createServerFn({ method: "POST" })
     });
     if (!ok)
       throw new Error("You do not have permission to record employee actions");
-    const { error } = await sb.from("employee_actions").insert(data);
+    const { error } = await sb.from("employee_actions").insert({
+      ...data,
+      amount: data.type === "TERMINATE" ? 0 : data.amount,
+    });
+    if (error) throw new Error(error.message);
+    // Termination: also soft-delete the employee (requires delete permission)
+    if (data.type === "TERMINATE") {
+      const { data: canDel } = await sb.rpc("has_permission", {
+        p_resource: "employees",
+        p_action: "delete",
+      });
+      if (!canDel) throw new Error("You do not have permission to terminate employees");
+      const { error: delErr } = await sb
+        .from("employees")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", data.employee_id);
+      if (delErr) throw new Error(delErr.message);
+    }
+  });
+
+const deleteAction = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.number() }).parse(d))
+  .handler(async ({ data }) => {
+    const sb = getSupabaseServer();
+    const { data: ok } = await sb.rpc("has_permission", {
+      p_resource: "employees",
+      p_action: "actions",
+    });
+    if (!ok)
+      throw new Error("You do not have permission to manage employee actions");
+    const { error } = await sb
+      .from("employee_actions")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
   });
 
@@ -183,10 +216,14 @@ const actionTypeColors: Record<string, string> = {
   ABSENT:
     "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
   OVERTIME: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  TERMINATE:
+    "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400",
 };
 
 function EmployeesPage() {
-  const { permissions = [] } = Route.useRouteContext();
+  const { permissions = [], settings, dollarRate = 1 } = Route.useRouteContext() as any;
+  const currency = (settings as any)?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const qc = useQueryClient();
   const employees = useQuery({ queryKey: ["employees"], queryFn: list });
   const [editing, setEditing] = useState<Employee | null>(null);
@@ -208,7 +245,7 @@ function EmployeesPage() {
     {
       accessorKey: "month_salary",
       header: t("employees.monthlySalary"),
-      cell: ({ getValue }) => formatCurrency(Number(getValue()), "IQD"),
+      cell: ({ getValue }) => fmt(Number(getValue())),
     },
     {
       accessorKey: "dollar",
@@ -363,7 +400,7 @@ function EmployeeDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {employee
@@ -433,6 +470,9 @@ function ActionDialog({
 }) {
   const qc = useQueryClient();
   const { t } = useTranslation();
+  const { settings, dollarRate = 1 } = Route.useRouteContext() as any;
+  const currency = (settings as any)?.base_currency ?? "IQD";
+  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
   const actions = useQuery({
     queryKey: ["employee-actions", employee.id],
     queryFn: () => listActions({ data: { employee_id: employee.id } }),
@@ -441,7 +481,12 @@ function ActionDialog({
   const form = useForm({
     defaultValues: {
       employee_id: employee.id,
-      type: "BONUS" as "BONUS" | "PUNISHMENT" | "ABSENT" | "OVERTIME",
+      type: "BONUS" as
+        | "BONUS"
+        | "PUNISHMENT"
+        | "ABSENT"
+        | "OVERTIME"
+        | "TERMINATE",
       amount: 0,
       dollar: employee.dollar,
       note: "",
@@ -455,18 +500,29 @@ function ActionDialog({
             action_date: new Date(value.action_date).toISOString(),
           },
         });
-        toast.success(t("employees.actionAdded"));
-        qc.invalidateQueries({ queryKey: ["employee-actions", employee.id] });
-        form.reset();
+        if (value.type === "TERMINATE") {
+          toast.success(t("employees.terminated"));
+          qc.invalidateQueries({ queryKey: ["employees"] });
+          onClose();
+        } else {
+          toast.success(t("employees.actionAdded"));
+          qc.invalidateQueries({
+            queryKey: ["employee-actions", employee.id],
+          });
+          form.reset();
+        }
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed");
       }
     },
   });
 
+  const currentType = useStore(form.store, (s) => s.values.type);
+  const isTerminate = currentType === "TERMINATE";
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {employee.name} — {t("employees.actions")}
@@ -492,6 +548,10 @@ function ActionDialog({
               },
               { value: "ABSENT" as const, label: t("employees.absent") },
               { value: "OVERTIME" as const, label: t("employees.overtime") },
+              {
+                value: "TERMINATE" as const,
+                label: t("employees.terminate"),
+              },
             ]}
           />
           <TextField
@@ -501,69 +561,113 @@ function ActionDialog({
             type="date"
             required
           />
-          <TextField
-            form={form}
-            name="amount"
-            label={`${t("employees.amount")} (IQD)`}
-            type="number"
-            required
-          />
-          <TextField
-            form={form}
-            name="dollar"
-            label={`${t("common.dollar")} (USD)`}
-            type="number"
-            required
-          />
-          <div className="col-span-2">
+          {!isTerminate && (
+            <>
+              <TextField
+                form={form}
+                name="amount"
+                label={`${t("employees.amount")} (IQD)`}
+                type="number"
+                required
+              />
+              <TextField
+                form={form}
+                name="dollar"
+                label={`${t("common.dollar")} (USD)`}
+                type="number"
+                required
+              />
+            </>
+          )}
+          <div className={isTerminate ? "col-span-2" : "col-span-2"}>
             <TextAreaField
               form={form}
               name="note"
-              label={t("employees.note")}
+              label={
+                isTerminate
+                  ? t("employees.terminateReason")
+                  : t("employees.note")
+              }
             />
           </div>
+          {isTerminate && (
+            <div className="col-span-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+              {t("employees.terminateWarning", { name: employee.name })}
+            </div>
+          )}
           <div className="col-span-2 flex justify-end">
-            <Button type="submit" disabled={form.state.isSubmitting}>
-              {t("employees.addAction")}
+            <Button
+              type="submit"
+              disabled={form.state.isSubmitting}
+              variant={isTerminate ? "destructive" : "default"}
+            >
+              {isTerminate
+                ? t("employees.terminate")
+                : t("employees.addAction")}
             </Button>
           </div>
         </form>
 
         {(actions.data?.length ?? 0) > 0 && (
-          <>
-            <div className="border-t border-border pt-4">
-              <p className="text-sm font-medium mb-3">{t("common.actions")}</p>
-              <div className="space-y-2 max-h-52 overflow-y-auto">
-                {actions.data?.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-sm"
+          <div className="border-t border-border pt-4">
+            <p className="text-sm font-medium mb-3">{t("common.actions")}</p>
+            <div className="space-y-2 max-h-52 overflow-y-auto">
+              {actions.data?.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-start gap-3 rounded-lg bg-muted/50 p-3 text-sm"
+                >
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${actionTypeColors[a.type]}`}
                   >
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${actionTypeColors[a.type]}`}
-                    >
-                      {a.type}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                    {String(
+                      t(`employees.${a.type.toLowerCase()}` as any, {
+                        defaultValue: a.type,
+                      }),
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {a.amount > 0 && (
                         <span className="font-mono font-medium">
-                          {formatCurrency(a.amount, "IQD")}
+                          {fmt(a.amount)}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(a.action_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {a.note && (
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {a.note}
-                        </p>
                       )}
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(a.action_date).toLocaleDateString()}
+                      </span>
                     </div>
+                    {a.note && (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {a.note}
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                    title={t("common.delete")}
+                    onClick={async () => {
+                      if (!confirm(t("employees.confirmDeleteAction"))) return;
+                      try {
+                        await deleteAction({ data: { id: a.id } });
+                        toast.success(t("employees.actionDeleted"));
+                        qc.invalidateQueries({
+                          queryKey: ["employee-actions", employee.id],
+                        });
+                      } catch (e) {
+                        toast.error(
+                          e instanceof Error ? e.message : "Failed",
+                        );
+                      }
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
       </DialogContent>
     </Dialog>

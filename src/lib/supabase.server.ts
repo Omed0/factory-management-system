@@ -11,7 +11,7 @@ import { env, supabaseUrl } from "~/lib/env.server";
  * Use inside createServerFn handlers and route loaders (RLS enforced).
  */
 export function getSupabaseServer() {
-  return createServerClient<Database, "public", Database["public"]>(
+  return createServerClient<Database>(
     supabaseUrl,
     env.PUBLIC_SUPABASE_ANON_KEY,
     {
@@ -44,7 +44,7 @@ export function getSupabaseServer() {
  * Never expose to the browser.
  */
 export function getSupabaseAdmin() {
-  return createClient<Database, "public", "public">(
+  return createClient<Database>(
     supabaseUrl,
     env.SUPABASE_SERVICE_ROLE_KEY,
     {
