@@ -93,7 +93,7 @@ function RootComponent() {
     } as React.CSSProperties)
     : undefined;
 
-  const lang = i18n.language || settings?.language || "ckb";
+  const lang = settings?.language || i18n.language || "ckb";
   const dir = lang === "en" ? "ltr" : "rtl";
 
   return (

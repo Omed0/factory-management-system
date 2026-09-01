@@ -1,6 +1,6 @@
 # Progress
 
-Last updated: 2026-05-08 (Round 8: discount validation, % toggle, overselling block, reset scripts, money audit)
+Last updated: 2026-05-10 (Round 10: cartons/grains QtyInput, warehouse adjust audit log, USD rate wording, atomic create_sale, purchase is_finished, warehouse-scoped detail reads, doc refresh)
 
 ## Done
 
@@ -109,6 +109,30 @@ Last updated: 2026-05-08 (Round 8: discount validation, % toggle, overselling bl
 - [x] **Stock column on products list** — `listProductStock` server fn aggregates `warehouse_products.qty` totals per product; "Stock" column shown on products page using `qtyDisplay`; invalidated on soft-delete and save
 - [x] **i18n** — added `purchases.product`, `purchases.qty`, `purchases.stockHint`, `products.stock` to all 3 locale files (en, ckb, ar)
 
+### Carton/grain math, adjust audit, USD rate wording, full re-audit (Round 10, 2026-05-10)
+- [x] **Carton/grain quantity input** — `src/components/qty-input.tsx` is the single place that converts `(cartons, loose_grains)` → grains. Two-field UI when `grains_per_carton > 0` (5 cartons of gpc=20 → 100 grains stored), single-field labelled by `unit_type` (m / pcs) otherwise. `compact` prop for dense grids; `allowNegative` for warehouse adjustments. Wired into SaleDialog item rows, PurchaseDialog quantity, and the warehouse Adjust panel.
+- [x] **`qtyDisplay` is now i18n + unit_type aware** — `src/lib/inventory.ts` accepts an optional `t` translator and `unit_type`. ASCII fallback (`5c+3g`) when called from print HTML where there's no React context. New `inventory.*` keys in en/ckb/ar.
+- [x] **Atomic `create_sale` RPC** — migration 0022 wraps INSERT into sales + sale_items + per-item `adjust_warehouse_qty` in a single transaction. Validates products are active, stock is sufficient, discount ≤ subtotal. `createSale` server fn is now a thin wrapper.
+- [x] **Warehouse adjust audit (migration 0020)** — new `warehouse_adjustments` log table (WHO/WHEN/WHY/delta) and `adjust_warehouse_qty_audited(wh, pid, delta, reason)` RPC. Reason is required and OWNER+ADMIN only. The underlying `adjust_warehouse_qty` was tightened to reject USER-role calls into warehouses they aren't assigned to. UI: required reason field in the Adjust panel; "Adjustment log" tab on the warehouse detail dialog (OWNER+ADMIN only).
+- [x] **`company_purchases.is_finished` (migration 0021)** — column added + backfill (CASH or `remaining=0` → finished). `create_purchase` re-issued so new CASH purchases are finished immediately. `recordPayment` for purchases now sets `is_finished` when the remaining balance hits zero. `is_finished` badge added to the purchases list, mirroring sales.
+- [x] **`USD rate: $1500` → `1 USD = 1,500 IQD`** — print invoice + payment receipt + detail dialog (sales + purchases). New `common.usdRateLine` i18n key.
+- [x] **Warehouse-scoped detail reads** — `getSaleDetail` and `getPurchaseDetail` now check `warehouseFilter(me)` against the row's `warehouse_id` and reject if a USER tries to read across warehouses.
+- [x] **Detail-cache invalidation** — soft-delete + collect-payment paths now invalidate `["sale-detail"]` / `["purchase-detail"]` so reopening a deleted/paid record can't show stale data.
+- [x] **Validation tightenings** — `products.price` schema → `.positive()` (was nonnegative). Inventory:write removed from USER-role essentials by migration 0020.
+- [x] **Docs** — `CLAUDE.md` gains "Quantity is grains, always" + "Atomic create RPCs" + "Manual stock adjust is audited" rules; `docs/architecture.md` gains "Quantity model" and "Warehouse adjust audit" sections; `docs/development.md` documents the 0021 backfill.
+
+### Per-record dollar display, image preview, atomic purchase, password sync, docs (Round 9, 2026-05-09)
+- [x] **Per-record USD display** — `formatRecordMoney` helper added to `src/lib/currency.ts`; all per-row money cells in sales, purchases, expenses, employees, products now use the row's `dollar` snapshot instead of the global current rate. Historical USD figures stay stable when the current rate changes; aggregates (dashboard, reports summaries) intentionally still use the current rate (documented in `docs/architecture.md`).
+- [x] **Product image preview** — `ProductDialog` now renders an `<img>` preview wrapped in `form.Subscribe` so the uploaded image appears immediately in the dialog, not just on the saved row.
+- [x] **Atomic purchase RPC** — migration `0019` adds `create_purchase(...)` SECURITY DEFINER function that wraps the INSERT into `company_purchases` and `adjust_warehouse_qty(+qty)` in one transaction; `purchases.tsx upsert` switched to call this RPC for INSERT (UPDATE path stays as plain UPDATE).
+- [x] **Soft-deleted product block** — `createSale` and purchase `upsert` now reject any sale/purchase that references a soft-deleted `products` row.
+- [x] **Warehouse-scoped product stock** — `listProductStock` in `products.tsx` now applies `warehouseFilter(me)` so a USER assigned to one warehouse sees that warehouse's totals, not global stock.
+- [x] **Stock-adjust confirm** — manual stock adjust in `warehouses.tsx` now prompts the user with a `confirm()` dialog when the delta would push qty below 0; `adjust_warehouse_qty` still floors at 0 internally; `warehouses.confirmFloorZero` i18n key added to all 3 locales.
+- [x] **`bun db:fix-passwords`** — `scripts/fix-passwords.ps1` resets all internal Supabase role passwords to match the current `.env POSTGRES_PASSWORD`. Hardened with a container-running guard before invoking psql. Documented in `docs/development.md` "Database maintenance".
+- [x] **Kong dependency** — `supabase/docker-compose.yml`'s `kong` `depends_on` switched from `studio: service_healthy` to `db + auth: service_healthy` so cold starts don't block on Logflare/analytics. Documented in `docs/architecture.md` "Service startup order".
+- [x] **Docs** — `CLAUDE.md` gains "Money display rules" + "Inventory equity invariant" sections plus `bun db:reset` / `bun db:fix-passwords` commands; `docs/architecture.md` covers snapshot-vs-current dollar display + service startup order; `docs/development.md` covers DB reset + role-password drift fixes.
+- [x] **Cleanup** — `src/lib/database.types.ts.bak` removed.
+
 ### Discount validation, overselling block, reset scripts, money audit (Round 8, 2026-05-08)
 - [x] **Discount server-side guard** — `createSale` now computes subtotal first; throws `"Discount cannot exceed the sale total"` if `discount > subtotal`; total stored in DB is always `≥ 0`
 - [x] **Overselling block** — `createSale` checks each item's available qty in `warehouse_products` before inserting; throws `"Insufficient stock: X needs N, has M"` per shortfall; preserves the mathematical inventory equity invariant (`current_stock = Σpurchases − Σsales`)
@@ -133,7 +157,7 @@ Last updated: 2026-05-08 (Round 8: discount validation, % toggle, overselling bl
 
 ## In progress / partial
 
-- [ ] **Backup restore UI** — manual restore documented (download `.ndjson.gz` → decompress → `psql`) but no in-app restore flow.
+- [ ] **Backup restore UI** — manual restore documented (download `.ndjson.gz` → decompress → `psql`) but no in-app restore flow., and return this error when upload a file restore to it "new row violates row-level security policy"
 
 ---
 

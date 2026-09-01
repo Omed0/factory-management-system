@@ -450,7 +450,7 @@ function Dashboard() {
     {
       label: t("dashboard.usdExchangeRate"),
       value: `${(stats.current_dollar * 100).toLocaleString()} IQD`,
-      sub: t("dashboard.per1Usd"),
+      sub: t("dashboard.per100Usd"),
       icon: DollarSign,
       color:
         "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",

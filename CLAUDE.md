@@ -46,6 +46,9 @@ A Kurdish-language (Sorani, RTL) factory/sales management system used by a real 
 8. **Telegram is gone.** The legacy `telegramToken` model and `node-telegram-bot-api` integration are **not** part of this codebase and will not be added back.
 9. **TERMINATE employee action.** The `TERMINATE` value in `employee_action_type` always stores `amount = 0` and is excluded from `deduction_total` in `runAudit` (it's an event marker, not a monetary deduction). After inserting a TERMINATE action, the app also calls the soft-delete server fn on the employee — one action both documents the reason/date and deactivates the employee. Never count TERMINATE in payroll deductions.
 10. **User profile edit permissions.** `updateUserProfile` enforces: OWNER can edit any user (name, phone, email, password). ADMIN can edit USER-role profiles only (name, phone) — ADMIN cannot edit the OWNER's profile or another ADMIN's profile. Any signed-in user can edit their own profile (name, phone, password). Never allow ADMIN to reset the OWNER's password or change the OWNER's role.
+11. **Quantity is grains, always.** `warehouse_products.qty`, `sale_items.quantity`, `company_purchases.quantity` all store the smallest unit ("grains") as a single integer. Never write the cartons-count to these columns. Forms collect cartons + loose grains and convert via `<QtyInput grainsPerCarton=... value=... onChange=...>` from `~/components/qty-input`. Display uses `qtyDisplay(grains, gpc, unit_type, t)` from `~/lib/inventory`.
+12. **Atomic create RPCs.** Sales and purchases creation goes through `create_sale` / `create_purchase` SECURITY DEFINER RPCs (migrations 0019, 0022). They wrap the row INSERT, the line-item INSERTs, and `adjust_warehouse_qty` in one transaction so a failure rolls back everything. Don't reintroduce multi-step creation paths in the app.
+13. **Manual stock adjust is audited.** Use `adjust_warehouse_qty_audited(wh, pid, delta, reason)` (migration 0020), never the underlying `adjust_warehouse_qty` directly from the UI. Every adjustment writes a row to `warehouse_adjustments` with WHO/WHEN/WHY. OWNER + ADMIN only.
 
 ## Docs
 
@@ -111,6 +114,11 @@ bunx shadcn@latest add <component>
 # Type generation (uses node_modules/.bin/supabase; no CLI install needed)
 bun run gen:types                      # writes src/lib/database.types.ts
 
+# Database maintenance
+bun db:reset                           # wipe data + auth tables; app returns to first-run setup wizard
+bun db:fix-passwords                   # reset Supabase role passwords if .env POSTGRES_PASSWORD changed
+                                       # after the volumes were already initialized with a different value
+
 # Setup (first time or fresh machine)
 .\scripts\setup.ps1 dev          # Windows — runs setup wizard
 bash scripts/setup.sh dev        # Linux/macOS
@@ -134,14 +142,29 @@ See [docs/development.md](docs/development.md) for the full first-time setup wal
 - ❌ Reading `auth.users.user_metadata` for authorization decisions (it's user-editable; use `app_metadata` or DB role)
 - ❌ Putting `service_role` keys in any code that could ship to the browser
 - ❌ Bringing back the Telegram bot
+- ❌ Using the global `dollarRate` to display USD for historical rows — every transactional table snapshots `dollar` for a reason; ignore it and the USD figures drift over time. Use `formatRecordMoney(amount, currency, row.dollar, currentDollar)` for list/detail rows.
+- ❌ Calling `adjust_warehouse_qty` directly from the UI — go through `adjust_warehouse_qty_audited` so every change leaves a trail in `warehouse_adjustments`.
+- ❌ Building inventory-touching INSERTs in the app — use the `create_sale` / `create_purchase` RPCs so the writes stay atomic.
+- ❌ Labeling the dollar rate as `$<rate>` — `1500` is IQD-per-USD, not 1500 dollars. Render as `1 USD = {{rate}} IQD` (`common.usdRateLine`).
 
 ## Soft-delete invariants
 
 Any server function that adjusts `warehouse_products.qty` on **create** MUST reverse that adjustment on **soft-delete** and re-apply it on **restore**. Use the dedicated SECURITY DEFINER RPCs — do not write plain `UPDATE SET deleted_at`:
 
 - Sales: `soft_delete_sale(p_sale_id)`, `restore_sale(p_sale_id)`, `hard_delete_sale(p_sale_id)`
-- Purchases: `soft_delete_purchase(p_purchase_id)`, `restore_purchase(p_purchase_id)`, `hard_delete_purchase(p_purchase_id)`
+- Purchases: `create_purchase(...)` (atomic INSERT + inventory), `soft_delete_purchase(p_purchase_id)`, `restore_purchase(p_purchase_id)`, `hard_delete_purchase(p_purchase_id)`
 - Other entities (no inventory side-effects): `restore_record(table, id)` / `hard_delete_record(table, id)` or UUID variants
+
+## Inventory equity invariant
+
+`warehouse_products.qty = Σ(active purchases.quantity) − Σ(active sales.quantity) + Σ(audited adjustments.delta)` for each `(warehouse_id, product_id)` pair. Preserved by:
+
+- `create_purchase` RPC (0019/0021) — atomic INSERT + `adjust_warehouse_qty` so a failed inventory call rolls back the purchase row.
+- `create_sale` RPC (0022) — same atomic guarantee for sales: validates products + stock, inserts row + items, decrements inventory, all in one transaction.
+- Soft-delete RPCs — reverse the inventory delta from the original create.
+- Manual stock adjust — `adjust_warehouse_qty_audited` (0020) requires a non-empty reason and writes a `warehouse_adjustments` row. The underlying `adjust_warehouse_qty` floors at 0 and rejects USER-role calls into warehouses they aren't assigned to. Use it deliberately, not as an inventory escape hatch.
+
+Operations that touch the same (warehouse, product) pair MUST go through one of these paths. Direct UPDATE on `warehouse_products` is allowed only for the RPC's internals.
 
 ## Trash flow rules
 
@@ -149,6 +172,14 @@ Any server function that adjusts `warehouse_products.qty` on **create** MUST rev
 - **Hard-delete** is permanent and cascades to child rows. If the record is still active (not already soft-deleted) at hard-delete time, inventory must be reversed first — the `hard_delete_sale` RPC handles this.
 - The Trash UI (`/app/settings/trash`) requires `trash:manage` permission (OWNER and ADMIN only by default via `ESSENTIAL_PERMISSIONS`).
 - When restoring a sale would push warehouse stock negative, the RPC caps stock at 0 (via `GREATEST(0, ...)`) and the UI shows a warning toast to prompt manual verification.
+
+## Money display rules
+
+Every transactional table snapshots `dollar` (the IQD/USD rate at fill-time) into its own row. The display layer must respect this:
+
+- **Per-row USD display** — use `formatRecordMoney(amount, currency, row.dollar, currentDollar)` from `~/lib/currency`. Falls back to the current rate when `row.dollar` is null/zero (defensive, for legacy rows).
+- **Aggregate totals** (dashboard cards, reports summaries) — sum IQD then convert with the current rate via `formatMoney(total, currency, currentDollar)`. Per-record-then-sum is more historically faithful but slower and surprising when the user expects today's value of all balances. Document the choice when adding a new aggregation.
+- **Form edit mode** — the dollar field default reads the snapshot when editing an existing row: `dollar: record?.dollar ?? currentDollar ?? 1500`. New records get the current rate.
 
 ## Audit money-equality rule
 

@@ -33,6 +33,7 @@ import {
 } from "~/components/ui/select";
 import { formatMoney } from "~/lib/currency";
 import { qtyDisplay } from "~/lib/inventory";
+import { QtyInput } from "~/components/qty-input";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ interface InventoryRow {
   qty: number;
   product_name: string;
   grains_per_carton: number | null;
+  unit_type: "METER" | "PIECE";
   product_price: number;
 }
 
@@ -233,7 +235,7 @@ const listWarehouseInventory = createServerFn({ method: "GET" })
     const { data: rows, error } = await sb
       .from("warehouse_products")
       .select(
-        "id, warehouse_id, product_id, qty, products(name, grains_per_carton, price)",
+        "id, warehouse_id, product_id, qty, products(name, grains_per_carton, price, unit_type)",
       )
       .eq("warehouse_id", data.warehouse_id)
       .order("id");
@@ -245,6 +247,7 @@ const listWarehouseInventory = createServerFn({ method: "GET" })
       qty: r.qty,
       product_name: r.products?.name ?? "—",
       grains_per_carton: r.products?.grains_per_carton ?? null,
+      unit_type: r.products?.unit_type ?? "PIECE",
       product_price: r.products?.price ?? 0,
     }));
   });
@@ -256,21 +259,57 @@ const adjustInventory = createServerFn({ method: "POST" })
         warehouse_id: z.number(),
         product_id: z.number(),
         delta: z.number().int(),
+        reason: z.string().min(1),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
     const sb = getSupabaseServer();
-    const { data: ok } = await sb.rpc("has_permission", {
-      p_resource: "inventory",
-      p_action: "write",
-    });
-    if (!ok) throw new Error("Forbidden");
-    await (sb.rpc as any)("adjust_warehouse_qty", {
+    const { error } = await (sb.rpc as any)("adjust_warehouse_qty_audited", {
       p_warehouse_id: data.warehouse_id,
       p_product_id: data.product_id,
       p_delta: data.delta,
+      p_reason: data.reason,
     });
+    if (error) throw new Error(error.message);
+  });
+
+interface AdjustmentLogRow {
+  id: number;
+  warehouse_id: number;
+  product_id: number;
+  delta: number;
+  reason: string;
+  adjusted_at: string;
+  adjusted_by: string | null;
+  product_name: string | null;
+  adjuster_name: string | null;
+}
+
+const listAdjustments = createServerFn({ method: "GET" })
+  .inputValidator((d: unknown) =>
+    z.object({ warehouse_id: z.number() }).parse(d),
+  )
+  .handler(async ({ data }): Promise<AdjustmentLogRow[]> => {
+    const sb = getSupabaseServer();
+    const { data: rows } = await (sb.from("warehouse_adjustments") as any)
+      .select(
+        "id, warehouse_id, product_id, delta, reason, adjusted_at, adjusted_by, products(name), profiles(name)",
+      )
+      .eq("warehouse_id", data.warehouse_id)
+      .order("adjusted_at", { ascending: false })
+      .limit(20);
+    return ((rows ?? []) as any[]).map((r) => ({
+      id: r.id,
+      warehouse_id: r.warehouse_id,
+      product_id: r.product_id,
+      delta: r.delta,
+      reason: r.reason,
+      adjusted_at: r.adjusted_at,
+      adjusted_by: r.adjusted_by,
+      product_name: r.products?.name ?? null,
+      adjuster_name: r.profiles?.name ?? null,
+    }));
   });
 
 // ─── route ───────────────────────────────────────────────────────────────────
@@ -282,13 +321,18 @@ export const Route = createFileRoute("/app/warehouses")({
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 function WarehousesPage() {
-  const { permissions } = Route.useRouteContext();
+  const { permissions, profile } = Route.useRouteContext() as {
+    permissions: string[];
+    profile?: { role: "OWNER" | "ADMIN" | "USER" };
+  };
   const { t } = useTranslation();
   const qc = useQueryClient();
 
   const canView = can(permissions, "warehouses", "view");
   const canWrite = can(permissions, "warehouses", "write");
   const canDelete = can(permissions, "warehouses", "delete");
+  const role = profile?.role ?? "USER";
+  const canAdjust = role === "OWNER" || role === "ADMIN";
 
   const warehouses = useQuery({
     queryKey: ["warehouses"],
@@ -429,6 +473,7 @@ function WarehousesPage() {
         <WarehouseDetailDialog
           warehouse={detail}
           canWrite={canWrite}
+          canAdjust={canAdjust}
           onClose={() => setDetail(null)}
         />
       )}
@@ -520,10 +565,12 @@ function WarehouseDialog({
 function WarehouseDetailDialog({
   warehouse,
   canWrite,
+  canAdjust,
   onClose,
 }: {
   warehouse: Warehouse;
   canWrite: boolean;
+  canAdjust: boolean;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -549,6 +596,7 @@ function WarehouseDetailDialog({
   const [adjusting, setAdjusting] = useState<{
     row: InventoryRow;
     delta: string;
+    reason: string;
   } | null>(null);
 
   const assignedIds = new Set((users.data ?? []).map((u) => u.profile_id));
@@ -578,6 +626,11 @@ function WarehouseDetailDialog({
               <Users className="h-4 w-4 me-1.5" />
               {t("warehouses.assignedUsers")}
             </TabsTrigger>
+            {canAdjust && (
+              <TabsTrigger value="audit">
+                {t("warehouses.adjustmentLog")}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Inventory tab */}
@@ -605,17 +658,21 @@ function WarehouseDetailDialog({
                     <tr key={row.id} className="border-t border-border">
                       <td className="p-2">{row.product_name}</td>
                       <td className="p-2 font-mono">
-                        {qtyDisplay(row.qty, row.grains_per_carton)}
+                        {qtyDisplay(row.qty, row.grains_per_carton, row.unit_type, t)}
                       </td>
                       {canWrite && (
                         <td className="p-2 text-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setAdjusting({ row, delta: "0" })}
-                          >
-                            {t("warehouses.adjust")}
-                          </Button>
+                          {canAdjust ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                setAdjusting({ row, delta: "0", reason: "" })
+                              }
+                            >
+                              {t("warehouses.adjust")}
+                            </Button>
+                          ) : null}
                         </td>
                       )}
                     </tr>
@@ -625,56 +682,95 @@ function WarehouseDetailDialog({
             )}
 
             {/* Inline adjustment row */}
-            {adjusting && (
-              <div className="flex items-center gap-2 rounded-lg border p-3 bg-muted/40">
-                <span className="text-sm flex-1">
+            {adjusting && canAdjust && (
+              <div className="rounded-lg border p-3 bg-muted/40 space-y-3">
+                <div className="text-sm font-medium">
                   {adjusting.row.product_name}
-                </span>
-                <Input
-                  type="number"
-                  className="w-28"
-                  value={adjusting.delta}
-                  onChange={(e) =>
-                    setAdjusting({ ...adjusting, delta: e.target.value })
+                </div>
+                <QtyInput
+                  allowNegative
+                  grainsPerCarton={adjusting.row.grains_per_carton}
+                  unitType={adjusting.row.unit_type}
+                  value={Number(adjusting.delta) || 0}
+                  onChange={(grains) =>
+                    setAdjusting({ ...adjusting, delta: String(grains) })
                   }
-                  placeholder="+10 or -5"
                 />
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    const delta = parseInt(adjusting.delta, 10);
-                    if (isNaN(delta) || delta === 0) {
+                <div className="grid gap-1">
+                  <label className="text-xs text-muted-foreground">
+                    {t("warehouses.reason")}{" "}
+                    <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    value={adjusting.reason}
+                    onChange={(e) =>
+                      setAdjusting({ ...adjusting, reason: e.target.value })
+                    }
+                    placeholder={t("warehouses.reasonPlaceholder")}
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setAdjusting(null)}
+                  >
+                    {t("common.cancel")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={
+                      !adjusting.reason.trim() ||
+                      Number(adjusting.delta) === 0 ||
+                      isNaN(Number(adjusting.delta))
+                    }
+                    onClick={async () => {
+                      const delta = Number(adjusting.delta);
+                      if (isNaN(delta) || delta === 0) {
+                        setAdjusting(null);
+                        return;
+                      }
+                      const reason = adjusting.reason.trim();
+                      if (!reason) {
+                        toast.error(t("warehouses.reasonRequired"));
+                        return;
+                      }
+                      const currentQty = adjusting.row.qty;
+                      if (delta < 0 && currentQty + delta < 0) {
+                        const ok = window.confirm(
+                          t("warehouses.confirmFloorZero", {
+                            current: currentQty,
+                            delta,
+                          }),
+                        );
+                        if (!ok) return;
+                      }
+                      try {
+                        await adjustInventory({
+                          data: {
+                            warehouse_id: warehouse.id,
+                            product_id: adjusting.row.product_id,
+                            delta,
+                            reason,
+                          },
+                        });
+                        qc.invalidateQueries({
+                          queryKey: ["wh-inventory", warehouse.id],
+                        });
+                        qc.invalidateQueries({ queryKey: ["warehouses"] });
+                        qc.invalidateQueries({
+                          queryKey: ["wh-adjustments", warehouse.id],
+                        });
+                        toast.success(t("warehouses.adjusted"));
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Failed");
+                      }
                       setAdjusting(null);
-                      return;
-                    }
-                    try {
-                      await adjustInventory({
-                        data: {
-                          warehouse_id: warehouse.id,
-                          product_id: adjusting.row.product_id,
-                          delta,
-                        },
-                      });
-                      qc.invalidateQueries({
-                        queryKey: ["wh-inventory", warehouse.id],
-                      });
-                      qc.invalidateQueries({ queryKey: ["warehouses"] });
-                      toast.success(t("warehouses.adjusted"));
-                    } catch (e) {
-                      toast.error(e instanceof Error ? e.message : "Failed");
-                    }
-                    setAdjusting(null);
-                  }}
-                >
-                  {t("common.save")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setAdjusting(null)}
-                >
-                  {t("common.cancel")}
-                </Button>
+                    }}
+                  >
+                    {t("common.save")}
+                  </Button>
+                </div>
               </div>
             )}
           </TabsContent>
@@ -768,8 +864,73 @@ function WarehouseDetailDialog({
               </table>
             )}
           </TabsContent>
+
+          {canAdjust && (
+            <TabsContent value="audit" className="space-y-3 mt-4">
+              <AdjustmentLogPanel warehouseId={warehouse.id} />
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function AdjustmentLogPanel({ warehouseId }: { warehouseId: number }) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useQuery({
+    queryKey: ["wh-adjustments", warehouseId],
+    queryFn: () => listAdjustments({ data: { warehouse_id: warehouseId } }),
+  });
+  if (isLoading)
+    return (
+      <p className="text-sm text-muted-foreground py-4 text-center">
+        {t("common.loading")}
+      </p>
+    );
+  if (!data || data.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground py-4 text-center">
+        {t("warehouses.noAdjustments")}
+      </p>
+    );
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="text-muted-foreground">
+          <tr>
+            <th className="text-start p-2">{t("common.date")}</th>
+            <th className="text-start p-2">{t("products.name")}</th>
+            <th className="text-end p-2">{t("warehouses.qty")}</th>
+            <th className="text-start p-2">{t("warehouses.reason")}</th>
+            <th className="text-start p-2">{t("common.name")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((a) => (
+            <tr key={a.id} className="border-t border-border">
+              <td className="p-2 text-muted-foreground text-xs">
+                {new Date(a.adjusted_at).toLocaleString()}
+              </td>
+              <td className="p-2">{a.product_name ?? "—"}</td>
+              <td
+                className={
+                  a.delta > 0
+                    ? "p-2 text-end text-green-600 dark:text-green-400"
+                    : "p-2 text-end text-orange-600 dark:text-orange-400"
+                }
+              >
+                {a.delta > 0 ? "+" : ""}
+                {a.delta}
+              </td>
+              <td className="p-2 text-xs">{a.reason}</td>
+              <td className="p-2 text-xs text-muted-foreground">
+                {a.adjuster_name ?? "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

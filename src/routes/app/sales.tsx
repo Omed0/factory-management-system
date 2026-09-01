@@ -37,8 +37,9 @@ import {
   TextAreaField,
 } from "~/components/form-fields";
 import { formatCurrency } from "~/lib/utils";
-import { formatMoney } from "~/lib/currency";
+import { formatMoney, formatRecordMoney } from "~/lib/currency";
 import { qtyDisplay } from "~/lib/inventory";
+import { QtyInput } from "~/components/qty-input";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -112,8 +113,7 @@ function printHtml(html: string) {
     toast.error("Enable pop-ups in your browser to print");
     return;
   }
-  w.document.write(html);
-  w.document.close();
+  w.document.body.innerHTML = html;
   w.focus();
   if (w.document.readyState === "complete") w.print();
   else w.onload = () => w.print();
@@ -202,7 +202,7 @@ td{padding:6px 10px;border:1px solid #ddd}
     <p><span class="lbl">Date</span></p>
     <p><strong>${date}</strong></p>
     <p style="margin-top:8px"><span class="badge badge-${sale.sale_type === "LOAN" ? "loan" : "cash"}">${sale.sale_type}</span></p>
-    <p style="margin-top:4px"><span class="lbl">USD rate:</span> ${fmt(sale.dollar)}</p>
+    <p style="margin-top:4px"><span class="lbl">100 USD =</span> ${fmt(sale.dollar * 100)} IQD</p>
   </div>
 </div>
 
@@ -211,36 +211,33 @@ td{padding:6px 10px;border:1px solid #ddd}
   <thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Amount</th></tr></thead>
   <tbody>${itemRows}</tbody>
   <tbody class="totals">
-    ${
-      sale.discount > 0
-        ? `<tr><td class="lbl" colspan="3">Subtotal</td><td style="text-align:right">${fmt(subtotal)} IQD</td></tr>
+    ${sale.discount > 0
+      ? `<tr><td class="lbl" colspan="3">Subtotal</td><td style="text-align:right">${fmt(subtotal)} IQD</td></tr>
     <tr><td class="lbl" colspan="3">Discount</td><td style="text-align:right; color:#b00">- ${fmt(sale.discount)} IQD</td></tr>`
-        : ""
+      : ""
     }
     <tr class="grand"><td class="lbl" colspan="3">TOTAL</td><td style="text-align:right">${fmt(sale.total_amount)} IQD</td></tr>
   </tbody>
 </table>
 
-${
-  sale.sale_type === "LOAN"
-    ? `
+${sale.sale_type === "LOAN"
+      ? `
 <div class="meta" style="margin-top:14px">
   <div><p class="lbl" style="font-size:11px;margin-bottom:4px">Total paid</p><p style="font-size:15px;font-weight:700;color:#1b5e20">${fmt(totalPaid)} IQD</p></div>
   <div style="text-align:right"><p class="lbl" style="font-size:11px;margin-bottom:4px">Remaining</p><p style="font-size:15px;font-weight:700;color:${sale.total_remaining > 0 ? "#b71c1c" : "#1b5e20"}">${fmt(sale.total_remaining)} IQD</p></div>
 </div>
 
-${
-  sale.payments.length > 0
-    ? `
+${sale.payments.length > 0
+        ? `
 <div class="section-title">Payment history</div>
 <table>
   <thead><tr><th>Date</th><th style="text-align:right">Amount</th><th>Note</th></tr></thead>
   <tbody>${paymentRows}</tbody>
 </table>`
-    : ""
-}`
-    : ""
-}
+        : ""
+      }`
+      : ""
+    }
 
 ${sale.note ? `<div class="note-box"><strong>Note:</strong> ${e(sale.note)}</div>` : ""}
 
@@ -304,7 +301,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#111;padding:1
 <div class="row"><span class="lbl">Invoice #</span><span class="val">${e(sale.sale_number)}</span></div>
 ${sale.customer_name ? `<div class="row"><span class="lbl">Customer</span><span class="val">${e(sale.customer_name)}</span></div>` : ""}
 ${sale.customer_phone ? `<div class="row"><span class="lbl">Phone</span><span class="val">${e(sale.customer_phone)}</span></div>` : ""}
-<div class="row"><span class="lbl">USD rate</span><span class="val">${fmt(sale.dollar)}</span></div>
+<div class="row"><span class="lbl">100 USD =</span><span class="val">${fmt(sale.dollar * 100)} IQD</span></div>
 
 <div class="big-row">
   <span class="lbl" style="font-size:13px">Amount paid</span>
@@ -371,6 +368,12 @@ const getSaleDetail = createServerFn({ method: "GET" })
 
     if (saleRes.error) throw new Error(saleRes.error.message);
     const s = saleRes.data as any;
+
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    if (wf && s.warehouse_id != null && !wf.includes(s.warehouse_id))
+      throw new Error("forbidden: warehouse access");
+
     return {
       ...s,
       customer_name: s.customers?.name ?? null,
@@ -408,11 +411,12 @@ const listProducts = createServerFn({ method: "GET" })
           name: string;
           price: number;
           grains_per_carton: number | null;
+          unit_type: "METER" | "PIECE";
           qty: number | null;
         }[];
       const { data: prods } = await sb
         .from("products")
-        .select("id, name, price, grains_per_carton")
+        .select("id, name, price, grains_per_carton, unit_type")
         .in("id", ids)
         .is("deleted_at", null)
         .order("name");
@@ -424,12 +428,13 @@ const listProducts = createServerFn({ method: "GET" })
         name: p.name as string,
         price: p.price as number,
         grains_per_carton: p.grains_per_carton as number | null,
+        unit_type: p.unit_type as "METER" | "PIECE",
         qty: qtyMap[p.id] ?? 0,
       }));
     }
     const { data: prods } = await sb
       .from("products")
-      .select("id, name, price, grains_per_carton")
+      .select("id, name, price, grains_per_carton, unit_type")
       .is("deleted_at", null)
       .order("name");
     return ((prods ?? []) as any[]).map((p) => ({
@@ -437,6 +442,7 @@ const listProducts = createServerFn({ method: "GET" })
       name: p.name as string,
       price: p.price as number,
       grains_per_carton: p.grains_per_carton as number | null,
+      unit_type: p.unit_type as "METER" | "PIECE",
       qty: null as number | null,
     }));
   });
@@ -491,73 +497,23 @@ const createSale = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => SaleSchema.parse(d))
   .handler(async ({ data }) => {
     const sb = getSupabaseServer();
-    const { data: ok } = await (sb.rpc as any)("has_permission", {
-      p_resource: "sales",
-      p_action: "write",
-    });
-    if (!ok) throw new Error("You do not have permission to create sales");
-    const subtotal = data.items.reduce((s, i) => s + i.price * i.quantity, 0);
-    if (data.discount > subtotal)
-      throw new Error("Discount cannot exceed the sale total");
-    const total = subtotal - data.discount;
-    if (data.warehouse_id) {
-      const shortfalls: string[] = [];
-      for (const item of data.items) {
-        if (!item.product_id) continue;
-        const { data: wp } = await (sb.from("warehouse_products") as any)
-          .select("qty")
-          .eq("warehouse_id", data.warehouse_id)
-          .eq("product_id", item.product_id)
-          .maybeSingle();
-        const available = (wp as any)?.qty ?? 0;
-        if (available < item.quantity)
-          shortfalls.push(
-            `${item.name}: needs ${item.quantity}, has ${available}`,
-          );
-      }
-      if (shortfalls.length > 0)
-        throw new Error(
-          `Insufficient stock:\n${shortfalls.join("\n")}`,
-        );
-    }
-    const { data: sale, error } = await (sb.from("sales") as any)
-      .insert({
-        customer_id: data.customer_id,
-        sale_number: data.sale_number,
-        sale_type: data.sale_type,
-        discount: data.discount,
-        dollar: data.dollar,
-        note: data.note,
-        warehouse_id: data.warehouse_id ?? null,
-        total_amount: total,
-        total_remaining: data.sale_type === "LOAN" ? total : 0,
-        is_finished: data.sale_type === "CASH",
-      })
-      .select()
-      .single();
-    if (error || !sale) throw new Error(error?.message ?? "failed");
-    const { error: itemErr } = await (sb.from("sale_items") as any).insert(
-      data.items.map((i) => ({
-        sale_id: sale.id,
+    const { data: id, error } = await (sb.rpc as any)("create_sale", {
+      p_customer_id: data.customer_id,
+      p_warehouse_id: data.warehouse_id ?? null,
+      p_sale_number: data.sale_number,
+      p_sale_type: data.sale_type,
+      p_discount: data.discount,
+      p_dollar: data.dollar,
+      p_note: data.note,
+      p_items: data.items.map((i) => ({
         product_id: i.product_id,
         name: i.name,
         price: i.price,
         quantity: i.quantity,
       })),
-    );
-    if (itemErr) throw new Error(itemErr.message);
-    if (data.warehouse_id) {
-      for (const item of data.items) {
-        if (item.product_id) {
-          await (sb.rpc as any)("adjust_warehouse_qty", {
-            p_warehouse_id: data.warehouse_id,
-            p_product_id: item.product_id,
-            p_delta: -item.quantity,
-          });
-        }
-      }
-    }
-    return { ok: true, id: sale.id };
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, id: id as number };
   });
 
 const PaySchema = z.object({
@@ -648,6 +604,8 @@ function SalesPage() {
     };
   const currency = settings?.base_currency ?? "IQD";
   const fmt = (n: number) => formatMoney(n, currency, dollarRate);
+  const fmtRow = (n: number, recordDollar: number | null | undefined) =>
+    formatRecordMoney(n, currency, recordDollar, dollarRate);
   const qc = useQueryClient();
   const sales = useQuery({ queryKey: ["sales"], queryFn: list });
   const [creating, setCreating] = useState(false);
@@ -678,12 +636,13 @@ function SalesPage() {
     {
       accessorKey: "total_amount",
       header: t("common.total"),
-      cell: ({ getValue }) => fmt(Number(getValue())),
+      cell: ({ row, getValue }) =>
+        fmtRow(Number(getValue()), row.original.dollar),
     },
     {
       accessorKey: "total_remaining",
       header: t("sales.remaining"),
-      cell: ({ getValue }) => {
+      cell: ({ row, getValue }) => {
         const v = Number(getValue());
         return (
           <span
@@ -693,7 +652,7 @@ function SalesPage() {
                 : "text-green-600 dark:text-green-400"
             }
           >
-            {fmt(v)}
+            {fmtRow(v, row.original.dollar)}
           </span>
         );
       },
@@ -740,6 +699,8 @@ function SalesPage() {
                   await softDelete({ data: { id: row.original.id } });
                   toast.success(t("sales.saleRemoved"));
                   qc.invalidateQueries({ queryKey: ["sales"] });
+                  qc.invalidateQueries({ queryKey: ["sale-detail"] });
+                  qc.invalidateQueries({ queryKey: ["product-stock"] });
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Failed");
                 }
@@ -797,7 +758,10 @@ function SalesPage() {
           settings={settings}
           canCollect={can(permissions, "sales", "collect")}
           onClose={() => setViewingId(null)}
-          onUpdated={() => qc.invalidateQueries({ queryKey: ["sales"] })}
+          onUpdated={() => {
+            qc.invalidateQueries({ queryKey: ["sales"] });
+            qc.invalidateQueries({ queryKey: ["sale-detail"] });
+          }}
         />
       )}
     </div>
@@ -901,9 +865,8 @@ function SaleDetailDialog({
               </div>
               <div>
                 <span className="text-muted-foreground">
-                  {t("sales.usdRate")}:{" "}
+                  {t("common.usdRateLine", { rate: (sale.dollar * 100).toLocaleString() })}
                 </span>
-                {formatCurrency(sale.dollar, "USD")}
               </div>
               {sale.customer_name && (
                 <div>
@@ -1323,7 +1286,9 @@ function SaleDialog({
       sale_number: `S-${Date.now()}`,
       sale_type: "CASH" as "CASH" | "LOAN",
       discount: 0,
-      dollar: dollarQ.data ?? 1500,
+      // Form holds per-100-USD value; we divide by 100 before submit so DB
+      // keeps storing per-1-USD. Default = current rate × 100.
+      dollar: (dollarQ.data ?? 1500) * 100,
       note: "",
       warehouse_id: defaultWarehouseId as number | null,
     },
@@ -1333,7 +1298,9 @@ function SaleDialog({
         return;
       }
       try {
-        await createSale({ data: { ...value, items } });
+        await createSale({
+          data: { ...value, dollar: value.dollar / 100, items },
+        });
         toast.success(t("sales.saleCreated"));
         onSaved();
       } catch (e) {
@@ -1365,7 +1332,7 @@ function SaleDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-max max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("sales.newSale")}</DialogTitle>
         </DialogHeader>
@@ -1449,82 +1416,87 @@ function SaleDialog({
           <div className="space-y-2">
             <p className="text-sm font-semibold">{t("sales.items")}</p>
             <div className="overflow-x-auto">
-              <div className="min-w-140 space-y-1.5">
-                <div className="grid grid-cols-[1fr_120px_70px_120px_36px] gap-2 text-xs text-muted-foreground px-1">
+              <div className="min-w-160 space-y-1.5">
+                <div className="grid grid-cols-[1fr_120px_200px_120px_36px] gap-2 text-xs text-muted-foreground px-1">
                   <span>{t("sales.product")}</span>
                   <span>{t("common.name")}</span>
                   <span>{t("sales.quantity")}</span>
                   <span>{t("sales.unitPrice")} (IQD)</span>
                   <span />
                 </div>
-                {items.map((it, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-[1fr_120px_70px_120px_36px] gap-2 items-center"
-                  >
-                    <Select
-                      value={it.product_id ? String(it.product_id) : ""}
-                      onValueChange={(v) => {
-                        const p = products.data?.find(
-                          (p) => String(p.id) === v,
-                        );
-                        if (p)
-                          updateItem(i, {
-                            product_id: p.id,
-                            name: p.name,
-                            price: p.price,
-                          });
-                      }}
+                {items.map((it, i) => {
+                  const prod = products.data?.find((p) => p.id === it.product_id);
+                  return (
+                    <div
+                      key={i}
+                      className="grid grid-cols-[1fr_120px_200px_120px_36px] gap-2 items-center"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("sales.pickProduct")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.data?.map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {p.name}
-                            {p.qty != null && (
-                              <span className="text-muted-foreground ms-1 text-xs">
-                                — {qtyDisplay(p.qty, p.grains_per_carton)}
-                              </span>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      value={it.name}
-                      onChange={(e) => updateItem(i, { name: e.target.value })}
-                      placeholder={t("common.name")}
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      value={it.quantity}
-                      onChange={(e) =>
-                        updateItem(i, { quantity: Number(e.target.value) })
-                      }
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      value={it.price}
-                      onChange={(e) =>
-                        updateItem(i, { price: Number(e.target.value) })
-                      }
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() =>
-                        setItems((xs) => xs.filter((_, idx) => idx !== i))
-                      }
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      <Select
+                        value={it.product_id ? String(it.product_id) : ""}
+                        onValueChange={(v) => {
+                          const p = products.data?.find(
+                            (p) => String(p.id) === v,
+                          );
+                          if (p)
+                            updateItem(i, {
+                              product_id: p.id,
+                              name: p.name,
+                              price: p.price,
+                              quantity: 0,
+                            });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("sales.pickProduct")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.data?.map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.name}
+                              {p.qty != null && (
+                                <span className="text-muted-foreground ms-1 text-xs">
+                                  — {qtyDisplay(p.qty, p.grains_per_carton, p.unit_type, t)}
+                                </span>
+                              )}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        value={it.name}
+                        onChange={(e) => updateItem(i, { name: e.target.value })}
+                        placeholder={t("common.name")}
+                      />
+                      <QtyInput
+                        compact
+                        grainsPerCarton={prod?.grains_per_carton}
+                        unitType={prod?.unit_type}
+                        value={it.quantity}
+                        onChange={(grains) =>
+                          updateItem(i, { quantity: grains })
+                        }
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={it.price}
+                        onChange={(e) =>
+                          updateItem(i, { price: Number(e.target.value) })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() =>
+                          setItems((xs) => xs.filter((_, idx) => idx !== i))
+                        }
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
               {/* min-w-140 */}
             </div>
@@ -1610,7 +1582,7 @@ function SaleDialog({
             <TextField
               form={form}
               name="dollar"
-              label={t("sales.usdRate")}
+              label={`${t("sales.usdRate")} (${t("common.per100Usd")})`}
               type="number"
               required
             />

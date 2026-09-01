@@ -206,25 +206,12 @@ function Start-Supabase {
 }
 
 # ---------------------------------------------------------------------------
-# Apply SQL migrations
+# Apply SQL migrations (tracked -- skips already-applied files)
 # ---------------------------------------------------------------------------
 function Invoke-Migrations {
     Write-Header "Applying database migrations"
-
-    $files = Get-ChildItem "supabase\migrations\*.sql" -ErrorAction SilentlyContinue | Sort-Object Name
-    if ($files.Count -eq 0) {
-        Write-Warn "No migration files found in supabase\migrations\"
-        return
-    }
-
-    foreach ($f in $files) {
-        Write-Info $f.Name
-        # Pipe directly to docker exec - avoids stdin loss on Windows
-        Get-Content $f.FullName -Raw -Encoding utf8 | docker exec -i supabase-db psql -U postgres -d postgres
-        if ($LASTEXITCODE -ne 0) { Stop-Script "Migration failed: $($f.Name)" }
-    }
-
-    Write-Ok "$($files.Count) migration(s) applied"
+    bun run supabase:migrate:all
+    if ($LASTEXITCODE -ne 0) { Stop-Script "Migration failed. Check output above." }
 }
 
 # ===========================================================================

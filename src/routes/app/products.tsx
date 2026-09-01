@@ -21,7 +21,7 @@ import {
 } from "~/components/ui/dialog";
 import { DataTable } from "~/components/data-table";
 import { TextField, SelectField } from "~/components/form-fields";
-import { formatMoney } from "~/lib/currency";
+import { formatRecordMoney } from "~/lib/currency";
 import { qtyDisplay } from "~/lib/inventory";
 
 interface Product {
@@ -69,9 +69,11 @@ const list = createServerFn({ method: "GET" }).handler(
 const listProductStock = createServerFn({ method: "GET" }).handler(
   async (): Promise<Record<number, number>> => {
     const sb = getSupabaseServer();
-    const { data } = await (sb.from("warehouse_products") as any).select(
-      "product_id, qty",
-    );
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    let q = (sb.from("warehouse_products") as any).select("product_id, qty");
+    if (wf) q = q.in("warehouse_id", wf);
+    const { data } = await q;
     const totals: Record<number, number> = {};
     for (const row of (data ?? []) as { product_id: number; qty: number }[]) {
       totals[row.product_id] = (totals[row.product_id] ?? 0) + row.qty;
@@ -93,7 +95,7 @@ const getCurrentDollar = createServerFn({ method: "GET" }).handler(async () => {
 const Schema = z.object({
   id: z.number().optional(),
   name: z.string().min(2),
-  price: z.coerce.number().nonnegative(),
+  price: z.coerce.number().positive(),
   dollar: z.coerce.number().positive(),
   image_url: z
     .string()
@@ -162,7 +164,8 @@ export const Route = createFileRoute("/app/products")({
 function ProductsPage() {
   const { permissions = [], settings, dollarRate = 1 } = Route.useRouteContext() as any;
   const currency = (settings as any)?.base_currency ?? "IQD";
-  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
+  const fmtRow = (n: number, recordDollar: number | null | undefined) =>
+    formatRecordMoney(n, currency, recordDollar, dollarRate);
   const qc = useQueryClient();
   const products = useQuery({ queryKey: ["products"], queryFn: list });
   const stockQ = useQuery({ queryKey: ["product-stock"], queryFn: listProductStock });
@@ -193,14 +196,15 @@ function ProductsPage() {
     {
       accessorKey: "price",
       header: `${t("products.price")} (IQD)`,
-      cell: ({ getValue }) => fmt(Number(getValue())),
+      cell: ({ row, getValue }) =>
+        fmtRow(Number(getValue()), row.original.dollar),
     },
     {
       accessorKey: "dollar",
-      header: `${t("common.dollar")} (USD)`,
+      header: `${t("common.dollar")} (${t("common.per100Usd")})`,
       cell: ({ getValue }) => (
         <span className="font-mono text-sm">
-          {Number(getValue()).toLocaleString()}
+          {(Number(getValue()) * 100).toLocaleString()}
         </span>
       ),
     },
@@ -222,7 +226,7 @@ function ProductsPage() {
           return <span className="text-muted-foreground text-xs">—</span>;
         return (
           <span className="text-sm font-mono">
-            {qtyDisplay(total, row.original.grains_per_carton)}
+            {qtyDisplay(total, row.original.grains_per_carton, row.original.unit_type, t)}
           </span>
         );
       },
@@ -334,7 +338,8 @@ function ProductDialog({
       id: product?.id,
       name: product?.name ?? "",
       price: product?.price ?? 0,
-      dollar: product?.dollar ?? dollarQ.data ?? 1500,
+      // Per-100-USD form value; divided by 100 on submit.
+      dollar: (product?.dollar ?? dollarQ.data ?? 1500) * 100,
       image_url: product?.image_url ?? "",
       unit_type: product?.unit_type ?? ("PIECE" as const),
       grains_per_carton:
@@ -342,7 +347,7 @@ function ProductDialog({
     },
     onSubmit: async ({ value }) => {
       try {
-        await upsert({ data: value });
+        await upsert({ data: { ...value, dollar: value.dollar / 100 } });
         toast.success(
           product ? t("products.productUpdated") : t("products.productCreated"),
         );
@@ -400,7 +405,7 @@ function ProductDialog({
             <TextField
               form={form}
               name="dollar"
-              label={`${t("common.dollar")} (USD)`}
+              label={`${t("common.dollar")} (${t("common.per100Usd")})`}
               type="number"
               required
             />
@@ -435,6 +440,19 @@ function ProductDialog({
               }}
             />
           </label>
+          <form.Subscribe selector={(s) => s.values.image_url}>
+            {(url) =>
+              url ? (
+                <div className="border rounded-lg p-2 flex justify-center bg-muted/40">
+                  <img
+                    src={url}
+                    alt="preview"
+                    className="max-h-40 rounded object-contain"
+                  />
+                </div>
+              ) : null
+            }
+          </form.Subscribe>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               {t("common.cancel")}

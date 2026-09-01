@@ -16,9 +16,10 @@ import {
 } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { TextField } from "~/components/form-fields";
+import { checkAuth } from "~/lib/auth";
 
 const LoginSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
 });
 
@@ -32,9 +33,10 @@ const login = createServerFn({ method: "POST" })
   });
 
 export const Route = createFileRoute("/login")({
-  beforeLoad: ({ context }) => {
+  beforeLoad: async ({ context }) => {
     if (!context.settings?.setup_completed) throw redirect({ to: "/setup" });
-    if (context.profile?.id) throw redirect({ to: "/app/dashboard" });
+    const { authenticated } = await checkAuth();
+    if (authenticated) throw redirect({ to: "/app/dashboard" });
   },
   component: Login,
 });

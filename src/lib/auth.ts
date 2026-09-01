@@ -168,3 +168,13 @@ export function can(
 ): boolean {
   return perms.includes(`${resource}:${action}`);
 }
+
+// Wrapped in createServerFn so Vite does not statically import supabase.server.ts
+// (which imports node/bun-only APIs) into the client bundle.
+export const checkAuth = createServerFn({ method: "GET" }).handler(async () => {
+  const sb = getSupabaseServer();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  return { authenticated: !!user };
+});

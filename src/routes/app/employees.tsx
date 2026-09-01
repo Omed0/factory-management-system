@@ -24,7 +24,7 @@ import {
   SelectField,
   TextAreaField,
 } from "~/components/form-fields";
-import { formatMoney } from "~/lib/currency";
+import { formatRecordMoney } from "~/lib/currency";
 import { Badge } from "~/components/ui/badge";
 
 interface Employee {
@@ -223,7 +223,8 @@ const actionTypeColors: Record<string, string> = {
 function EmployeesPage() {
   const { permissions = [], settings, dollarRate = 1 } = Route.useRouteContext() as any;
   const currency = (settings as any)?.base_currency ?? "IQD";
-  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
+  const fmtRow = (n: number, recordDollar: number | null | undefined) =>
+    formatRecordMoney(n, currency, recordDollar, dollarRate);
   const qc = useQueryClient();
   const employees = useQuery({ queryKey: ["employees"], queryFn: list });
   const [editing, setEditing] = useState<Employee | null>(null);
@@ -245,14 +246,15 @@ function EmployeesPage() {
     {
       accessorKey: "month_salary",
       header: t("employees.monthlySalary"),
-      cell: ({ getValue }) => fmt(Number(getValue())),
+      cell: ({ row, getValue }) =>
+        fmtRow(Number(getValue()), row.original.dollar),
     },
     {
       accessorKey: "dollar",
-      header: `${t("common.dollar")} (USD)`,
+      header: `${t("common.dollar")} (${t("common.per100Usd")})`,
       cell: ({ getValue }) => (
         <span className="font-mono text-sm">
-          {Number(getValue()).toLocaleString()}
+          {(Number(getValue()) * 100).toLocaleString()}
         </span>
       ),
     },
@@ -381,11 +383,12 @@ function EmployeeDialog({
       phone: employee?.phone ?? "",
       address: employee?.address ?? "",
       month_salary: employee?.month_salary ?? 0,
-      dollar: employee?.dollar ?? dollarQ.data ?? 1500,
+      // Per-100-USD form value; divided by 100 on submit.
+      dollar: (employee?.dollar ?? dollarQ.data ?? 1500) * 100,
     },
     onSubmit: async ({ value }) => {
       try {
-        await upsert({ data: value });
+        await upsert({ data: { ...value, dollar: value.dollar / 100 } });
         toast.success(
           employee
             ? t("employees.employeeUpdated")
@@ -440,7 +443,7 @@ function EmployeeDialog({
             <TextField
               form={form}
               name="dollar"
-              label={`${t("common.dollar")} (USD)`}
+              label={`${t("common.dollar")} (${t("common.per100Usd")})`}
               type="number"
               required
             />
@@ -472,7 +475,8 @@ function ActionDialog({
   const { t } = useTranslation();
   const { settings, dollarRate = 1 } = Route.useRouteContext() as any;
   const currency = (settings as any)?.base_currency ?? "IQD";
-  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
+  const fmtRow = (n: number, recordDollar: number | null | undefined) =>
+    formatRecordMoney(n, currency, recordDollar, dollarRate);
   const actions = useQuery({
     queryKey: ["employee-actions", employee.id],
     queryFn: () => listActions({ data: { employee_id: employee.id } }),
@@ -488,7 +492,8 @@ function ActionDialog({
         | "OVERTIME"
         | "TERMINATE",
       amount: 0,
-      dollar: employee.dollar,
+      // Per-100-USD form value; divided by 100 on submit.
+      dollar: employee.dollar * 100,
       note: "",
       action_date: new Date().toISOString().slice(0, 10),
     },
@@ -497,6 +502,7 @@ function ActionDialog({
         await recordAction({
           data: {
             ...value,
+            dollar: value.dollar / 100,
             action_date: new Date(value.action_date).toISOString(),
           },
         });
@@ -573,7 +579,7 @@ function ActionDialog({
               <TextField
                 form={form}
                 name="dollar"
-                label={`${t("common.dollar")} (USD)`}
+                label={`${t("common.dollar")} (${t("common.per100Usd")})`}
                 type="number"
                 required
               />
@@ -630,7 +636,7 @@ function ActionDialog({
                     <div className="flex items-center gap-2">
                       {a.amount > 0 && (
                         <span className="font-mono font-medium">
-                          {fmt(a.amount)}
+                          {fmtRow(a.amount, (a as any).dollar)}
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">

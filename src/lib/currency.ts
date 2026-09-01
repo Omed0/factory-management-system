@@ -14,3 +14,19 @@ export function formatMoney(
   }
   return formatCurrency(iqdAmount, "IQD");
 }
+
+/**
+ * Per-record USD display: each transactional row snapshots `dollar` (the IQD/USD rate
+ * at fill-time). For list/detail rows, use that snapshot so historical figures stay
+ * stable when the current rate changes. Falls back to `fallbackDollar` (the global
+ * current rate) when a row was created before the snapshot existed.
+ */
+export function formatRecordMoney(
+  iqdAmount: number,
+  currency: string,
+  recordDollar: number | null | undefined,
+  fallbackDollar: number,
+): string {
+  const rate = recordDollar && recordDollar > 0 ? recordDollar : fallbackDollar;
+  return formatMoney(iqdAmount, currency, rate);
+}

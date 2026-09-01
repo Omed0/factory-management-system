@@ -208,3 +208,42 @@ Every transactional entity (`sales`, `company_purchases`, `expenses`, `employee_
 **Hard-delete safety:** If a sale is still active (not soft-deleted) when hard-deleted, the `hard_delete_sale` RPC reverses inventory first, then issues a `DELETE` that cascades to `sale_items` and `paid_loans`.
 
 **Audit query rule:** Any aggregation over child financial tables (`paid_loans`, `purchase_payments`, `sale_items`) must use a PostgREST `!inner` embed-join to the parent and filter `parent.deleted_at IS NULL`. A plain LEFT JOIN silently includes children of soft-deleted parents, inflating totals. See the `runAudit` server function in `src/routes/app/reports.tsx` for the correct pattern.
+
+## Money display: snapshot vs. current rate
+
+The `dollar` snapshot column captures the IQD/USD rate at fill-time. It feeds two display modes:
+
+- **Per-record rendering** (list cells, detail dialogs): use `formatRecordMoney(amount, currency, row.dollar, currentDollar)` from `~/lib/currency`. Historical USD figures stay stable when the current rate changes.
+- **Aggregate rendering** (dashboard KPIs, reports summaries, warehouse total inventory value): sum IQD then convert with the current rate via `formatMoney(sum, currency, currentDollar)`. We trade historical accuracy for "today's value of all balances" — this is what users typically expect from a KPI card. Document the choice in the call site when adding new aggregations.
+
+A row with `dollar = 0` or `null` falls through `formatRecordMoney` to the `currentDollar` fallback (defensive, for legacy rows created before the snapshot existed).
+
+## Service startup order (Docker)
+
+The Supabase self-hosted stack chains `depends_on: condition: service_healthy` blocks. Slow-starting services pull every downstream service into their critical path. Specifically: `analytics` (Logflare) takes ~50 s on a cold start (10 retries × 5 s health-check). `studio` waits on `analytics`; if `kong` (the API gateway the app talks to on port 8000) waits on `studio`, every fresh `bun supabase:up` blocks the app for ~50 s.
+
+Mitigation: `kong`'s `depends_on` is set to `db` and `auth` only. Kong uses a declarative config (`volumes/api/kong.yml`) and only needs the DB and the auth service to route requests — Studio is a developer console, not part of the data path. This change cuts the cold-start gating chain from `db → analytics → studio → kong` down to `db → auth → kong`.
+
+If you ever add a new gateway-fronted service, depend on the minimum it actually needs at request-handling time, not the convenient grab-all of `studio` or `analytics`.
+
+## Quantity model: grains, cartons, unit_type
+
+All stock-bearing tables (`warehouse_products.qty`, `sale_items.quantity`, `company_purchases.quantity`) store a single integer of "grains" — the smallest indivisible unit. Cartons are a display/input convenience: a product with `grains_per_carton = 20` means each carton holds 20 grains, so 5 cartons = 100 grains. Products without `grains_per_carton` (or with 0) have no carton concept and use `unit_type` (`METER` / `PIECE`) for labeling.
+
+**Single-source-of-truth rule:** `<QtyInput>` (`src/components/qty-input.tsx`) is the only place in the codebase that converts `(cartons, loose_grains)` into the single grains integer. It accepts the controlled `value` (always grains) and emits grains via `onChange`. Internally:
+
+- When `grainsPerCarton > 0`: renders two side-by-side fields. `total = cartons × gpc + loose`.
+- When `grainsPerCarton` is null / 0: single field labelled by `unit_type` (m / pcs).
+- `allowNegative` mode adds a `[+ Add | − Remove]` selector for warehouse adjustments.
+
+Display goes through `qtyDisplay(grains, gpc, unit_type, t)` (`src/lib/inventory.ts`). When called with no `t`, it returns an ASCII fallback (`5c+3g`) that's safe to drop into print HTML.
+
+## Warehouse adjust audit
+
+Manual stock adjustments are a privileged operation — they can move inventory without a sale or purchase paper trail. To prevent abuse the system uses two RPCs and a log:
+
+- `adjust_warehouse_qty(wh, pid, delta)` — the low-level one. Floors at 0. SECURITY DEFINER. Now rejects USER-role calls into warehouses the user isn't assigned to. All internal callers (sales/purchases create + soft-delete RPCs) go through this directly.
+- `adjust_warehouse_qty_audited(wh, pid, delta, reason)` — the wrapper used by the UI. Requires a non-empty reason, OWNER+ADMIN only, calls the low-level RPC, then writes a row to `public.warehouse_adjustments` with `adjusted_by = auth.uid()` and `adjusted_at = now()`. The `warehouse_adjustments` table has SELECT RLS for OWNER+ADMIN only; no INSERT/UPDATE/DELETE policies — writes go through the SECURITY DEFINER RPC.
+- The `inventory:write` permission was removed from the USER-role essentials (migration 0020). Even if a USER somehow gets the permission re-granted, the RPC's role check still rejects them.
+
+The warehouse detail dialog has an "Adjustment log" tab (visible to OWNER+ADMIN only) that lists the last 20 rows from `warehouse_adjustments` for that warehouse with date, product, signed delta, reason, and adjuster name.

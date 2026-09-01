@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { getSupabaseServer } from "~/lib/supabase.server";
 import { can, requireUser, warehouseFilter } from "~/lib/auth";
 import { qtyDisplay } from "~/lib/inventory";
+import { QtyInput } from "~/components/qty-input";
 import type { UserRole } from "~/lib/auth";
 import type { SiteSettings } from "~/lib/site-settings";
 import { Button } from "~/components/ui/button";
@@ -38,7 +39,7 @@ import {
   TextAreaField,
 } from "~/components/form-fields";
 import { formatCurrency } from "~/lib/utils";
-import { formatMoney } from "~/lib/currency";
+import { formatMoney, formatRecordMoney } from "~/lib/currency";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
@@ -50,12 +51,13 @@ interface Purchase {
   total_amount: number;
   total_remaining: number;
   type: "CASH" | "LOAN";
+  is_finished: boolean;
   note: string | null;
   purchase_date: string;
   dollar: number;
   product_id: number | null;
   quantity: number | null;
-  products: { name: string; grains_per_carton: number | null } | null;
+  products: { name: string; grains_per_carton: number | null; unit_type: "METER" | "PIECE" } | null;
 }
 
 interface PurchasePayment {
@@ -71,6 +73,7 @@ interface PurchaseDetail extends Purchase {
   payments: PurchasePayment[];
   product_name: string | null;
   product_grains_per_carton: number | null;
+  product_unit_type: "METER" | "PIECE" | null;
 }
 
 // ─── print helpers ────────────────────────────────────────────────────────────
@@ -172,7 +175,7 @@ td{padding:6px 10px;border:1px solid #ddd}
     <p><span class="lbl">Date</span></p>
     <p><strong>${date}</strong></p>
     <p style="margin-top:8px"><span class="badge badge-${p.type === "LOAN" ? "loan" : "cash"}">${p.type}</span></p>
-    <p style="margin-top:4px"><span class="lbl">USD rate:</span> ${fmt(p.dollar)}</p>
+    <p style="margin-top:4px"><span class="lbl">100 USD =</span> ${fmt(p.dollar * 100)} IQD</p>
   </div>
 </div>
 
@@ -261,7 +264,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;color:#111;padding:1
 <div class="row"><span class="lbl">Date</span><span class="val">${date}</span></div>
 <div class="row"><span class="lbl">Purchase</span><span class="val">${e(purchase.name)}</span></div>
 ${purchase.company_name ? `<div class="row"><span class="lbl">Supplier</span><span class="val">${e(purchase.company_name)}</span></div>` : ""}
-<div class="row"><span class="lbl">USD rate</span><span class="val">${fmt(purchase.dollar)}</span></div>
+<div class="row"><span class="lbl">100 USD =</span><span class="val">${fmt(purchase.dollar * 100)} IQD</span></div>
 
 <div class="big-row">
   <span class="lbl" style="font-size:13px">Amount paid</span>
@@ -286,7 +289,7 @@ const list = createServerFn({ method: "GET" }).handler(
     const me = await requireUser();
     const wf = warehouseFilter(me);
     let q = (sb.from("company_purchases") as any)
-      .select("*, products(name, grains_per_carton)")
+      .select("*, products(name, grains_per_carton, unit_type)")
       .is("deleted_at", null)
       .order("purchase_date", { ascending: false });
     if (wf) q = q.in("warehouse_id", wf);
@@ -308,7 +311,7 @@ const getPurchaseDetail = createServerFn({ method: "GET" })
 
     const [purchaseRes, paymentsRes] = await Promise.all([
       (sb.from("company_purchases") as any)
-        .select("*, companies(name, phone), products(name, grains_per_carton)")
+        .select("*, companies(name, phone), products(name, grains_per_carton, unit_type)")
         .eq("id", data.id)
         .single(),
       (sb.from("purchase_payments") as any)
@@ -319,6 +322,12 @@ const getPurchaseDetail = createServerFn({ method: "GET" })
 
     if (purchaseRes.error) throw new Error(purchaseRes.error.message);
     const p = purchaseRes.data as any;
+
+    const me = await requireUser();
+    const wf = warehouseFilter(me);
+    if (wf && p.warehouse_id != null && !wf.includes(p.warehouse_id))
+      throw new Error("forbidden: warehouse access");
+
     return {
       ...p,
       company_name: p.companies?.name ?? null,
@@ -326,6 +335,7 @@ const getPurchaseDetail = createServerFn({ method: "GET" })
       payments: (paymentsRes.data ?? []) as PurchasePayment[],
       product_name: p.products?.name ?? null,
       product_grains_per_carton: p.products?.grains_per_carton ?? null,
+      product_unit_type: p.products?.unit_type ?? null,
       products: p.products ?? null,
     };
   });
@@ -369,38 +379,32 @@ const listProductsByWarehouse = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const sb = getSupabaseServer();
+    const { data: prods } = await sb
+      .from("products")
+      .select("id, name, grains_per_carton, unit_type")
+      .is("deleted_at", null)
+      .order("name");
+    const products = (prods ?? []) as {
+      id: number;
+      name: string;
+      grains_per_carton: number | null;
+      unit_type: "METER" | "PIECE";
+    }[];
+    let qtyMap: Record<number, number> = {};
     if (data?.warehouse_id) {
       const { data: wp } = await (sb.from("warehouse_products") as any)
         .select("product_id, qty")
         .eq("warehouse_id", data.warehouse_id);
-      const ids = ((wp ?? []) as any[]).map((r) => r.product_id);
-      if (ids.length === 0) return [] as { id: number; name: string; grains_per_carton: number | null; qty: number }[];
-      const { data: prods } = await sb
-        .from("products")
-        .select("id, name, grains_per_carton")
-        .in("id", ids)
-        .is("deleted_at", null)
-        .order("name");
-      const qtyMap: Record<number, number> = Object.fromEntries(
+      qtyMap = Object.fromEntries(
         ((wp ?? []) as any[]).map((r) => [r.product_id, r.qty]),
       );
-      return ((prods ?? []) as any[]).map((p) => ({
-        id: p.id as number,
-        name: p.name as string,
-        grains_per_carton: p.grains_per_carton as number | null,
-        qty: qtyMap[p.id] ?? 0,
-      }));
     }
-    const { data: prods } = await sb
-      .from("products")
-      .select("id, name, grains_per_carton")
-      .is("deleted_at", null)
-      .order("name");
-    return ((prods ?? []) as any[]).map((p) => ({
-      id: p.id as number,
-      name: p.name as string,
-      grains_per_carton: p.grains_per_carton as number | null,
-      qty: null as number | null,
+    return products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      grains_per_carton: p.grains_per_carton,
+      unit_type: p.unit_type,
+      qty: data?.warehouse_id ? (qtyMap[p.id] ?? 0) : (null as number | null),
     }));
   });
 
@@ -449,24 +453,32 @@ const upsert = createServerFn({ method: "POST" })
       quantity: data.quantity ?? null,
     };
     if (data.id) {
+      if (data.product_id) {
+        const { data: prod } = await (sb.from("products") as any)
+          .select("id, deleted_at")
+          .eq("id", data.product_id)
+          .maybeSingle();
+        if (!prod || (prod as any).deleted_at)
+          throw new Error(`Cannot reference deleted product: ${data.product_id}`);
+      }
       const { error } = await (sb.from("company_purchases") as any)
         .update(base)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await (sb.from("company_purchases") as any).insert({
-        ...base,
-        total_remaining: data.type === "LOAN" ? data.total_amount : 0,
+      const { error } = await (sb.rpc as any)("create_purchase", {
+        p_company_id: data.company_id,
+        p_warehouse_id: data.warehouse_id ?? null,
+        p_product_id: data.product_id ?? null,
+        p_quantity: data.quantity ?? null,
+        p_name: data.name,
+        p_type: data.type,
+        p_total_amount: data.total_amount,
+        p_dollar: data.dollar,
+        p_purchase_date: new Date(data.purchase_date).toISOString(),
+        p_note: data.note,
       });
       if (error) throw new Error(error.message);
-      if (data.warehouse_id && data.product_id && data.quantity) {
-        const { error: adjErr } = await (sb.rpc as any)("adjust_warehouse_qty", {
-          p_warehouse_id: data.warehouse_id,
-          p_product_id: data.product_id,
-          p_delta: data.quantity,
-        });
-        if (adjErr) throw new Error(adjErr.message);
-      }
     }
   });
 
@@ -514,7 +526,10 @@ const recordPayment = createServerFn({ method: "POST" })
       });
       if (payErr) throw new Error(payErr.message);
       const { error: updErr } = await (sb.from("company_purchases") as any)
-        .update({ total_remaining: remaining })
+        .update({
+          total_remaining: remaining,
+          is_finished: remaining === 0,
+        })
         .eq("id", data.purchase_id);
       if (updErr) throw new Error(updErr.message);
       return {
@@ -560,6 +575,8 @@ function PurchasesPage() {
     };
   const currency = settings?.base_currency ?? "IQD";
   const fmt = (n: number) => formatMoney(n, currency, dollarRate);
+  const fmtRow = (n: number, recordDollar: number | null | undefined) =>
+    formatRecordMoney(n, currency, recordDollar, dollarRate);
   const qc = useQueryClient();
   const purchases = useQuery({ queryKey: ["purchases"], queryFn: list });
   const [creating, setCreating] = useState(false);
@@ -608,7 +625,7 @@ function PurchasesPage() {
           <span className="text-sm">
             {p.products.name}
             <span className="text-muted-foreground ms-1">
-              ({qtyDisplay(p.quantity, p.products.grains_per_carton)})
+              ({qtyDisplay(p.quantity, p.products.grains_per_carton, p.products.unit_type, t)})
             </span>
           </span>
         );
@@ -617,12 +634,13 @@ function PurchasesPage() {
     {
       accessorKey: "total_amount",
       header: t("common.total"),
-      cell: ({ getValue }) => fmt(Number(getValue())),
+      cell: ({ row, getValue }) =>
+        fmtRow(Number(getValue()), row.original.dollar),
     },
     {
       accessorKey: "total_remaining",
       header: t("purchases.remaining"),
-      cell: ({ getValue }) => {
+      cell: ({ row, getValue }) => {
         const v = Number(getValue());
         return (
           <span
@@ -632,10 +650,20 @@ function PurchasesPage() {
                 : "text-green-600 dark:text-green-400"
             }
           >
-            {fmt(v)}
+            {fmtRow(v, row.original.dollar)}
           </span>
         );
       },
+    },
+    {
+      accessorKey: "is_finished",
+      header: t("common.status"),
+      size: 90,
+      cell: ({ getValue }) => (
+        <Badge variant={getValue() ? "default" : "secondary"}>
+          {getValue() ? t("sales.paid") : t("sales.pending")}
+        </Badge>
+      ),
     },
     {
       id: "actions",
@@ -667,6 +695,8 @@ function PurchasesPage() {
                   await softDelete({ data: { id: row.original.id } });
                   toast.success(t("purchases.purchaseRemoved"));
                   qc.invalidateQueries({ queryKey: ["purchases"] });
+                  qc.invalidateQueries({ queryKey: ["purchase-detail"] });
+                  qc.invalidateQueries({ queryKey: ["product-stock"] });
                 } catch (e) {
                   toast.error(e instanceof Error ? e.message : "Failed");
                 }
@@ -740,7 +770,10 @@ function PurchasesPage() {
           settings={settings}
           canPay={canPay}
           onClose={() => setViewingId(null)}
-          onUpdated={() => qc.invalidateQueries({ queryKey: ["purchases"] })}
+          onUpdated={() => {
+            qc.invalidateQueries({ queryKey: ["purchases"] });
+            qc.invalidateQueries({ queryKey: ["purchase-detail"] });
+          }}
         />
       )}
     </div>
@@ -843,9 +876,8 @@ function PurchaseDetailDialog({
               </div>
               <div>
                 <span className="text-muted-foreground">
-                  {t("purchases.usdRate")}:{" "}
+                  {t("common.usdRateLine", { rate: (p.dollar * 100).toLocaleString() })}
                 </span>
-                {formatCurrency(p.dollar, "USD")}
               </div>
               {p.company_name && (
                 <div>
@@ -868,7 +900,7 @@ function PurchaseDetailDialog({
                   <span className="text-muted-foreground">{t("purchases.product")}: </span>
                   <strong>{p.product_name}</strong>
                   <span className="text-muted-foreground ms-1">
-                    ({qtyDisplay(p.quantity, p.product_grains_per_carton)})
+                    ({qtyDisplay(p.quantity, p.product_grains_per_carton, p.product_unit_type, t)})
                   </span>
                 </div>
               )}
@@ -1218,14 +1250,15 @@ function PurchaseDialog({
       type: "CASH" as "CASH" | "LOAN",
       note: "",
       purchase_date: new Date().toISOString().slice(0, 10),
-      dollar: dollarQ.data ?? 1500,
+      // Per-100-USD in form; divided by 100 on submit. DB stays per-1-USD.
+      dollar: (dollarQ.data ?? 1500) * 100,
       warehouse_id: defaultWarehouseId as number | null,
       product_id: null as number | null,
       quantity: "" as unknown as number | null,
     },
     onSubmit: async ({ value }) => {
       try {
-        await upsert({ data: value });
+        await upsert({ data: { ...value, dollar: value.dollar / 100 } });
         toast.success(t("purchases.purchaseCreated"));
         onSaved();
       } catch (e) {
@@ -1304,7 +1337,7 @@ function PurchaseDialog({
             <TextField
               form={form}
               name="dollar"
-              label={t("purchases.usdRate")}
+              label={`${t("purchases.usdRate")} (${t("common.per100Usd")})`}
               type="number"
               required
             />
@@ -1345,7 +1378,7 @@ function PurchaseDialog({
             </form.Field>
           )}
 
-          {selectedWarehouseId && (productsQ.data?.length ?? 0) > 0 && (
+          {selectedWarehouseId && (
             <>
               <form.Field name="product_id">
                 {(f) => (
@@ -1355,7 +1388,10 @@ function PurchaseDialog({
                     </label>
                     <Select
                       value={f.state.value ? String(f.state.value) : ""}
-                      onValueChange={(v) => f.handleChange(v ? Number(v) : null)}
+                      onValueChange={(v) => {
+                        f.handleChange(v ? Number(v) : null);
+                        form.setFieldValue("quantity", null);
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={`(${t("purchases.noneOption")})`} />
@@ -1365,8 +1401,8 @@ function PurchaseDialog({
                           <SelectItem key={p.id} value={String(p.id)}>
                             {p.name}
                             {p.qty != null && (
-                              <span className="text-muted-foreground ml-1 text-xs">
-                                — {qtyDisplay(p.qty, p.grains_per_carton)}
+                              <span className="text-muted-foreground ms-1 text-xs">
+                                — {qtyDisplay(p.qty, p.grains_per_carton, p.unit_type, t)}
                               </span>
                             )}
                           </SelectItem>
@@ -1388,17 +1424,23 @@ function PurchaseDialog({
                             <label className="text-sm font-medium">
                               {t("purchases.qty")}
                             </label>
-                            <input
-                              type="number"
-                              min="1"
-                              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                              value={f.state.value ?? ""}
-                              onChange={(e) => f.handleChange(e.target.value ? Number(e.target.value) : null)}
+                            <QtyInput
+                              grainsPerCarton={prod?.grains_per_carton}
+                              unitType={prod?.unit_type}
+                              value={(f.state.value ?? 0) as number}
+                              onChange={(grains) =>
+                                f.handleChange(grains > 0 ? grains : null)
+                              }
                             />
                             {prod && f.state.value && (
                               <p className="text-xs text-muted-foreground">
                                 {t("purchases.stockHint", {
-                                  stock: qtyDisplay(prod.qty ?? 0, prod.grains_per_carton),
+                                  stock: qtyDisplay(
+                                    prod.qty ?? 0,
+                                    prod.grains_per_carton,
+                                    prod.unit_type,
+                                    t,
+                                  ),
                                 })}
                               </p>
                             )}

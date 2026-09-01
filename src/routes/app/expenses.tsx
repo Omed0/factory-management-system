@@ -20,7 +20,7 @@ import {
 } from "~/components/ui/dialog";
 import { DataTable } from "~/components/data-table";
 import { TextField, TextAreaField } from "~/components/form-fields";
-import { formatMoney } from "~/lib/currency";
+import { formatRecordMoney } from "~/lib/currency";
 
 interface Expense {
   id: number;
@@ -124,7 +124,8 @@ export const Route = createFileRoute("/app/expenses")({
 function ExpensesPage() {
   const { permissions = [], settings, dollarRate = 1 } = Route.useRouteContext() as any;
   const currency = (settings as any)?.base_currency ?? "IQD";
-  const fmt = (n: number) => formatMoney(n, currency, dollarRate);
+  const fmtRow = (n: number, recordDollar: number | null | undefined) =>
+    formatRecordMoney(n, currency, recordDollar, dollarRate);
   const qc = useQueryClient();
   const expenses = useQuery({ queryKey: ["expenses"], queryFn: list });
   const [editing, setEditing] = useState<Expense | null>(null);
@@ -139,14 +140,15 @@ function ExpensesPage() {
     {
       accessorKey: "amount",
       header: t("expenses.amount"),
-      cell: ({ getValue }) => fmt(Number(getValue())),
+      cell: ({ row, getValue }) =>
+        fmtRow(Number(getValue()), row.original.dollar),
     },
     {
       accessorKey: "dollar",
-      header: `${t("common.dollar")} (USD)`,
+      header: `${t("common.dollar")} (${t("common.per100Usd")})`,
       cell: ({ getValue }) => (
         <span className="font-mono text-sm">
-          {Number(getValue()).toLocaleString()}
+          {(Number(getValue()) * 100).toLocaleString()}
         </span>
       ),
     },
@@ -255,12 +257,13 @@ function ExpenseDialog({
       title: expense?.title ?? "",
       note: expense?.note ?? "",
       amount: expense?.amount ?? 0,
-      dollar: expense?.dollar ?? dollarQ.data ?? 1500,
+      // Per-100-USD form value; divided by 100 on submit.
+      dollar: (expense?.dollar ?? dollarQ.data ?? 1500) * 100,
       category: expense?.category ?? "",
     },
     onSubmit: async ({ value }) => {
       try {
-        await upsert({ data: value });
+        await upsert({ data: { ...value, dollar: value.dollar / 100 } });
         toast.success(
           expense ? t("expenses.expenseUpdated") : t("expenses.expenseCreated"),
         );
@@ -303,7 +306,7 @@ function ExpenseDialog({
             <TextField
               form={form}
               name="dollar"
-              label={`${t("common.dollar")} (USD)`}
+              label={`${t("common.dollar")} (${t("common.per100Usd")})`}
               type="number"
               required
             />

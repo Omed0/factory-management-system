@@ -92,6 +92,7 @@ export type Database = {
           deleted_at: string | null
           dollar: number
           id: number
+          is_finished: boolean
           name: string
           note: string | null
           product_id: number | null
@@ -109,6 +110,7 @@ export type Database = {
           deleted_at?: string | null
           dollar: number
           id?: number
+          is_finished?: boolean
           name: string
           note?: string | null
           product_id?: number | null
@@ -126,6 +128,7 @@ export type Database = {
           deleted_at?: string | null
           dollar?: number
           id?: number
+          is_finished?: boolean
           name?: string
           note?: string | null
           product_id?: number | null
@@ -814,6 +817,55 @@ export type Database = {
           },
         ]
       }
+      warehouse_adjustments: {
+        Row: {
+          adjusted_at: string
+          adjusted_by: string | null
+          delta: number
+          id: number
+          product_id: number
+          reason: string
+          warehouse_id: number
+        }
+        Insert: {
+          adjusted_at?: string
+          adjusted_by?: string | null
+          delta: number
+          id?: number
+          product_id: number
+          reason: string
+          warehouse_id: number
+        }
+        Update: {
+          adjusted_at?: string
+          adjusted_by?: string | null
+          delta?: number
+          id?: number
+          product_id?: number
+          reason?: string
+          warehouse_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_adjustments_adjusted_by_fkey"
+            columns: ["adjusted_by"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_adjustments_product_id_fkey"
+            columns: ["product_id"]
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_adjustments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouse_products: {
         Row: {
           id: number
@@ -920,6 +972,43 @@ export type Database = {
       adjust_warehouse_qty: {
         Args: { p_delta: number; p_product_id: number; p_warehouse_id: number }
         Returns: undefined
+      }
+      adjust_warehouse_qty_audited: {
+        Args: {
+          p_delta: number
+          p_product_id: number
+          p_reason: string
+          p_warehouse_id: number
+        }
+        Returns: undefined
+      }
+      create_purchase: {
+        Args: {
+          p_company_id: number
+          p_dollar: number
+          p_name: string
+          p_note: string
+          p_product_id: number
+          p_purchase_date: string
+          p_quantity: number
+          p_total_amount: number
+          p_type: string
+          p_warehouse_id: number
+        }
+        Returns: number
+      }
+      create_sale: {
+        Args: {
+          p_customer_id: number
+          p_discount: number
+          p_dollar: number
+          p_items: Json
+          p_note: string
+          p_sale_number: string
+          p_sale_type: string
+          p_warehouse_id: number
+        }
+        Returns: number
       }
       current_role: {
         Args: never

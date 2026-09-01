@@ -53,8 +53,6 @@ load_env() {
 check_prereqs() {
   header "Checking prerequisites"
   require_cmd bun    "Install: curl -fsSL https://bun.sh/install | bash"
-  require_cmd docker "Install Docker Desktop: https://docs.docker.com/get-docker/"
-  docker info &>/dev/null || die "Docker is not running -- start Docker Desktop first."
   ok "bun $(bun --version)  |  docker $(docker --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 }
 
@@ -130,31 +128,35 @@ start_supabase() {
   fi
 
   info "Waiting for containers to become healthy (up to 200s)..."
+  info "(First run can take 60-120 s while images initialise)"
   echo ""
 
-  local tries=0
-  while [ $tries -lt 40 ]; do
+  tries=0; maxTries=40
+  while [ $tries -lt $maxTries ]; do
     sleep 5
     tries=$((tries + 1))
-    local all_statuses
-    all_statuses=$(docker ps --filter "name=supabase" --format "{{.Names}}|{{.Status}}" 2>/dev/null || true)
-    if [ -z "$all_statuses" ]; then
-      info "[$tries/40] No supabase containers visible yet..."
+
+    all=$(docker ps --filter "name=supabase" --format "{{.Names}}|{{.Status}}" 2>/dev/null)
+    if [ -z "$all" ]; then
+      info "[$tries/$maxTries] No supabase containers visible yet..."
       continue
     fi
-    local total healthy starting unhealthy
-    total=$(echo "$all_statuses" | grep -c '' || true)
-    healthy=$(echo "$all_statuses"   | grep -c "healthy"                    || true)
-    starting=$(echo "$all_statuses"  | grep -cE "starting|health: starting" || true)
-    unhealthy=$(echo "$all_statuses" | grep -c "unhealthy"                  || true)
-    info "[$tries/40] $healthy healthy  |  $starting starting  |  $unhealthy unhealthy  (of $total containers)"
+
+    total=$(echo "$all" | wc -l | tr -d ' ')
+    healthy=$(echo "$all" | grep -c "healthy" || true)
+    starting=$(echo "$all" | grep -c "starting\|health: starting" || true)
+    unhealthy=$(echo "$all" | grep -c "unhealthy" || true)
+
+    info "[$tries/$maxTries] $healthy healthy  |  $starting starting  |  $unhealthy unhealthy  (of $total containers)"
+
     if [ "$unhealthy" -gt 0 ]; then
       echo ""
       warn "One or more containers are unhealthy. Check logs with:"
       warn "  docker compose -f supabase/docker-compose.yml logs --tail=50"
       break
     fi
-    [ "$starting" -eq 0 ] && [ "$total" -gt 0 ] && break
+
+    if [ "$starting" -eq 0 ] && [ "$total" -gt 0 ]; then break; fi
   done
 
   echo ""
@@ -163,19 +165,10 @@ start_supabase() {
   ok "Supabase is up"
 }
 
-# ---- Apply SQL migrations ----------------------------------------------------
+# ---- Apply SQL migrations (tracked -- skips already-applied files) -----------
 apply_migrations() {
   header "Applying database migrations"
-  local count=0
-  for f in supabase/migrations/*.sql; do
-    [ -f "$f" ] || continue
-    info "$(basename "$f")"
-    bun run supabase:migrate < "$f"
-    count=$((count + 1))
-  done
-  [ $count -eq 0 ] \
-    && warn "No migration files found in supabase/migrations/" \
-    || ok "$count migration(s) applied"
+  bash scripts/migrate.sh
 }
 
 # ==============================================================================

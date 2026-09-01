@@ -2,9 +2,9 @@ import { z } from "zod";
 
 const schema = z.object({
   // Supabase — internal URL used for server-to-server calls (inside Docker network)
-  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_URL: z.url().optional(),
   // Public URL — used by the browser and by SSR when building external links
-  PUBLIC_SUPABASE_URL: z.string().url(),
+  PUBLIC_SUPABASE_URL: z.url(),
   PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
@@ -25,7 +25,7 @@ function load() {
   const result = schema.safeParse(process.env);
   if (!result.success) {
     console.error("[env] Invalid environment variables:");
-    console.error(result.error.flatten().fieldErrors);
+    console.error(z.treeifyError(result.error));
     throw new Error(
       "Missing or invalid environment variables — check .env.example",
     );

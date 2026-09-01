@@ -90,11 +90,10 @@ Caddy will automatically obtain Let's Encrypt certificates for the three domains
 
 ```bash
 cd /opt/fms
-for f in supabase/migrations/*.sql; do
-  echo "→ $f"
-  bun run supabase:migrate < "$f"
-done
+bun run supabase:migrate:all:sh
 ```
+
+The script is tracked — already-applied migrations are skipped automatically, so re-running after a partial failure is safe.
 
 ### 7. First-run wizard
 
